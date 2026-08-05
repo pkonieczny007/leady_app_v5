@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie with context %}
+{% block title %}{{ tytul }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">{{ kicker }}</div>
+    <h1>{{ tytul }}</h1>
+    <p class="lede small">Lead, którego handlowiec nie ruszył — wraca tutaj i można go oddać
+      komuś innemu. W arkuszu była to osobna zakładka z formułą, która czytała tylko cztery
+      z pięciu list handlowców (Młynarczyk wypadał). Tu jest to filtr po statusie, więc
+      nic nie może wypaść.</p>
+  </div>
+</div>
+
+{{ pasek_filtrow(f, slowniki, total, query) }}
+
+{{ pasek_masowy(slowniki, tryb='przypisz', etykieta='Przypisz innemu handlowcowi') }}
+
+{{ tabela_leadow(rows,
+     ['chk','nr','placowka','typ','miejscowosc','kontakt','handlowiec',
+      'status_realizacji','deadline','aktywnosc','uwagi','akcje'],
+     slowniki, kolory, lead_fields, julia_fields,
+     min_szer='1320px',
+     pusto='Pula zwrotna jest pusta — żaden lead nie ma statusu „04. BRAK KONTAKTU ZE SZKOŁĄ".') }}
+
+{{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
+
+{{ legenda('Przypisanie stąd ustawia nowego handlowca, nowy termin ostateczny i cofa status
+            na „01. Próba kontaktu" — historia zmian zostaje w karcie leada.') }}
+{% endblock %}

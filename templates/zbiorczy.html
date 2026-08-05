@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, legenda, stronicowanie with context %}
+{% block title %}{{ tytul }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">{{ kicker }}</div>
+    <h1>{{ tytul }}</h1>
+    <p class="lede small">Te same rekordy co wszędzie — tylko kolumny Julki do odklikania.
+      Nic nie jest przeklejane z zakładek handlowców, więc data DT poprawiona przez handlowca
+      jest tu widoczna od razu.</p>
+  </div>
+  <div class="head-actions">
+    <div class="seg">
+      <a class="seg-opt {{ 'on' if f.zakres == 'umowione' }}"
+         href="{{ url_for('zbiorczy', zakres='umowione') }}">Z umówionym DT</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'cykle' }}"
+         href="{{ url_for('zbiorczy', zakres='cykle') }}">Z cyklami</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'wszystkie' }}"
+         href="{{ url_for('zbiorczy', zakres='wszystkie') }}">Wszystkie</a>
+    </div>
+  </div>
+</div>
+
+{{ pasek_filtrow(f, slowniki, total, query) }}
+
+{% set kolumny_julki = julia_fields | map(attribute=1) | list %}
+
+{{ tabela_leadow(rows,
+     ['nr','placowka','miejscowosc','dt_data','dt_godz','dt_trener','dt_sala','klas','dzieci']
+       + kolumny_julki + ['akcje'],
+     slowniki, kolory, lead_fields, julia_fields,
+     min_szer='1720px',
+     pusto='Brak szkół z umówionym DT. Pojawią się tu automatycznie po ustawieniu terminu DT.') }}
+
+{{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
+
+{{ legenda('Kolumny „WYPEŁNIA JULIA" z arkusza — każda jest listą Tak/Nie ze słownika,
+            zapis idzie natychmiast do bazy.') }}
+{% endblock %}

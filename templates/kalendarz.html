@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% from "_makra.html" import dot with context %}
+{% block title %}Kalendarz DT{% endblock %}
+{% block wrap_class %}wrap{% endblock %}
+
+{#
+  Trzy widoki JEDNYCH danych (tabela `eventy`). W arkuszu komórka kalendarza była
+  XLOOKUP-em, który zwraca PIERWSZE trafienie — drugie i trzecie DT trenera w tym
+  samym dniu było niewidoczne. Tu komórka to lista rekordów, więc widać wszystkie.
+#}
+
+{% macro kafel(e, kolor) %}
+<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ == 'CYKLICZNE' }}"
+     style="--ev-color:{{ kolor or '#9b9797' }}"
+     title="{{ e.placowka }} · {{ e.miejscowosc|bez_prefiksu }}{{ ' · ' ~ e.adres if e.adres }}
+{{ e.typ }}{{ ' ' ~ e.godz_od if e.godz_od }}{{ '–' ~ e.godz_do if e.godz_do }}
+{{ 'sala ' ~ e.numer_sali if e.numer_sali }}{{ ' · klas: ' ~ e.ilosc_klas if e.ilosc_klas }}{{ ' · dzieci: ' ~ e.ilosc_dzieci if e.ilosc_dzieci }}
+{{ 'handlowiec: ' ~ e.handlowiec if e.handlowiec }}">
+  <span class="ev-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
+  <a class="ev-szkola" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka|krotka(30) }}</a>
+  <span class="ev-meta">{{ e.miejscowosc|bez_prefiksu }}{% if e.numer_sali %} · s. {{ e.numer_sali }}{% endif %}</span>
+  {% if e.ilosc_klas or e.ilosc_dzieci %}
+  <span class="ev-meta nums">{{ e.ilosc_klas ~ ' klas' if e.ilosc_klas }}{{ ' · ' if e.ilosc_klas and e.ilosc_dzieci }}{{ e.ilosc_dzieci ~ ' dz.' if e.ilosc_dzieci }}</span>
+  {% endif %}
+  {% if e.typ == 'CYKLICZNE' and e['_cykl_nr'] %}<span class="ev-nr">cykl #{{ e['_cykl_nr'] }}</span>{% endif %}
+  {% if e.kolizja %}<span class="tag tag-solid-2 ev-kol">kolizja</span>{% endif %}
+</div>
+{% endmacro %}
+
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Grafik trenerów · {{ cal.month_label }}</div>
+    <h1>Kalendarz DT</h1>
+  </div>
+  <div class="head-actions">
+    <span class="muted small nums">
+      {{ cal.n_events }} spotkań ·
+      <b class="alert">{{ cal.n_kolizji }} w kolizji</b>
+    </span>
+    <div class="seg">
+      {% for k, ikona, nazwa in [('macierz','▦','Macierz'), ('agenda','☰','Agenda'), ('starty','▤','Starty')] %}
+      <a class="seg-opt {{ 'on' if widok == k }}"
+         href="{{ url_for('kalendarz', widok=k, m=month, typ=typ or none, trener=trener or none,
+                          weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0') }}">{{ ikona }} {{ nazwa }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<form class="filters" method="get" action="{{ url_for('kalendarz') }}">
+  <input type="hidden" name="widok" value="{{ widok }}">
+  <select class="input input-auto" name="m" onchange="this.form.submit()">
+    {% for mm in miesiace %}
+    <option value="{{ mm }}"{{ ' selected' if mm == month else '' }}>{{ mm }}</option>{% endfor %}
+    {% if not miesiace %}<option value="{{ month }}" selected>{{ month }}</option>{% endif %}
+  </select>
+
+  <select class="input input-auto" name="typ" onchange="this.form.submit()">
+    <option value="">— DT i cykliczne —</option>
+    <option value="DT"{{ ' selected' if typ == 'DT' else '' }}>tylko DT</option>
+    <option value="CYKLICZNE"{{ ' selected' if typ == 'CYKLICZNE' else '' }}>tylko cykliczne</option>
+  </select>
+
+  <select class="input input-auto" name="trener" onchange="this.form.submit()">
+    <option value="">— wszyscy trenerzy —</option>
+    {% for v in slowniki.get('trener', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == trener else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  <label class="check"><input type="checkbox" name="weekend" value="1"
+    {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
+  <label class="check"><input type="checkbox" name="zajete" value="1"
+    {{ 'checked' if tylko_zajete }} onchange="this.form.submit()"> tylko zajęci trenerzy</label>
+
+  <span class="filters-right">
+    <span class="muted small">{{ cal.month_label }}</span>
+  </span>
+</form>
+
+
+{# ══════════════════════════════════════════════════════════ MACIERZ #}
+{% if widok == 'macierz' %}
+  {% set puste = cal.tygodnie | selectattr('ma') | list %}
+  {% if not cal.tygodnie or not puste %}
+    <p class="empty">Brak spotkań w {{ cal.month_label }}.
+      Terminy DT dodaje się w karcie leada („karta →" na liście leadów).</p>
+  {% endif %}
+
+  {% for t in cal.tygodnie %}
+  {% if t.wiersze %}
+  <section class="section cal-week">
+    <div class="cal-week-head">
+      <span class="cal-week-label">Tydzień {{ t.label }}</span>
+      <span class="muted small nums">{{ t.n }} spotkań</span>
+    </div>
+    <div class="table-scroll">
+      <table class="cal-matrix">
+        <thead>
+          <tr>
+            <th class="cal-trener">Trener \ dzień</th>
+            {% for d in t.dni %}
+            <th class="{{ 'cal-weekend' if d.weekend }}{{ ' cal-today' if d.dzis }}{{ ' cal-out' if not d.in_month }}">
+              <span class="cal-dow">{{ d.dow_skr }}</span>
+              <span class="cal-day">{{ d.day }}</span>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in t.wiersze %}
+          <tr class="{{ 'cal-row-empty' if not w.ma }}">
+            <td class="cal-trener">{{ dot(w.kolor) }}{{ w.trener }}
+              {% if w.n %}<span class="muted small nums">({{ w.n }})</span>{% endif %}
+            </td>
+            {% for cell in w.cells %}
+            <td class="cal-cell{{ ' cal-cell-today' if t.dni[loop.index0].dzis }}{{ ' cal-out' if not t.dni[loop.index0].in_month }}">
+              {% if cell %}
+              <div class="cal-cell-stack">
+                {# KILKA kafli w JEDNEJ komórce — to jest naprawa ich buga #}
+                {% for e in cell %}{{ kafel(e, w.kolor) }}{% endfor %}
+              </div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+
+  <div class="legend">
+    <span>Wiersze = trenerzy (własny kolor ze Słowników), kolumny = dni.</span>
+    <span><b>Dwa DT jednego trenera w jednym dniu to dwa kafle w komórce</b> — w arkuszu widoczne było tylko pierwsze.</span>
+    <span><span class="sq sq-2"></span>kolizja godzin</span>
+    <span><span class="sq sq-1"></span>zajęcia cykliczne (krawędź przerywana)</span>
+  </div>
+{% endif %}
+
+
+{# ══════════════════════════════════════════════════════════ AGENDA #}
+{% if widok == 'agenda' %}
+  {% if not cal.dni %}
+    <p class="empty">Brak spotkań w {{ cal.month_label }}.</p>
+  {% endif %}
+  <div class="agenda">
+    {% for d in cal.dni %}
+    <div class="agenda-day{{ ' agenda-today' if d.dzis }}">
+      <div class="agenda-date">
+        <div class="dow">{{ d.dow }}</div>
+        <div class="num">{{ d.day }}</div>
+        <div class="mies">{{ d.mies }}</div>
+        <div class="muted small nums">{{ d.n }} spotk.</div>
+      </div>
+      <div class="agenda-list">
+        {% for e in d.eventy %}
+        <div class="agenda-row{{ ' kolizja' if e.kolizja }}">
+          {{ dot(e.kolor) }}
+          <span class="agenda-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
+          <a class="strong" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka }}</a>
+          <span class="muted small">· {{ e.miejscowosc|bez_prefiksu }}{% if e.numer_sali %} · sala {{ e.numer_sali }}{% endif %}
+            {%- if e.ilosc_klas %} · {{ e.ilosc_klas }} klas{% endif %}</span>
+          {% if e.typ == 'CYKLICZNE' %}<span class="tag tag-accent">cykl{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>{% endif %}
+          {% if e.kolizja %}<span class="tag tag-solid-2">kolizja</span>{% endif %}
+          <span class="agenda-trener">{{ e.trener|bez_prefiksu or '— brak trenera —' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="legend">
+    <span>Dzień po dniu, spotkania w kolejności godzin — czytelne przy ~30 zajęciach dziennie.</span>
+    <span><span class="sq sq-2"></span>nakładające się godziny tego samego trenera</span>
+  </div>
+{% endif %}
+
+
+{# ══════════════════════════════════════════════════════════ STARTY #}
+{% if widok == 'starty' %}
+  {% if not cal.tygodnie %}
+    <p class="empty">Brak zajęć w {{ cal.month_label }}.</p>
+  {% endif %}
+  {% for t in cal.tygodnie %}
+  <section class="starty-week">
+    <div class="starty-week-label">Tydzień {{ t.label }} · <span class="nums">{{ t.n }}</span> zajęć</div>
+    <div class="starty-grid">
+      {% for k in t.kolumny %}
+      <div class="starty-col">
+        <div class="starty-col-head{{ ' is-today' if k.dzis }}">
+          <span class="num">{{ k.day }}</span>
+          <span class="starty-col-meta">
+            <span class="dow">{{ k.dow }}</span>
+            <span class="cnt nums">{{ k.n }} zajęć</span>
+          </span>
+        </div>
+        <div class="starty-stack">
+          {% for e in k.eventy %}
+          {% set is_start = (e.typ == 'DT') or (e['_cykl_nr'] == 1) %}
+          <div class="card start-card{{ ' is-start' if is_start }}{{ ' is-kolizja' if e.kolizja }}">
+            <div class="start-card-top">
+              {% if e.typ == 'DT' %}
+                <span class="tag tag-solid-2">DT · START</span>
+              {% elif e['_cykl_nr'] == 1 %}
+                <span class="tag tag-solid-2">START CYKLU</span>
+              {% else %}
+                <span class="tag tag-accent">CYKLICZNE{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>
+              {% endif %}
+              <span class="start-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
+            </div>
+            <a class="start-szkola" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka }}</a>
+            <div class="start-adres">{{ e.miejscowosc|bez_prefiksu }}{{ ' · ' ~ e.adres if e.adres }}</div>
+            {% set meta = [] %}
+            {% if e.grupa %}{% set meta = meta + ['Gr. ' ~ e.grupa] %}{% endif %}
+            {% if e.sprzet %}{% set meta = meta + [e.sprzet|bez_prefiksu] %}{% endif %}
+            {% if e.numer_sali %}{% set meta = meta + ['sala ' ~ e.numer_sali] %}{% endif %}
+            {% if e.ilosc_klas %}{% set meta = meta + [e.ilosc_klas ~ ' klas'] %}{% endif %}
+            {% if e.ilosc_dzieci %}{% set meta = meta + [e.ilosc_dzieci ~ ' dzieci'] %}{% endif %}
+            {% if meta %}<div class="start-meta">{{ meta | join(' · ') }}</div>{% endif %}
+            {% if e.trener %}
+            <div class="start-trener">{{ dot(cal.kolory.get(e.trener)) }}<span class="start-trener-l">Trener</span>
+              {{ e.trener|bez_prefiksu }}</div>
+            {% endif %}
+            {% if e.trener2 %}<div class="small muted">Drugi prowadzący: {{ e.trener2|bez_prefiksu }}</div>{% endif %}
+            {% if e.zastepstwo %}<div class="small alert">Zastępstwo: {{ e.zastepstwo|bez_prefiksu }}</div>{% endif %}
+            {% if e.drukarz %}<div class="small muted">Drukarz: {{ e.drukarz|bez_prefiksu }}</div>{% endif %}
+            {% if e.kolizja %}<div><span class="tag tag-solid-2">kolizja trenera</span></div>{% endif %}
+            {% if e.kod_tinkercad or e.link_tinkercad %}
+            <div class="start-foot">
+              {% if e.kod_tinkercad %}<span class="start-kod">{{ e.kod_tinkercad }}</span>{% endif %}
+              {% if e.link_tinkercad %}<a class="small" href="{{ e.link_tinkercad }}" target="_blank" rel="noopener">Tinkercad ↗</a>{% endif %}
+            </div>
+            {% endif %}
+            {% if e.uwagi %}<div class="small muted">{{ e.uwagi|krotka(90) }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          {% if not k.eventy %}<div class="starty-puste">—</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  <div class="legend">
+    <span>Układ jak zakładka „STARTY CZERWIEC" — tygodnie jeden pod drugim, pięć kolumn dni,
+      każde zajęcia jako karta z danymi potrzebnymi w terenie.</span>
+    <span><span class="sq sq-2"></span>DT / start cyklu</span>
+    <span><span class="sq sq-1"></span>kolejne zajęcia cykliczne</span>
+  </div>
+{% endif %}
+
+
+{# ══════════════════════════════════════════════════════════ obciążenie #}
+{% if obciazenie %}
+<section class="section">
+  <div class="section-title">Obciążenie trenerów · {{ cal.month_label }}</div>
+  <div class="obciazenie">
+    {% set maks = obciazenie[0].n or 1 %}
+    {% for o in obciazenie %}
+    <div class="obc-row">
+      <span class="obc-name">{{ dot(o.kolor) }}{{ o.trener|bez_prefiksu }}</span>
+      <span class="bar obc-bar"><span class="bar-fill" style="width:{{ (100 * o.n / maks)|round }}%;background:{{ o.kolor }}"></span></span>
+      <span class="nums right obc-n">{{ o.n }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

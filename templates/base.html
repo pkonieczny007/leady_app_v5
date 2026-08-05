@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}System Leadów{% endblock %} · System Leadów</title>
+{# Czcionka systemowa (Segoe UI) — jak w pierwszej wersji i jak w generatorze raportów.
+   Żadnego pobierania z zewnątrz: na VPS bez internetu strona wygląda tak samo. #}
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% set _q = query|default('', true) %}
+
+<header class="topbar">
+  <div class="topbar-in">
+    {# logo na białym kafelku — tukan jest czarny z przezroczystym tłem,
+       na granacie sam by zginął #}
+    <a class="brand" href="{{ url_for('pulpit') }}">
+      <span class="brand-logo">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="SILESIA 3D" width="34" height="28">
+      </span>
+      {# nazwy firmy nie powtarzamy w tekście — nosi ją logo obok #}
+      <span class="brand-txt">System&nbsp;Leadów</span>
+      <span class="brand-tag">demo · zamiast arkusza</span>
+    </a>
+
+    <nav class="nav">
+      <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
+      <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
+      <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">Leady</a>
+      <a href="{{ url_for('tydzien') }}"        class="{{ 'on' if nav_active == 'tydzien' }}">Tydzień</a>
+      <a href="{{ url_for('zbiorczy') }}"       class="{{ 'on' if nav_active == 'zbiorczy' }}">Zbiorczy</a>
+      <a href="{{ url_for('niewykorzystane') }}" class="{{ 'on' if nav_active == 'niewykorzystane' }}">Niewykorzystane</a>
+      <a href="{{ url_for('kalendarz') }}"      class="{{ 'on' if nav_active == 'kalendarz' }}">Kalendarz DT</a>
+      <a href="{{ url_for('dostepnosc') }}"     class="{{ 'on' if nav_active == 'dostepnosc' }}">Dostępność</a>
+      <a href="{{ url_for('rejony') }}"         class="{{ 'on' if nav_active == 'rejony' }}">Rejony</a>
+      <a href="{{ url_for('slowniki_view') }}"  class="{{ 'on' if nav_active == 'slowniki_view' }}">Słowniki</a>
+    </nav>
+
+    <div class="topbar-right">
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
+         title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
+      <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
+         href="{{ url_for('import_view') }}">↑ Import</a>
+    </div>
+  </div>
+</header>
+
+{% with komunikaty = get_flashed_messages(with_categories=true) %}
+  {% if komunikaty %}
+  <div class="flashes">
+    {% for kat, tresc in komunikaty %}
+    <div class="flash {{ 'flash-err' if kat == 'err' else 'flash-ok' }}">{{ tresc }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<main class="{% block wrap_class %}wrap{% endblock %}">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="stopka wrap">
+  <span>Prototyp v4 · jedno źródło danych (placówka + lead + spotkania), ekrany to filtry —
+    nic się nie kopiuje między zakładkami.</span>
+  <span class="muted nums">{{ today|pl_data }}</span>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

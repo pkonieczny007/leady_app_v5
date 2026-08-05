@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Słowniki{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Jedno źródło list</div>
+    <h1>Słowniki</h1>
+    <p class="lede">Jedno miejsce dla wszystkich list rozwijanych — zmiana tutaj działa
+      na każdym ekranie. W arkuszu ta sama lista istniała w kilku wersjach: handlowcy mieli
+      „02. Olaszewska" obok „02. Olszewska", miejscowości występowały w trzech wariantach
+      (z dubletem „14. Dąbrowa Górnicza" i „17. Dąbrowa Górnicza"), a trenerzy w dwóch listach —
+      40-pozycyjnej i 24-pozycyjnej. Tu wartość spoza słownika po prostu nie da się zapisać.
+      Trenerom nadajesz kolor, który natychmiast widać w kalendarzu.</p>
+  </div>
+</div>
+
+<div class="dict-grid">
+  {% for klucz, etykieta, ma_kolor in rodzaje %}
+  {% set pozycje = data.get(klucz, []) %}
+  <div class="card elev-sm dict-card" data-rodzaj="{{ klucz }}">
+    <div class="kicker nums">{{ pozycje|length }} pozycji</div>
+    <h3>{{ etykieta }}</h3>
+    <div class="dict-list">
+      {% for p in pozycje %}
+      <div class="dict-item" data-slownik-id="{{ p.id }}">
+        {% if ma_kolor %}
+        <input type="color" class="swatch" value="{{ p.kolor or '#9b9797' }}"
+               data-kolor-id="{{ p.id }}" title="kolor w kalendarzu">
+        {% endif %}
+        <span class="name" title="{{ p.wartosc }}">{{ p.wartosc }}</span>
+        <button type="button" class="btn btn-ghost btn-usun-slownik" data-slownik-id="{{ p.id }}"
+                title="usuń pozycję (niemożliwe, jeśli jest w użyciu)">✕</button>
+      </div>
+      {% endfor %}
+      {% if not pozycje %}<div class="muted small">brak pozycji</div>{% endif %}
+    </div>
+    <div class="dict-add">
+      <input type="text" class="input dict-nowa" placeholder="nowa pozycja…"
+             data-rodzaj="{{ klucz }}" style="min-height:32px;font-size:13px">
+      <button type="button" class="btn btn-primary btn-dodaj-slownik" data-rodzaj="{{ klucz }}">+</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ------------------------------------------------------------------ ALIASY #}
+<section class="section aliasy">
+  <div class="page-head">
+    <div>
+      <div class="kicker">Sprzątanie po arkuszu</div>
+      <h2>Aliasy — zapis w arkuszu → wartość kanoniczna</h2>
+      <p class="lede">Alias to tłumaczenie tego, co ludzie realnie wpisali, na jedną wartość
+        ze słownika. W plikach klienta nazwa jednego trenera występuje w kilkudziesięciu
+        wariantach — „ZUZANNA OLSZEWSKA", „ZUZIA OLSZEWSKA", „ZUZA", „01. Olszewska Zuza" —
+        a to zawsze ta sama osoba. Bez aliasów każdy import trzeba czyścić ręcznie, a filtr
+        „po handlowcu" gubi część rekordów. Z aliasami import sam podstawia wartość kanoniczną
+        i nikt nie musi niczego poprawiać. Alias działa przy imporcie; w aplikacji nowe wpisy
+        i tak wybiera się z listy, więc nowe warianty już nie powstaną.</p>
+    </div>
+  </div>
+
+  <form class="filters alias-add" id="alias-form">
+    <select class="input input-auto" id="alias-rodzaj">
+      {% for klucz, etykieta, ma_kolor in rodzaje %}
+      <option value="{{ klucz }}">{{ etykieta }}</option>{% endfor %}
+    </select>
+    <input type="text" class="input input-auto" id="alias-alias" style="min-width:240px"
+           placeholder="zapis z arkusza, np. ZUZIA OLSZEWSKA">
+    <span class="muted">→</span>
+    <select class="input input-auto" id="alias-wartosc" style="min-width:240px"></select>
+    <button type="button" class="btn btn-primary btn-sm" id="btn-dodaj-alias">+ Dodaj alias</button>
+  </form>
+
+  {% set ile_aliasow = aliasy.values() | map('length') | sum %}
+  {% if ile_aliasow %}
+  <div class="cols cols-2 alias-cols">
+    {% for klucz, etykieta, ma_kolor in rodzaje %}
+    {% if aliasy.get(klucz) %}
+    <div class="alias-blok">
+      <div class="section-title">{{ etykieta }} · <span class="nums">{{ aliasy[klucz]|length }}</span></div>
+      <table class="table table-tight">
+        <thead><tr><th>Zapis w arkuszu</th><th>Wartość kanoniczna</th><th></th></tr></thead>
+        <tbody>
+          {% for a in aliasy[klucz] %}
+          <tr>
+            <td class="muted">{{ a.alias }}</td>
+            <td class="strong">{{ a.wartosc }}</td>
+            <td class="right">
+              {% if a.id is defined %}
+              <button type="button" class="btn btn-ghost btn-usun-alias" data-alias-id="{{ a.id }}"
+                      title="usuń alias">✕</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">Brak aliasów.</p>
+  {% endif %}
+</section>
+
+<script id="slowniki-json" type="application/json">{{ data|tojson }}</script>
+{% endblock %}

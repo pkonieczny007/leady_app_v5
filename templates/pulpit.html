@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% from "_makra.html" import dot with context %}
+{% block title %}Pulpit{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Przegląd · {{ month_label }}</div>
+    <h1>Pulpit</h1>
+  </div>
+  <div class="head-actions">
+    <form method="get" action="{{ url_for('pulpit') }}">
+      <select class="input input-auto" name="m" onchange="this.form.submit()">
+        {% for mm in miesiace %}
+        <option value="{{ mm }}"{{ ' selected' if mm == month else '' }}>{{ mm }}</option>{% endfor %}
+        {% if not miesiace %}<option value="{{ month }}" selected>{{ month }}</option>{% endif %}
+      </select>
+    </form>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('kalendarz', m=month) }}">Kalendarz DT →</a>
+  </div>
+</div>
+
+{# ------------------------------------------------------------------ wielkie liczby #}
+<div class="metrics">
+  <a class="metric" href="{{ url_for('baza', zakres='wszystkie') }}">
+    <div class="metric-n nums">{{ m.leady }}</div>
+    <div class="metric-l">leadów łącznie<br><span class="muted">{{ m.placowki }} placówek w bazie</span></div>
+  </a>
+  <a class="metric metric-accent" href="{{ url_for('zbiorczy', zakres='umowione') }}">
+    <div class="metric-n nums">{{ m.umowione }}</div>
+    <div class="metric-l">DT umówione</div>
+  </a>
+  <a class="metric" href="{{ url_for('baza', zakres='nieprzydzielone') }}">
+    <div class="metric-n nums">{{ m.nieprzydzielone }}</div>
+    <div class="metric-l">do rozdania</div>
+  </a>
+  <a class="metric metric-alert" href="{{ url_for('baza', zakres='po_terminie') }}">
+    <div class="metric-n nums">{{ m.po_terminie }}</div>
+    <div class="metric-l">po terminie</div>
+  </a>
+  <a class="metric metric-alert" href="{{ url_for('kalendarz', m=month) }}">
+    <div class="metric-n nums">{{ kolizje|length }}</div>
+    <div class="metric-l">kolizji trenerów<br><span class="muted">{{ month_label }}</span></div>
+  </a>
+  <a class="metric" href="{{ url_for('kalendarz', m=month) }}">
+    <div class="metric-n nums">{{ m.eventy_dt }}</div>
+    <div class="metric-l">spotkań DT<br><span class="muted">{{ m.eventy_cykl }} wpisów cyklicznych</span></div>
+  </a>
+  <a class="metric" href="{{ url_for('niewykorzystane') }}">
+    <div class="metric-n nums">{{ m.niewykorzystane }}</div>
+    <div class="metric-l">w puli zwrotnej</div>
+  </a>
+</div>
+
+<div class="cols cols-2">
+  {# ---------------------------------------------------------------- lewa kolumna #}
+  <div>
+    <section class="section">
+      <h2 class="h2-inline">Po terminie
+        <span class="alert small">termin ostateczny minął, brak umówionego DT</span>
+      </h2>
+      {% if overdue %}
+      <div class="table-scroll">
+        <table class="table table-tight">
+          <thead><tr>
+            <th>Termin</th><th>Handlowiec</th><th>Placówka</th><th>Miejscowość</th>
+            <th>Status</th><th>Ostatnia zmiana</th><th></th>
+          </tr></thead>
+          <tbody>
+            {% for r in overdue %}
+            <tr>
+              <td class="nums cell-overdue">{{ r.deadline|pl_data }}</td>
+              <td class="small">{{ r.handlowiec|bez_prefiksu or '—' }}</td>
+              <td class="strong">{{ r.placowka|krotka(34) }}</td>
+              <td class="muted small">{{ r.miejscowosc|bez_prefiksu }}</td>
+              <td><span class="tag tag-outline">{{ r.status_realizacji|bez_prefiksu or 'brak' }}</span></td>
+              <td class="muted small nums">{{ (r.ostatnia_aktywnosc or '')[:10] or '—' }}</td>
+              <td class="right"><a class="small" href="{{ url_for('lead_detail', lead_id=r.id) }}">karta →</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty">Żaden lead nie przekroczył terminu ostatecznego.</p>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <h2 class="h2-inline">Kolizje trenerów
+        <span class="alert small">nakładające się godziny · {{ month_label }}</span>
+      </h2>
+      {% if kolizje %}
+      <div class="table-scroll">
+        <table class="table table-tight">
+          <thead><tr><th>Data</th><th>Trener</th><th>Godziny</th><th>Typ</th><th>Placówka</th><th></th></tr></thead>
+          <tbody>
+            {% for e in kolizje %}
+            <tr>
+              <td class="nums">{{ e.data|pl_data }}</td>
+              <td class="small nowrap">{{ dot(kolory.get(e.trener)) }}{{ e.trener|bez_prefiksu }}</td>
+              <td class="nums alert strong nowrap">{{ e.godz_od or '?' }}–{{ e.godz_do or '?' }}</td>
+              <td class="small">{% if e.typ == 'CYKLICZNE' %}<span class="tag tag-accent">cykl</span>{% else %}<span class="tag tag-neutral">DT</span>{% endif %}</td>
+              <td>{{ e.placowka|krotka(30) }} <span class="muted small">{{ e.miejscowosc|bez_prefiksu }}</span></td>
+              <td class="right"><a class="small" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">karta →</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="legend">Kolizja nie blokuje zapisu — pokazujemy ją, żeby koordynator mógł
+        wstawić zastępstwo. Bez rozbicia godzin na „od/do" arkusz nie umiał tego wykryć.</p>
+      {% else %}
+      <p class="empty">Brak kolizji w {{ month_label }}.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  {# ---------------------------------------------------------------- prawa kolumna #}
+  <div>
+    <section class="section">
+      <h2 class="h2-inline">Podział wg handlowca</h2>
+      {% if per_h %}
+      <table class="table table-tight">
+        <thead><tr>
+          <th>Handlowiec</th>
+          <th class="right">Leadów</th>
+          <th class="right">DT</th>
+          <th style="width:26%">Skuteczność</th>
+        </tr></thead>
+        <tbody>
+          {% for r in per_h %}
+          <tr>
+            <td><a href="{{ url_for('leady', handlowiec=r.handlowiec) }}">{{ r.handlowiec|bez_prefiksu }}</a></td>
+            <td class="right nums">{{ r.leadow }}</td>
+            <td class="right nums">{{ r.umowione }}</td>
+            <td>
+              <span class="bar"><span class="bar-fill" style="width:{{ r.proc }}%"></span></span>
+              <span class="muted small nums">{{ r.proc }}%</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Żaden lead nie ma jeszcze przypisanego handlowca.</p>
+      {% endif %}
+    </section>
+
+    {# „STATUS — minimum na tydzień" wprost z notatek ze spotkania 24.07 #}
+    <section class="section">
+      <h2 class="h2-inline">Minimum tygodniowe
+        <span class="muted small">cel {{ cel }} DT / tydzień · od poniedziałku {{ poniedzialek|pl_data }}</span>
+      </h2>
+      {% if per_h %}
+      <table class="table table-tight">
+        <thead><tr>
+          <th>Handlowiec</th>
+          <th class="right">W tym tyg.</th>
+          <th class="right">Cel</th>
+          <th style="width:26%">Realizacja</th>
+          <th class="right">Przypiętych</th>
+        </tr></thead>
+        <tbody>
+          {% for r in per_h %}
+          <tr class="{{ 'row-ok' if r.cel_ok else 'row-warn' }}">
+            <td>{{ r.handlowiec|bez_prefiksu }}</td>
+            <td class="right nums strong">{{ r.w_tygodniu }}</td>
+            <td class="right nums muted">{{ r.cel }}</td>
+            <td>
+              <span class="bar"><span class="bar-fill {{ '' if r.cel_ok else 'bar-fill-2' }}"
+                    style="width:{{ r.cel_proc }}%"></span></span>
+              <span class="small nums {{ 'ok' if r.cel_ok else 'alert' }}">
+                {{ r.cel_proc }}%{{ ' ✓' if r.cel_ok else '' }}</span>
+            </td>
+            <td class="right nums">
+              {% if r.przypietych %}<a href="{{ url_for('tydzien') }}">{{ r.przypietych }}</a>
+              {% else %}<span class="muted">0</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="legend">„W tym tygodniu" = leady, które w tym tygodniu doszły do statusu
+        „03. DT umówione" (liczone z historii zmian, nie z ręcznego licznika).</p>
+      {% else %}
+      <p class="empty">Brak danych o handlowcach.</p>
+      {% endif %}
+    </section>
+
+    <section class="section">
+      <h2 class="h2-inline">Obciążenie trenerów
+        <span class="muted small">{{ month_label }}</span>
+      </h2>
+      {% if obciazenie %}
+      <div class="obciazenie">
+        {% set maks = obciazenie[0].n or 1 %}
+        {% for o in obciazenie %}
+        <div class="obc-row">
+          <span class="obc-name">{{ dot(o.kolor) }}{{ o.trener|bez_prefiksu }}</span>
+          <span class="bar obc-bar"><span class="bar-fill"
+                style="width:{{ (100 * o.n / maks)|round }}%;background:{{ o.kolor }}"></span></span>
+          <span class="nums right obc-n">{{ o.n }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="legend">Do dogrywania szkół i szukania zastępstw — „widzimy całą firmę,
+        kto gdzie jest".</p>
+      {% else %}
+      <p class="empty">Brak zajęć w {{ month_label }}.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

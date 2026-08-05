@@ -1,0 +1,15 @@
+services:
+  leady_v3:
+    build: .
+    container_name: leady_app_v3
+    restart: unless-stopped
+    ports:
+      # host:kontener — 5058, żeby nie kolidowało z v1 (5057)
+      - "5058:5000"
+    volumes:
+      - leady_v3_data:/data
+    environment:
+      - DATA_DIR=/data
+
+volumes:
+  leady_v3_data:

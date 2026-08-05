@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_makra.html" import dot with context %}
+{% block title %}Rejony trenerów{% endblock %}
+
+{#
+  Rejonu nie było w arkuszu w ogóle — koordynatorka trzymała w głowie, kto jeździ
+  w którą stronę województwa. Przez to podpowiedź „kogo wysłać" była niemożliwa
+  do zrobienia maszynowo (patrz docs/07_PYTANIA_do_klienta.md, C1).
+
+  Rejon jest jednak ukryty w danych: skoro trener uczył 12× w Knurowie, to jest
+  jego teren. Dlatego każdy wiersz ma gotową podpowiedź z historii zajęć —
+  uzupełnienie rejonu to zwykle jedno kliknięcie, a nie klikanie 33 miast.
+#}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Kto po jakich miastach jeździ</div>
+    <h1>Rejony trenerów</h1>
+  </div>
+  <div class="head-actions">
+    <span class="muted small nums">
+      {{ trenerzy|selectattr('miasta')|list|length }} z {{ trenerzy|length }} trenerów ma rejon
+    </span>
+  </div>
+</div>
+
+<p class="muted small rj-nota">
+  Rejon nie ogranicza — trener spoza rejonu dalej jest na liście kandydatów,
+  tylko niżej. Chodzi o kolejność podpowiedzi, nie o zakaz.
+</p>
+
+<section class="section">
+  <div class="table-scroll">
+    <table class="tabela rj-tabela">
+      <thead>
+        <tr>
+          <th style="width:16rem">Trener</th>
+          <th style="width:5rem" class="right">Zajęć</th>
+          <th>Rejon — miasta</th>
+          <th style="width:11rem"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trenerzy %}
+        <tr class="rj-row" data-trener="{{ t.trener }}">
+          <td class="nowrap">{{ dot(t.kolor) }}{{ t.trener }}</td>
+          <td class="right nums muted">{{ t.n_zajec or '' }}</td>
+          <td class="rj-miasta">
+            {% if t.miasta %}
+              {% for m in t.miasta %}<span class="tag tag-outline">{{ m }}</span>{% endfor %}
+            {% else %}
+              <span class="muted small">— brak rejonu —</span>
+            {% endif %}
+          </td>
+          <td class="right">
+            <button type="button" class="btn btn-ghost btn-sm btn-rj-edytuj">Zmień</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{# ── edytor rejonu: otwiera się pod wierszem trenera ── #}
+<div id="rj-editor" class="rj-editor" hidden>
+  <div class="rj-editor-head">
+    <b id="rje-head"></b>
+    <button type="button" class="btn btn-ghost btn-sm" id="rje-zamknij" title="zamknij">✕</button>
+  </div>
+
+  <div class="rj-podpowiedz" id="rje-podpowiedz" hidden>
+    <span class="muted small">Z historii zajęć:</span>
+    <span id="rje-podpowiedz-lista"></span>
+    <button type="button" class="btn btn-secondary btn-sm" id="rje-przyjmij">
+      Przyjmij jako rejon</button>
+  </div>
+
+  <div class="rj-miasta-grid" id="rje-miasta">
+    {% for m in miasta %}
+    <label class="check"><input type="checkbox" class="rje-m" value="{{ m }}"> {{ m }}</label>
+    {% endfor %}
+  </div>
+
+  <div class="rj-editor-akcje">
+    <button type="button" class="btn btn-primary btn-sm" id="rje-zapisz">Zapisz rejon</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="rje-wyczysc">Wyczyść</button>
+    <span class="muted small" id="rje-licznik"></span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='przydzial.js') }}"></script>
+{% endblock %}

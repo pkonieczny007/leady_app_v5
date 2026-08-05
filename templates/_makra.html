@@ -1,0 +1,409 @@
+{#
+  ============================================================================
+  MAKRA WSPÓŁDZIELONE
+
+  Powód istnienia tego pliku: klient sparzył się na tym, że w jego arkuszu
+  „generalnie całe tabele są powielone" — pięć zakładek handlowców, Zbiorczy,
+  Niewykorzystane, Szkoły z DT… każda z własną kopią tych samych kolumn, które
+  z czasem się rozjechały (inne nagłówki, inne listy, literówka „02. Olaszewska").
+
+  Dlatego w v3 pięć ekranów listy to JEDNA tabela z parametrem `kolumny`.
+  Poprawka wyglądu kolumny robi się raz i działa wszędzie.
+
+  Reguła nagłówków i komórek:
+    - klucze „układowe" (chk, nr, pin, placowka, kontakt, dt_*, akcje…) mają
+      własny render,
+    - każdy inny klucz jest traktowany jako POLE LEADA: etykieta i typ pola
+      są brane z `lead_fields` / `julia_fields`, a komórka jest edytowalna.
+  Dzięki temu dodanie kolumny na ekranie = dopisanie jej klucza do listy.
+  ============================================================================
+#}
+
+{# klucz kolumny → (nagłówek, wyrównanie) #}
+{% set NAGLOWKI = {
+  'chk':          ('',              'left'),
+  'nr':           ('#',             'right'),
+  'pin':          ('',              'left'),
+  'rspo':         ('RSPO',          'right'),
+  'placowka':     ('Placówka',      'left'),
+  'typ':          ('Typ',           'left'),
+  'miejscowosc':  ('Miejscowość',   'left'),
+  'adres':        ('Adres',         'left'),
+  'kontakt':      ('Kontakt',       'left'),
+  'dt_data':      ('Data DT',       'left'),
+  'dt_godz':      ('Godziny DT',    'left'),
+  'dt_trener':    ('Prowadzący DT', 'left'),
+  'dt_sala':      ('Sala',          'left'),
+  'klas':         ('Klas',          'right'),
+  'dzieci':       ('Dzieci',        'right'),
+  'ile_dt':       ('DT',            'right'),
+  'ile_cykl':     ('Cykli',         'right'),
+  'aktywnosc':    ('Ostatnia zmiana', 'left'),
+  'akcje':        ('',              'right'),
+} %}
+
+{# klucz kolumny → nazwa sortowania obsługiwana przez repo.SORT_POLA #}
+{% set SORTY = {
+  'placowka': 'placowka',
+  'miejscowosc': 'miasto',
+  'typ': 'typ',
+  'handlowiec': 'handlowiec',
+  'status_realizacji': 'status',
+  'deadline': 'deadline',
+  'dt_data': 'data_dt',
+  'aktywnosc': 'aktywnosc',
+} %}
+
+
+{# ------------------------------------------------------------------ drobiazgi #}
+
+{% macro dot(kolor) -%}
+<span class="dot" style="background:{{ kolor or '#9b9797' }}"></span>
+{%- endmacro %}
+
+{% macro trener(nazwa, kolory) -%}
+{%- if nazwa -%}<span class="nowrap">{{ dot(kolory.get(nazwa)) }}{{ nazwa|bez_prefiksu }}</span>
+{%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro typ_pola(fields, klucz) %}{% for f in fields if f[1] == klucz %}{{ f[2] }}{% endfor %}{% endmacro %}
+{% macro etykieta_pola(fields, klucz) %}{% for f in fields if f[1] == klucz %}{{ f[0] }}{% endfor %}{% endmacro %}
+
+
+{# ------------------------------------------------------------------ komórka edytowalna
+   Typ kontrolki NIE jest tu zapisany na sztywno — wynika z definicji pola
+   (LEAD_FIELDS / JULIA_FIELDS / EVENT_FIELDS / PLACOWKA_FIELDS).
+   `slownik:<rodzaj>` → <select> z opcjami TYLKO ze słownika. To jest sedno
+   naprawy „02. Olaszewska": literówki nie da się wpisać, bo nie ma jej na liście.
+#}
+{% macro pole(rid, klucz, wartosc, fields, slowniki, api='lead', klasa='') %}
+{%- set t = typ_pola(fields, klucz)|trim or 'text' -%}
+{%- set lab = etykieta_pola(fields, klucz)|trim or klucz -%}
+{%- set wsp = 'lead-cell ' ~ klasa -%}
+{%- if t.startswith('slownik:') -%}
+  {%- set rodzaj = t.split(':')[1] -%}
+  {%- set lista = slowniki.get(rodzaj, []) -%}
+  <select class="{{ wsp }}" data-api="{{ api }}" data-id="{{ rid }}" data-field="{{ klucz }}"
+          data-prev="{{ wartosc or '' }}" title="{{ lab }} (lista: {{ rodzaj }})">
+    <option value="">—</option>
+    {%- for v in lista %}<option value="{{ v }}"{{ ' selected' if v == wartosc else '' }}>{{ v }}</option>{% endfor -%}
+    {%- if wartosc and wartosc not in lista %}<option value="{{ wartosc }}" selected>⚠ {{ wartosc }} (spoza słownika)</option>{% endif -%}
+  </select>
+{%- elif t == 'date' -%}
+  <input type="date" class="{{ wsp }} nums" data-api="{{ api }}" data-id="{{ rid }}"
+         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}" title="{{ lab }}">
+{%- elif t == 'time' -%}
+  <input type="time" class="{{ wsp }} nums" data-api="{{ api }}" data-id="{{ rid }}"
+         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}" title="{{ lab }}">
+{%- elif t == 'int' -%}
+  <input type="number" min="0" step="1" class="{{ wsp }} nums right" data-api="{{ api }}" data-id="{{ rid }}"
+         data-field="{{ klucz }}" data-prev="{{ wartosc if wartosc is not none else '' }}"
+         value="{{ wartosc if wartosc is not none else '' }}" title="{{ lab }}">
+{%- else -%}
+  <input type="text" class="{{ wsp }}" data-api="{{ api }}" data-id="{{ rid }}"
+         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}" title="{{ lab }}">
+{%- endif -%}
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ pole w formularzu
+   Ta sama definicja pola, ale bez zapisu „na change" — do formularzy (nowe spotkanie).
+   JS zbiera wszystko po atrybucie name.
+#}
+{% macro pole_form(klucz, fields, slowniki, wartosc='', domyslny='') %}
+{%- set t = typ_pola(fields, klucz)|trim or 'text' -%}
+{%- if t.startswith('slownik:') -%}
+  {%- set rodzaj = t.split(':')[1] -%}
+  <select class="input" name="{{ klucz }}">
+    <option value="">—</option>
+    {%- for v in slowniki.get(rodzaj, []) %}<option value="{{ v }}"{{ ' selected' if v == (wartosc or domyslny) else '' }}>{{ v }}</option>{% endfor -%}
+  </select>
+{%- elif t == 'date' -%}
+  <input type="date" class="input nums" name="{{ klucz }}" value="{{ wartosc or '' }}">
+{%- elif t == 'time' -%}
+  <input type="time" class="input nums" name="{{ klucz }}" value="{{ wartosc or '' }}">
+{%- elif t == 'int' -%}
+  <input type="number" min="0" step="1" class="input nums" name="{{ klucz }}" value="{{ wartosc or '' }}">
+{%- else -%}
+  <input type="text" class="input" name="{{ klucz }}" value="{{ wartosc or '' }}">
+{%- endif -%}
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ nagłówek kolumny #}
+
+{% macro _th(k, fields) %}
+{%- set meta = NAGLOWKI.get(k) -%}
+{%- set etykieta = meta[0] if meta else (etykieta_pola(fields, k)|trim or k) -%}
+{%- set al = meta[1] if meta else 'left' -%}
+<th class="{{ 'right' if al == 'right' else '' }}{{ ' th-narrow' if k in ('chk','pin','nr') else '' }}">
+  {%- if k in SORTY -%}
+    {%- set kier = 'desc' if (f is defined and f.sort == SORTY[k] and f.kier != 'desc') else 'asc' -%}
+    <a class="th-sort" href="{{ url_for(request.endpoint, **dict(q_all, sort=SORTY[k], kier=kier)) }}">{{ etykieta }}{% if f is defined and f.sort == SORTY[k] %}<span class="th-arrow">{{ '↓' if f.kier == 'desc' else '↑' }}</span>{% endif %}</a>
+  {%- elif k == 'chk' -%}
+    <input type="checkbox" id="chk-all" title="zaznacz wszystkie">
+  {%- else -%}
+    {{ etykieta }}
+  {%- endif -%}
+</th>
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ komórka wiersza #}
+
+{% macro _td(k, r, nr, slowniki, kolory, fields) %}
+{%- if k == 'chk' -%}
+  <td class="th-narrow"><input type="checkbox" class="chk" value="{{ r.id }}"></td>
+
+{%- elif k == 'nr' -%}
+  <td class="right muted nums th-narrow">{{ nr }}</td>
+
+{%- elif k == 'pin' -%}
+  <td class="th-narrow">
+    <button type="button" class="pin-btn{{ ' on' if r.pin_tydzien else '' }}" data-pin-id="{{ r.id }}"
+            data-pin="{{ 1 if r.pin_tydzien else 0 }}"
+            title="{{ 'Przypięte na tydzień ' ~ r.pin_tydzien if r.pin_tydzien else 'Przypnij na plan tygodnia' }}">
+      {{ '★' if r.pin_tydzien else '☆' }}
+    </button>
+  </td>
+
+{%- elif k == 'rspo' -%}
+  <td class="right muted nums small">{{ r.rspo or '' }}</td>
+
+{%- elif k == 'placowka' -%}
+  <td>
+    <a class="strong" href="{{ url_for('lead_detail', lead_id=r.id) }}">{{ r.placowka|krotka(46) }}</a>
+    {%- if r.n_cykl %} <span class="tag tag-accent" title="zajęcia cykliczne">cykl ×{{ r.n_cykl }}</span>{% endif -%}
+  </td>
+
+{%- elif k == 'typ' -%}
+  <td class="muted small">{{ r.typ_placowki|bez_prefiksu }}</td>
+
+{%- elif k == 'miejscowosc' -%}
+  <td class="muted">{{ r.miejscowosc|bez_prefiksu }}</td>
+
+{%- elif k == 'adres' -%}
+  <td class="muted small">{{ r.adres|krotka(34) }}</td>
+
+{%- elif k == 'kontakt' -%}
+  <td class="small">
+    {%- if r.osoba_kontakt %}<div>{{ r.osoba_kontakt|krotka(28) }}</div>{% endif -%}
+    {%- if r.telefon %}<div class="muted nums">{{ r.telefon }}</div>{% endif -%}
+    {%- if r.mail %}<div class="muted">{{ r.mail|krotka(28) }}</div>{% endif -%}
+    {%- if not (r.osoba_kontakt or r.telefon or r.mail) %}<span class="muted">—</span>{% endif -%}
+  </td>
+
+{%- elif k == 'deadline' -%}
+  {# „termin ostateczny" — po terminie i bez DT świeci na magenta (żądanie: kontrola
+     aktywności handlowca przed terminem) #}
+  <td class="cell-deadline{{ ' cell-overdue' if r.po_terminie else '' }}" data-deadline-of="{{ r.id }}">
+    {{ pole(r.id, 'deadline', r.deadline, fields, slowniki) }}
+  </td>
+
+{%- elif k == 'dt_data' -%}
+  <td class="nums{{ '' if r.dt_data else ' muted' }}">
+    {{ r.dt_data|pl_data if r.dt_data else '—' }}
+    {%- if r.n_dt and r.n_dt > 1 %} <span class="tag tag-accent" title="{{ r.n_dt }} spotkania DT">×{{ r.n_dt }}</span>{% endif -%}
+  </td>
+
+{%- elif k == 'dt_godz' -%}
+  <td class="nums muted small nowrap">
+    {%- if r.dt_godz_od %}{{ r.dt_godz_od }}{% if r.dt_godz_do %}–{{ r.dt_godz_do }}{% endif %}{% else %}—{% endif -%}
+  </td>
+
+{%- elif k == 'dt_trener' -%}
+  <td class="small">{{ trener(r.dt_trener, kolory) }}</td>
+
+{%- elif k == 'dt_sala' -%}
+  <td class="muted small">{{ r.dt_sala or '' }}</td>
+
+{%- elif k == 'klas' -%}
+  <td class="right nums">{{ r.dt_klas if r.dt_klas is not none else '' }}</td>
+
+{%- elif k == 'dzieci' -%}
+  <td class="right nums">{{ r.dt_dzieci if r.dt_dzieci is not none else '' }}</td>
+
+{%- elif k == 'ile_dt' -%}
+  <td class="right nums">{{ r.n_dt or '' }}</td>
+
+{%- elif k == 'ile_cykl' -%}
+  <td class="right nums">{{ r.n_cykl or '' }}</td>
+
+{%- elif k == 'aktywnosc' -%}
+  <td class="muted small nums nowrap">{{ (r.ostatnia_aktywnosc or '')[:16] or '—' }}</td>
+
+{%- elif k == 'akcje' -%}
+  <td class="right nowrap">
+    <a class="small" href="{{ url_for('lead_detail', lead_id=r.id) }}">karta →</a>
+  </td>
+
+{%- else -%}
+  {# dowolne pole leada / Julki — kontrolka wynika z typu w LEAD_FIELDS/JULIA_FIELDS #}
+  <td class="{{ 'td-tak-nie' if k.startswith('julia_') else '' }}">
+    {{ pole(r.id, k, r.get(k), fields, slowniki) }}
+  </td>
+{%- endif -%}
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ TABELA LEADÓW
+   Jedna tabela dla: baza / leady / zbiorczy / niewykorzystane / tydzien.
+#}
+{% macro tabela_leadow(rows, kolumny, slowniki, kolory, lead_fields, julia_fields,
+                       min_szer='1040px', pusto='Brak rekordów dla tych filtrów.',
+                       start=1) %}
+{%- set fields = lead_fields + julia_fields -%}
+{% if rows %}
+<div class="table-scroll">
+  <table class="table table-tight">
+    <colgroup>{% for k in kolumny %}<col{{ ' class=col-narrow' if k in ('chk','pin','nr') else '' }}>{% endfor %}</colgroup>
+    <thead><tr>{% for k in kolumny %}{{ _th(k, fields) }}{% endfor %}</tr></thead>
+    <tbody>
+      {% for r in rows %}
+      {% set nr = loop.index + start - 1 %}
+      <tr data-lead="{{ r.id }}">{% for k in kolumny %}{{ _td(k, r, nr, slowniki, kolory, fields) }}{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">{{ pusto }}</p>
+{% endif %}
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ STRONICOWANIE
+   Listy są cięte na strony, bo przy 550 leadach każdy wiersz nosi pełne listy
+   rozwijane i strona rozdmuchałaby się do ~1,4 MB. Pokazujemy jawnie, ile z ilu
+   widać — żeby nikt nie pomyślał, że filtr zgubił mu rekordy.
+#}
+{% macro stronicowanie(strona, stron, total, pokazano, na_strone, query) %}
+{%- if total -%}
+{%- set baza = [] -%}
+{%- for para in query.split('&') if para and not para.startswith('strona=') -%}
+  {%- set _ = baza.append(para) -%}
+{%- endfor -%}
+{%- set qs = baza | join('&') -%}
+<div class="pager">
+  <span class="muted small nums">
+    {{ (strona - 1) * na_strone + 1 }}–{{ (strona - 1) * na_strone + pokazano }}
+    z {{ total }}
+  </span>
+  {% if stron > 1 %}
+  <span class="pager-btns">
+    {% if strona > 1 %}
+      <a class="btn btn-secondary btn-sm" href="?{{ qs }}{% if qs %}&{% endif %}strona=1">« pierwsza</a>
+      <a class="btn btn-secondary btn-sm" href="?{{ qs }}{% if qs %}&{% endif %}strona={{ strona - 1 }}">‹ poprzednia</a>
+    {% endif %}
+    <span class="muted small nums">strona {{ strona }} z {{ stron }}</span>
+    {% if strona < stron %}
+      <a class="btn btn-secondary btn-sm" href="?{{ qs }}{% if qs %}&{% endif %}strona={{ strona + 1 }}">następna ›</a>
+      <a class="btn btn-secondary btn-sm" href="?{{ qs }}{% if qs %}&{% endif %}strona={{ stron }}">ostatnia »</a>
+    {% endif %}
+  </span>
+  {% endif %}
+  <span class="muted small">
+    Eksport XLSX pobiera <strong>cały</strong> wyfiltrowany zbiór ({{ total }}), nie tylko tę stronę.
+  </span>
+</div>
+{%- endif -%}
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ PASEK FILTRÓW
+   Formularz GET — te same parametry, których używa eksport, więc „pobierz XLSX"
+   oddaje DOKŁADNIE to, co widać na ekranie (wprost zgłoszone życzenie klienta).
+#}
+{% macro pasek_filtrow(f, slowniki, total, query, zakres_domyslny='',
+                       pokaz_status_szkoly=false, pokaz_dt=false) %}
+<form class="filters" method="get" action="">
+  {% if f.zakres %}<input type="hidden" name="zakres" value="{{ f.zakres }}">{% endif %}
+  {% if f.sort %}<input type="hidden" name="sort" value="{{ f.sort }}">{% endif %}
+  {% if f.kier %}<input type="hidden" name="kier" value="{{ f.kier }}">{% endif %}
+
+  <select class="input input-auto" name="handlowiec" onchange="this.form.submit()">
+    <option value="">— handlowiec —</option>
+    {% for v in slowniki.get('handlowiec', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.handlowiec else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  <select class="input input-auto" name="miasto" onchange="this.form.submit()">
+    <option value="">— miejscowość —</option>
+    {% for v in slowniki.get('miasto', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.miasto else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  <select class="input input-auto" name="status" onchange="this.form.submit()">
+    <option value="">— status realizacji —</option>
+    {% for v in slowniki.get('status_realizacji', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.status else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  <select class="input input-auto" name="typ" onchange="this.form.submit()">
+    <option value="">— typ placówki —</option>
+    {% for v in slowniki.get('typ_placowki', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.typ else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  {% if pokaz_status_szkoly %}
+  <select class="input input-auto" name="status_szkoly" onchange="this.form.submit()">
+    <option value="">— status szkoły —</option>
+    {% for v in slowniki.get('status_szkoly', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.status_szkoly else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+  {% endif %}
+
+  {% if pokaz_dt %}
+  <select class="input input-auto" name="dt" onchange="this.form.submit()">
+    <option value="">— DT —</option>
+    {% for v in slowniki.get('dt', []) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.dt else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+  {% endif %}
+
+  <input type="search" class="input input-auto" name="q" value="{{ f.q }}" style="min-width:250px"
+         placeholder="szukaj: placówka / miejscowość / kontakt…">
+  <button type="submit" class="btn btn-secondary btn-sm">Filtruj</button>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for(request.endpoint) }}">Wyczyść</a>
+
+  <span class="filters-right">
+    <span class="muted small nums">{{ total }} rekordów</span>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ query if query else '' }}"
+       title="Eksport dokładnie tego, co widać po filtrach">↓ Pobierz XLSX</a>
+  </span>
+</form>
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ PASEK AKCJI MASOWEJ
+   Główny ruch koordynatora: zaznacz kilka placówek → wybierz handlowca
+   → ustaw „termin ostateczny" → Przypisz. Żaden wiersz nie jest kopiowany.
+#}
+{% macro pasek_masowy(slowniki, tryb='przypisz', etykieta='Przypisz') %}
+<div class="bulkbar" id="bulkbar" hidden>
+  <span class="bulk-n"><b id="bulk-n" class="nums">0</b> zaznaczonych</span>
+  <select class="input input-auto" id="bulk-handlowiec">
+    <option value="">— wybierz handlowca —</option>
+    {% for v in slowniki.get('handlowiec', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+  </select>
+  <label class="bulk-lab" for="bulk-deadline">termin ostateczny</label>
+  <input type="date" class="input input-auto" id="bulk-deadline">
+  <button type="button" class="btn btn-primary btn-sm" data-akcja="przypisz">{{ etykieta }}</button>
+  {% if tryb == 'oba' %}
+  <button type="button" class="btn btn-danger btn-sm" data-akcja="odbierz"
+          title="Lead wraca do puli „Niewykorzystane rekordy”">Odbierz handlowcowi</button>
+  {% endif %}
+  <button type="button" class="btn btn-secondary btn-sm" data-akcja="odznacz">Odznacz</button>
+</div>
+{% endmacro %}
+
+
+{# ------------------------------------------------------------------ LEGENDA POD TABELĄ #}
+
+{% macro legenda(nota='') %}
+<div class="legend">
+  <span><span class="sq sq-2"></span>przekroczony termin ostateczny bez umówionego DT</span>
+  <span><span class="sq sq-1"></span>pole z listy słownikowej — literówka niemożliwa</span>
+  {% if nota %}<span>{{ nota }}</span>{% endif %}
+</div>
+{% endmacro %}

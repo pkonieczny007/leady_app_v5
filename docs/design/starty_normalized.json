@@ -1,0 +1,7124 @@
+[
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr.1)",
+  "adres": "Strzyżowice Ul. 1 Maja 17",
+  "grupa": "1",
+  "godz_od": "12:25",
+  "godz_do": "13:25",
+  "godz_raw": "12:25–13:25",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ZUZA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "BMR DKP QHW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/7BCT3PTU5"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr2)",
+  "adres": "Strzyżowice Ul. 1 Maja 17",
+  "grupa": "2",
+  "godz_od": "13:35",
+  "godz_do": "14:35",
+  "godz_raw": "13:35–14:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ZUZA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "7Z5 CRC GU2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BTZDVEHNT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Piekary Śląskie SP 13, gr 2",
+  "adres": "Marii Curie-Skłodowskiej 108A",
+  "grupa": "2",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "7DM RWY NHP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/SCM2SZK9E"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 3, gr 1",
+  "adres": "SP 3, ul. Szkolna 15, 41-100 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "XWS QH2 NK7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UWSCHHATP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 30 Dabrowa Górnicza (gr.1)",
+  "adres": "ul. Jaworowa 6",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "8LE M3E SNF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KCUBZ4KH4"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 30 Dabrowa Górnicza (gr.2)",
+  "adres": "ul. Jaworowa 6",
+  "grupa": "2",
+  "godz_od": "13:55",
+  "godz_do": "14:55",
+  "godz_raw": "13:55–14:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "SUR KFZ SE8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/FIPJFJAS5"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 SOSNOWIEC (gr.1)",
+  "adres": "ul. Braci Mieroszewskich 54",
+  "grupa": "1",
+  "godz_od": "12:40",
+  "godz_do": "13:40",
+  "godz_raw": "12:40–13:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "8BG D4K ZJ8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YB6R7SZKA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 SOSNOWIEC (gr.2)",
+  "adres": "ul. Braci Mieroszewskich 54",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "7TQ VZV AQD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WRTWP8IZK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.11 BĘDZIN",
+  "adres": "ul. Władysława Broniewskiego 12,",
+  "grupa": "1",
+  "godz_od": "12:20",
+  "godz_do": "13:20",
+  "godz_raw": "12:20–13:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "QLK JKH RS2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QHUVJYMCN"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.6 Sosnowiec gr.1",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "1",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "NE9 WLS TWJ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZXHT8VZCC"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.6 Sosnowiec gr.2",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "2",
+  "godz_od": "15:55",
+  "godz_do": "16:55",
+  "godz_raw": "15:55–16:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "P4Q AII JA5",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CBJTZP9CC"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Katowice",
+  "adres": "ul. Wróblewskiego 42",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "XPJ 5H2 4RF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QGXWBFZJE"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 2 KATOWICE",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "BQ5 DEI NHB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NJRPQYBAD"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 1",
+  "adres": "Katowicka 27",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "WCT SFR DTH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WQ2A7JEX7"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 2",
+  "adres": "Katowicka 27",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "RHY L2Y HYT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ATYC3UGYY"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 27, gr 3",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "3",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "9KF ETF HTE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PTQFYPWAQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 27, gr 4",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "3",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "8DX H3W WEY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RJNGTEEQ5"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 24, gr 1",
+  "adres": "ul. 17 Sierpnia 1",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [
+   "?? *osoba szkolona:"
+  ],
+  "zastepstwo_raw": "*osoba szkolona:",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "SYJ 25S BKG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EFRSULYGG"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Świętochłowice - SP 19, gr 1",
+  "adres": "l. Bolesława Chrobrego 4, 41-605 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "UTZ XTE VFC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/63REWZUAP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 2, gr 1",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "HP9P6JGWX",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NUIMKW72Z"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 2, gr 2",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "QHCDTLYGS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TYYTBDZ9T"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "START",
+  "placowka": "Tychy - SP 18, gr 1",
+  "adres": "ul. Fitelberga 8, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "RD5GMGJPY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Q9DKYVRTG"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 10 Mikołów",
+  "adres": "ul. Krakowska 30",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "8WQ UCC MDD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PAW4VYADS"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Orzesze (gr.1)",
+  "adres": "ul. 1000-lecia 3",
+  "grupa": "1",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Paulina Zemela",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "T9B DQQ AJE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CA7FZGA7Q"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Orzesze (gr.2)",
+  "adres": "ul. 1000-lecia 3",
+  "grupa": "2",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Paulina Zemela",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "HBI JZJ SA7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DKK52ADCA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Piasek (gr.1)",
+  "adres": "Ul. Szkolna 4",
+  "grupa": "1",
+  "godz_od": "10:40",
+  "godz_do": "11:40",
+  "godz_raw": "10:40–11:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "noemi białas",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? noemi"
+  ],
+  "drukarz_raw": "noemi",
+  "kod_tinkercad": "WSC QCS CAX",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MPHRRAKFQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Piasek (gr.1)",
+  "adres": "Ul. Szkolna 4",
+  "grupa": "1",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "noemi białas",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? noemi"
+  ],
+  "drukarz_raw": "noemi",
+  "kod_tinkercad": "",
+  "link_tinkercad": ""
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Miedźna - ZSP, gr 1",
+  "adres": "ul. Szkolna 24",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "NZX PFF HFN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KYNTDBQQU"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Góra - SP im. J. Korczaka",
+  "adres": "ul. Pszczyńska 34",
+  "grupa": "1",
+  "godz_od": "16:30",
+  "godz_do": "17:30",
+  "godz_raw": "16:30–17:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "WNW 5WS FSJ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YSU7PGURB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 MIKOŁÓW",
+  "adres": "ul. księdza Biskupa Władysława Bandurskiego 1, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? natalia m"
+  ],
+  "drukarz_raw": "natalia m",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TWNQCW29Q"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 1,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZS 3, gr 2",
+  "adres": "ul. Orzepowicka 15A, 44-217 Rybnik",
+  "grupa": "2",
+  "godz_od": "15:50",
+  "godz_do": "16:50",
+  "godz_raw": "15:50–16:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALUS",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? natalia m"
+  ],
+  "drukarz_raw": "natalia m",
+  "kod_tinkercad": "FNNGCBYZC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DXJLQLGQH"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 1",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "15:20",
+  "godz_do": "16:20",
+  "godz_raw": "15:20–16:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/9FSKNIS9L"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 2",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "2",
+  "godz_od": "16:30",
+  "godz_do": "17:30",
+  "godz_raw": "16:30–17:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EYGRA33TT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 21 Dąbrowa Górnicza",
+  "adres": "ul. Gospodarcza 1",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MATEUSZ LEŚNIAK",
+  "trenerzy": [
+   "Mateusz Lesniak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? METEUSZ"
+  ],
+  "drukarz_raw": "METEUSZ",
+  "kod_tinkercad": "6RU 2MX NGF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DBT2PPQJA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Dąbrowa Górnicza",
+  "adres": "Ul. Gustawa Morcinka",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MATEUSZ LEŚNIAK",
+  "trenerzy": [
+   "Mateusz Lesniak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MATEUSZ L"
+  ],
+  "drukarz_raw": "MATEUSZ L",
+  "kod_tinkercad": "AYW WMT 4ZT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/9HPAQHSPF"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Dąbrowa Górnicza (gr.1)",
+  "adres": "( zamiana budynku szkoły - budynek właściwy znajduje się na ulicy: Stanisława Wyspiańskiego 1)",
+  "grupa": "1",
+  "godz_od": "13:00",
+  "godz_do": "14:00",
+  "godz_raw": "13:00–14:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "JQC D88 GRZ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/GXX4XTSTB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Dąbrowa Górnicza (gr.2)",
+  "adres": "( zamiana budynku szkoły - budynek właściwy znajduje się na ulicy: Stanisława Wyspiańskiego 1)",
+  "grupa": "2",
+  "godz_od": "14:05",
+  "godz_do": "15:05",
+  "godz_raw": "14:05–15:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "KRS AMG HGM",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QJYUZ385X"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Będzin",
+  "adres": "Będzin - SP 13, Rewolucjonistów 18, 42-500 Będzin",
+  "grupa": "1",
+  "godz_od": "12:55",
+  "godz_do": "13:55",
+  "godz_raw": "12:55–13:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "SZ3XFCSSQ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JWJCBGQKZ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Będzin (gr.2)",
+  "adres": "Będzin - SP 13, Rewolucjonistów 18, 42-500 Będzin",
+  "grupa": "2",
+  "godz_od": "14:05",
+  "godz_do": "15:05",
+  "godz_raw": "14:05–15:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HGRQ6ZXYK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Siemianowice Śląskie (gr.1)",
+  "adres": "ul. M. Dąbrowskiej 10,",
+  "grupa": "1",
+  "godz_od": "16:00",
+  "godz_do": "17:00",
+  "godz_raw": "16:00–17:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KAROLINA BRZOZOWSKA",
+  "trenerzy": [
+   "Karolina Brzozowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "KNY GKM DM3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HMT5BBSXA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 3",
+  "adres": "Katowicka 27",
+  "grupa": "3",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "9QI X7I 2XW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UKDVMJCHC"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 33 KATOWICE",
+  "adres": "ul.Witosa 23",
+  "grupa": "1",
+  "godz_od": "12:40",
+  "godz_do": "13:40",
+  "godz_raw": "12:40–13:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DKVWEZZ6E"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 33 KATOWICE (GR. 2)",
+  "adres": "ul.Witosa 23",
+  "grupa": "2",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "9WF DMR 3JS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PRQP3XGNX"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.11 KATOWICE",
+  "adres": "Katowice - SP 11, ul. Nasypowa 16, 40-551 Katowice",
+  "grupa": "1",
+  "godz_od": "15:35",
+  "godz_do": "16:35",
+  "godz_raw": "15:35–16:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "LIWIA ŁUKASZEK",
+  "trenerzy": [
+   "Liwia Lukaszek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KDNCMGBF7"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 1",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "weronika małolepsza",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "FZG5BEJPC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JXPR82JXM"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 3",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "3",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZFC43THPU"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 2",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "99TWV8ZAK",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NSXGANSIH"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 15 Chorzów",
+  "adres": "Chorzów - SP 15, ul. 3 Maja 78, 41-500 Chorzów",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "EMN AK6 ZMG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/G9BRAJKKP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Świętochłowice - SP 4, gr 1",
+  "adres": "ul. Szkolna 17, 41-600 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "UJ7 SYK HCY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QALGMRQHU"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - Sp. 6",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "KINGA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2KQLNTGUQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 3, gr 1",
+  "adres": "ul. Rotmistrza Witolda Pileckiego 2, 41-800 Zabrze",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "KINGA",
+  "kod_tinkercad": "J7H FSA EUG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HRWA6DRG6"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 17 TYCHY",
+  "adres": "ul. Begonii 5, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "natalia miękina",
+  "trenerzy": [
+   "Natalia Miekina"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2JXSXLSE6"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 22 TYCHY",
+  "adres": "ul. Harcerska 25, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "ENC JFL SZM",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KHZS9R9KQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 40, gr 1",
+  "adres": "ul. Zgrzebnioka 45",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "mateusz pustelnik",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "HT6 ZAZ J92",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RTUMGTNMT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 40 (gr.2)",
+  "adres": "ul. Zgrzebnioka 45",
+  "grupa": "2",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "mateusz pustelnik",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "HMN D8A 3SD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/C8YBUYC86"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Mikołów - SP 1, gr 3",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATI PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "LXHHIKNX3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WM34AJWDD"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Mikołów - SP 12, gr 1",
+  "adres": "ul. SZKOLNA 1",
+  "grupa": "2",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "XFB LI8 YPU",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F8387XMAK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. ŁĄKA pod Pszczyną (gr.1)",
+  "adres": "Łąka - ZSP, ul. Grzegorza Fitelberga 1, 43-241 Łąka",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PPIQ4X6SZ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZSP 5, gr 1",
+  "adres": "ul. dr. Mariana Różańskiego 14A, 44-200 Rybnik",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "FKT5W8PTC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/G4ESP78XP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZSP 5, gr 2",
+  "adres": "ul. dr. Mariana Różańskiego 14A, 44-200 Rybnik",
+  "grupa": "2",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "JSAMEPYXL",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PQRFR5M3P"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 2,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 1",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "1",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8LGRIM22L"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Piekary Śląskie SP 13",
+  "adres": "ul. Marii Curie-Skłodowskiej 108A,",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "QXK Z7M 72Y",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DW5MIFAAE"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 3",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "3",
+  "godz_od": "16:00",
+  "godz_do": "17:00",
+  "godz_raw": "16:00–17:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "XXW2HHCE5",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WK5AUXIW7"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 33 Dąbrowa Górnicza (gr.1)",
+  "adres": "ul. Chopina 34",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "78B Z84 XZE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZVKSLFJYK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 33 Dąbrowa Górnicza (gr.2)",
+  "adres": "ul. Chopina 34",
+  "grupa": "2",
+  "godz_od": "14:55",
+  "godz_do": "15:55",
+  "godz_raw": "14:55–15:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "U9R 53A FLT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Z87MFWX78"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Psary ZSP3",
+  "adres": "ul. Szkolna 32",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "WYX 4FJ FSZ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5YE8WGMGV"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Dąbrowa Górnicza (gr.2)",
+  "adres": "ul. Gustawa Morcinka 4",
+  "grupa": "2",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "AMC SL2 ZM3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/R4SNFGJYF"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 46 SOSNOWIEC",
+  "adres": "ul. Gwiezdna 2",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "!!!!!!!!!",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "NSW X4M VYU",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HSVFD39YT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 46 SOSNOWIEC (gr.2)",
+  "adres": "ul. Gwiezdna 2",
+  "grupa": "2",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "DCT JVB ZZE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YWDQV9KH6"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Sosnowiec",
+  "adres": "ul. Teatralna 8",
+  "grupa": "1",
+  "godz_od": "16:15",
+  "godz_do": "17:15",
+  "godz_raw": "16:15–17:15",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo_raw": "damian paziewski",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "FUY XHW YJ3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RBPT8QLMT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 18 Dąbrowa Górnicza",
+  "adres": "Aleja Józefa Piłsudskiego 73",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ELA JANKOWSKA",
+  "trenerzy": [
+   "Ela Jankowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? ELA"
+  ],
+  "drukarz_raw": "ELA",
+  "kod_tinkercad": "FGJ M3E 4FW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KTN2YYAGK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 20 Dąbrowa Górnicza",
+  "adres": "ul. Karola Adamieckiego 12",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "SIF T95 SJB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TYKEBYYPF"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 27 Katowice",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "1",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X7RFTE8WQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 27 Katowice (gr.2)",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YWESWVW88"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 37 Katowice",
+  "adres": "ul. Józefa Lompy 17",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo_raw": "patryk bednarek",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "9WD KPP NCQ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8EYNSXZUJ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 32 Katowice",
+  "adres": "ul. Sobańskiego 86",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "EWA ŁACZAK",
+  "trenerzy": [
+   "Ewa Laczak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/E9PWKMHRG"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 1 Chorzów",
+  "adres": "ul. Generała Henryka Dąbrowskiego 41",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [
+   "?? JULA GAJKIEWICZ"
+  ],
+  "zastepstwo_raw": "JULA GAJKIEWICZ",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "25Z WW9 HJG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/B6BDXVK7Z"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów",
+  "adres": "Stefana Batorego 46",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "CH9 WZF QA7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MX8LDSEXV"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Siemianowice Śląskie (gr.2)",
+  "adres": "ul. Marii Dąbrowskiej 10",
+  "grupa": "2",
+  "godz_od": "15:50",
+  "godz_do": "16:50",
+  "godz_raw": "15:50–16:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KAROLINA BRZOZOWSKA",
+  "trenerzy": [
+   "Karolina Brzozowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "BCF Z4K DXW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/7WMKHT999"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 18, gr 1",
+  "adres": "ul. Olchowa 2, 41-800 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "XCN FVP IDA",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PGFPG8GKL"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 18, gr 2",
+  "adres": "ul. Olchowa 2, 41-800 Zabrze",
+  "grupa": "2",
+  "godz_od": "15:10",
+  "godz_do": "16:10",
+  "godz_raw": "15:10–16:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "martyna bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "QXA SRY ZQL",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F8HJGDBGD"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 23, gr 1",
+  "adres": "ul. Jedności 51, 43-109 Tychy",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "8UE9QRVCB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EQ9SZJ7CR"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 8, gr 1",
+  "adres": "ul. Wolności 27, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "T2V WFA TZN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X5KRYHBBZ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 8, gr 2",
+  "adres": "ul. Wolności 27, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "RF6 MX7 DRR",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BYKCMZLCI"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Mikołów",
+  "adres": "ul. księdza Biskupa Władysława Bandurskiego 1",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "FLY T8P GTE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RE4B5DSDQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 1",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/6QIPBWKWV"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 2",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "16:05",
+  "godz_do": "17:05",
+  "godz_raw": "16:05–17:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/H6XA64V4A"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Mikołów (Borowa Wieś)",
+  "adres": "ul. Gliwicka 299",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "BYY UAP INH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5TABR65QY"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Orzesze",
+  "adres": "ul. Stuska 10",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULA ZEMELA",
+  "kod_tinkercad": "FA6K4FCUD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5V4SCKVTP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. ŁĄKA pod Pszczyną (GR.2)",
+  "adres": "Łąka - ZSP, ul. Grzegorza Fitelberga 1, 43-241 Łąka",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "FHQ8AXLKB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8HB87KGSW"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 3,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 2",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "2",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALUS",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UMWHPDYAN"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 22 Sosnowiec",
+  "adres": "ul. Anieli Urbanowicz 14",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "CXF N3W HHG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2T3EYASWZ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Sosnowiec - SP 39, gr 1",
+  "adres": "ul. Anieli Urbanowicz 14",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "RAT RPT 7WN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EMZCMYMTH"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Dąbrowa Górnicza",
+  "adres": "ul. Józefa Mireckiego 1",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ELA JANKOWSKA",
+  "trenerzy": [
+   "Ela Jankowska"
+  ],
+  "zastepstwo": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo_raw": "Dominika Sacawa",
+  "drukarz": [
+   "?? ela"
+  ],
+  "drukarz_raw": "ela",
+  "kod_tinkercad": "JS3 SNK C9T",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/6EX7YAKTP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 17/ZSP 4 Dąbrowa Górnicza",
+  "adres": "ul. Ofiar Katynia 76",
+  "grupa": "1",
+  "godz_od": "14:10",
+  "godz_do": "15:10",
+  "godz_raw": "14:10–15:10",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MATEUSZ"
+  ],
+  "drukarz_raw": "MATEUSZ",
+  "kod_tinkercad": "LBA CMT VMP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8FJDNUHGM"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.9 Będzin",
+  "adres": "ul. Jedności 38",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "YFZ BT8 RSG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EXCKKJAD4"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Będzin (gr.2)",
+  "adres": "ul. Hugona Kołłątaja 63",
+  "grupa": "2",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": ":",
+  "trenerzy": [],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "G7Z DPS UCH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JJ5VEWXWZ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Sosnowiec gr.3",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "3",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": ":",
+  "trenerzy": [],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "ALS DM3 KCW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WY2HABQY4"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 32, gr 2",
+  "adres": "",
+  "grupa": "2",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "AGATA BITTNER",
+  "trenerzy": [
+   "Agata Bittner"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/B6PCBA39N"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 32, gr 3",
+  "adres": "",
+  "grupa": "3",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "AGATA BITTNER",
+  "trenerzy": [
+   "Agata Bittner"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PHTLDMHPP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. EduHub Katowice",
+  "adres": "ul. Mieczyków 14",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK + SARA",
+  "trenerzy": [
+   "Mateusz Pustelnik",
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "Z64 JGM CCS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QW8HUGGYY"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 20, gr 1",
+  "adres": "ul. Zarębskiego 2",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "Kinga",
+  "kod_tinkercad": "K7X R87 S9A",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YLAV795JC"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 1 ŚWIĘTOCHŁOWICE",
+  "adres": "ul. Juliana Zubrzyckiego 38, 41-605 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "23C URY XHT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZN8HWLFNQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 2 ŚWIĘTOCHŁOWICE gr.1",
+  "adres": "ul. Wyzwolenia 50, 41-600 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "QMW FDM GTB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EZM9C3CN4"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 2 ŚWIĘTOCHŁOWICE gr.2",
+  "adres": "ul. Wyzwolenia 50, 41-600 Świętochłowice",
+  "grupa": "2",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "TDA MIL FRC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XAH7AAWRD"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 48 Katowice",
+  "adres": "ul. Bielska 14, 40-749 Katowice",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? paulina z"
+  ],
+  "drukarz_raw": "paulina z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/FHZETYFBA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 36 Katowice (gr.2)",
+  "adres": "ul. Kazimiery Iłłakowiczówny 13",
+  "grupa": "2",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "TED9ARPWC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TPUFFXAKQ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 34 Chorzów",
+  "adres": "ul. Kaliny 55",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "2DE XYN MRG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WUWTDCTWB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Chorzów",
+  "adres": "ul. Lwowska 36",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MAJKA",
+  "trenerzy": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "F99 NJT RJP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4NHKNGWQR"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Chorzów (gr.2)",
+  "adres": "ul. Lwowska 36",
+  "grupa": "2",
+  "godz_od": "14:55",
+  "godz_do": "15:55",
+  "godz_raw": "14:55–15:55",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MAJKA",
+  "trenerzy": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "CND RFI ING",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MX7QKB5RR"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 32 Chorzów (gr.2)",
+  "adres": "ul. Kaliny 61",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "7BC 7BB CY4",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/SB8FG43KM"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "MSP 3 Knurów",
+  "adres": "ul. Feliksa Michalskiego 27, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOSMKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4BRSE8EJB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 2 Orzesze",
+  "adres": "ul. Bukowina 21",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo_raw": "noemi białas",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "XK7 YWZ 8WV",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/LJ889AHAW"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 8 Tychy gr.1",
+  "adres": "ul. Cmentarna 54, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "SFT VSX SCS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4ZKMP2MN6"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Tychy (gr.2)",
+  "adres": "ul. Katowicka 102",
+  "grupa": "2",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "U37 GNV H65",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UAJYHBPXH"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Miedźna - SP we Frydku",
+  "adres": "ul. Miodowa 17",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "TQN TRH 4FH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/IUYWSFXTM"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "MSP 3 KNURÓW",
+  "adres": "ul. Feliksa Michalskiego 27, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": ""
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 4,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 3",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "2",
+  "godz_od": "16:45",
+  "godz_do": "17:45",
+  "godz_raw": "16:45–17:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Q6JEGEMFD"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr.3)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "3",
+  "godz_od": "11:25",
+  "godz_do": "12:25",
+  "godz_raw": "11:25–12:25",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "NYX 5XX FKH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NKTWQGMNG"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 16 Siemianowice Sl. gr 1",
+  "adres": "ul. Karola Szymanowskiego 11, 41-103 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "13:10",
+  "godz_do": "14:10",
+  "godz_raw": "13:10–14:10",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "2TZ 8WW 3BB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QSSQAREHT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Dąbrowa Górnicza - SP 11, gr 1",
+  "adres": "Aleja Józefa Piłsudskiego 103, 41-300 Dąbrowa Górnicza",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "Q8B C3Q EGR",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XUKVJEKND"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp.1 Sosnowiec gr.1",
+  "adres": "ul. Niepodległości 7, 41-200 Sosnowiec",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "TRP RTD 9MK",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NHD9C7KE8"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Będzin",
+  "adres": "ul. Orla 4",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "MHJ 8DD E8Q",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KKAJ3E5ND"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Będzin",
+  "adres": "ul. Wisławy Szymborskiej 1",
+  "grupa": "1",
+  "godz_od": "12:55",
+  "godz_do": "13:55",
+  "godz_raw": "12:55–13:55",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULA WESOŁOWKSA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "JYF LH7 A6X",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CHY52D7GA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów (gr.2)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "2",
+  "godz_od": "13:10",
+  "godz_do": "14:10",
+  "godz_raw": "13:10–14:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA + kornelia gawron (1)",
+  "trenerzy": [
+   "Weronika Malolepsza",
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "SCE HED 5J3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CAP9CBZXP"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów (gr.3)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "3",
+  "godz_od": "14:20",
+  "godz_do": "15:20",
+  "godz_raw": "14:20–15:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "RJE DVF 6TE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XFMZLQEDK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 5, gr 1",
+  "adres": "ul. Józefa Ryszki 55",
+  "grupa": "1",
+  "godz_od": "12:20",
+  "godz_do": "13:20",
+  "godz_raw": "12:20–13:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "CCQ NKQ ETF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZNDFKIPCL"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 5, gr 2",
+  "adres": "ul. Józefa Ryszki 55",
+  "grupa": "2",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "UFA MYI LZ2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NZ9SIMZD6"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 5 Siemianowice Śląsk. (gr.2)",
+  "adres": "ul. Michałkowicka 15",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "FAZ 2LG IGE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F5TVBQ75Y"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 42 Katowice",
+  "adres": "ul. Wiosny Ludów 22, 40-374 Katowice",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "PVEJ44Z2Z",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ANRIJZGIT"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - ZSO 14/ SP 17, gr 1",
+  "adres": "ul. Korczoka 98, 41-806 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "P9Q QZI AWN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HH4DCAXND"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - ZSO 14/ SP 17, gr 2",
+  "adres": "ul. Korczoka 98, 41-806 Zabrze",
+  "grupa": "2",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "MRG44CKPC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RIAN3LWRM"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 37, gr 2",
+  "adres": "ul. Józefa Lompy 17",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "LIWIA ŁUKASZEK",
+  "trenerzy": [
+   "Liwia Lukaszek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "JMY D4Y JNV",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/AMDAP8UYR"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 4, gr 1",
+  "adres": "ul. Jana Kilińskiego 6, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna Bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZUXTE7NTA"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 4, gr 2",
+  "adres": "ul. Jana Kilińskiego 6, 44-193 Knurów",
+  "grupa": "2",
+  "godz_od": "15:10",
+  "godz_do": "16:10",
+  "godz_raw": "15:10–16:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna Bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/3CE2ZTWQK"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Knurów - MSP 1, gr 1",
+  "adres": "ul. A. Słoniny 1, 44-190 Knurów",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "SKDVDBDLN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/3MQHZ7WFF"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Knurów - MSP 1, gr 2",
+  "adres": "ul. A. Słoniny 1, 44-190 Knurów",
+  "grupa": "1",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "ZNHX7H8BP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/94PYGDPCL"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Tychy - SP 18, gr 2",
+  "adres": "ul. Fitelberga 8, 43-100 Tychy",
+  "grupa": "2",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIELA CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "ALMEKI22K",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JXPNCYLFJ"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 4",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "4",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "DIDAQB5C8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZFANPSPTB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 Tychy (gr.2)",
+  "adres": "ul. Leśna 66",
+  "grupa": "2",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "TNG QBB S6S",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BPMGYXWBB"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 35 Tychy",
+  "adres": "ul. Marszałka Józefa Piłsudskiego 21",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIELA CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "Q4H FM8 YE6",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X9IT7KRHS"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 35 Tychy (gr.2)",
+  "adres": "ul. Marszałka Józefa Piłsudskiego 21",
+  "grupa": "2",
+  "godz_od": "15:35",
+  "godz_do": "16:35",
+  "godz_raw": "15:35–16:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIEL CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "EY7 3ZC N9W",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZTMSFN5AE"
+ },
+ {
+  "tydzien": 1,
+  "dzien_nr": 5,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Łaziska Górne - SP 6, gr 1",
+  "adres": "ul. Wyrska 4",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50💻💻>NASZE LAPTOPY<💻💻",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo_raw": "Kasia Sacawa",
+  "drukarz": [
+   "Nina Jasinska"
+  ],
+  "drukarz_raw": "Natalia Jasińska",
+  "kod_tinkercad": "TXK K33 GBS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZT6ZA6C5R"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr.1)",
+  "adres": "Strzyżowice Ul. 1 Maja 17",
+  "grupa": "1",
+  "godz_od": "12:25",
+  "godz_do": "13:25",
+  "godz_raw": "12:25–13:25",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ZUZA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "BMR DKP QHW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/7BCT3PTU5"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr2)",
+  "adres": "Strzyżowice Ul. 1 Maja 17",
+  "grupa": "2",
+  "godz_od": "13:35",
+  "godz_do": "14:35",
+  "godz_raw": "13:35–14:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ZUZA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "7Z5 CRC GU2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BTZDVEHNT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Piekary Śląskie SP 13, gr 2",
+  "adres": "Marii Curie-Skłodowskiej 108A",
+  "grupa": "2",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "7DM RWY NHP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/SCM2SZK9E"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 3, gr 1",
+  "adres": "SP 3, ul. Szkolna 15, 41-100 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "XWS QH2 NK7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UWSCHHATP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 30 Dabrowa Górnicza (gr.1)",
+  "adres": "ul. Jaworowa 6",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "8LE M3E SNF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KCUBZ4KH4"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 30 Dabrowa Górnicza (gr.2)",
+  "adres": "ul. Jaworowa 6",
+  "grupa": "2",
+  "godz_od": "13:55",
+  "godz_do": "14:55",
+  "godz_raw": "13:55–14:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "SUR KFZ SE8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/FIPJFJAS5"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 SOSNOWIEC (gr.1)",
+  "adres": "ul. Braci Mieroszewskich 54",
+  "grupa": "1",
+  "godz_od": "12:40",
+  "godz_do": "13:40",
+  "godz_raw": "12:40–13:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "8BG D4K ZJ8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YB6R7SZKA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 SOSNOWIEC (gr.2)",
+  "adres": "ul. Braci Mieroszewskich 54",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "7TQ VZV AQD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WRTWP8IZK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.11 BĘDZIN",
+  "adres": "ul. Władysława Broniewskiego 12,",
+  "grupa": "1",
+  "godz_od": "12:20",
+  "godz_do": "13:20",
+  "godz_raw": "12:20–13:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "QLK JKH RS2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QHUVJYMCN"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.6 Sosnowiec gr.1",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "1",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "NE9 WLS TWJ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZXHT8VZCC"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.6 Sosnowiec gr.2",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "2",
+  "godz_od": "15:55",
+  "godz_do": "16:55",
+  "godz_raw": "15:55–16:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Damian Paziewski",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "P4Q AII JA5",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CBJTZP9CC"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Katowice",
+  "adres": "ul. Wróblewskiego 42",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [
+   "?? KUBA CICHOŃ"
+  ],
+  "zastepstwo_raw": "KUBA CICHOŃ",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "XPJ 5H2 4RF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QGXWBFZJE"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 2 KATOWICE",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "BQ5 DEI NHB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NJRPQYBAD"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 1",
+  "adres": "Katowicka 27",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "WCT SFR DTH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WQ2A7JEX7"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 2",
+  "adres": "Katowicka 27",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "RHY L2Y HYT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ATYC3UGYY"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 27, gr 3",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "3",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "9KF ETF HTE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PTQFYPWAQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 27, gr 4",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "3",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "8DX H3W WEY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RJNGTEEQ5"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 24, gr 1",
+  "adres": "ul. 17 Sierpnia 1",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [
+   "?? *osoba szkolona:"
+  ],
+  "zastepstwo_raw": "*osoba szkolona:",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "SYJ 25S BKG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EFRSULYGG"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Świętochłowice - SP 19, gr 1",
+  "adres": "l. Bolesława Chrobrego 4, 41-605 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "UTZ XTE VFC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/63REWZUAP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 2, gr 1",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "HP9P6JGWX",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NUIMKW72Z"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 2, gr 2",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "QHCDTLYGS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TYYTBDZ9T"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "START",
+  "placowka": "Tychy - SP 18, gr 1",
+  "adres": "ul. Fitelberga 8, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "RD5GMGJPY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Q9DKYVRTG"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 10 Mikołów",
+  "adres": "ul. Krakowska 30",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "8WQ UCC MDD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PAW4VYADS"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Orzesze (gr.1)",
+  "adres": "ul. 1000-lecia 3",
+  "grupa": "1",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Paulina Zemela",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "T9B DQQ AJE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CA7FZGA7Q"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Orzesze (gr.2)",
+  "adres": "ul. 1000-lecia 3",
+  "grupa": "2",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Paulina Zemela",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "HBI JZJ SA7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DKK52ADCA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Piasek (gr.1)",
+  "adres": "Ul. Szkolna 4",
+  "grupa": "1",
+  "godz_od": "10:40",
+  "godz_do": "11:40",
+  "godz_raw": "10:40–11:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "noemi białas",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? noemi"
+  ],
+  "drukarz_raw": "noemi",
+  "kod_tinkercad": "WSC QCS CAX",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MPHRRAKFQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Piasek (gr.1)",
+  "adres": "Ul. Szkolna 4",
+  "grupa": "1",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "noemi białas",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? noemi"
+  ],
+  "drukarz_raw": "noemi",
+  "kod_tinkercad": "",
+  "link_tinkercad": ""
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Miedźna - ZSP, gr 1",
+  "adres": "ul. Szkolna 24",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "NZX PFF HFN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KYNTDBQQU"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Góra - SP im. J. Korczaka",
+  "adres": "ul. Pszczyńska 34",
+  "grupa": "1",
+  "godz_od": "16:30",
+  "godz_do": "17:30",
+  "godz_raw": "16:30–17:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "WNW 5WS FSJ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YSU7PGURB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 MIKOŁÓW",
+  "adres": "ul. księdza Biskupa Władysława Bandurskiego 1, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? natalia m"
+  ],
+  "drukarz_raw": "natalia m",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TWNQCW29Q"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 8,
+  "dzien_tyg": "PONIEDZIAŁEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZS 3, gr 2",
+  "adres": "ul. Orzepowicka 15A, 44-217 Rybnik",
+  "grupa": "2",
+  "godz_od": "15:50",
+  "godz_do": "16:50",
+  "godz_raw": "15:50–16:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALUS",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? natalia m"
+  ],
+  "drukarz_raw": "natalia m",
+  "kod_tinkercad": "FNNGCBYZC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DXJLQLGQH"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 1",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "15:20",
+  "godz_do": "16:20",
+  "godz_raw": "15:20–16:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/9FSKNIS9L"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 2",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "2",
+  "godz_od": "16:30",
+  "godz_do": "17:30",
+  "godz_raw": "16:30–17:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EYGRA33TT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 21 Dąbrowa Górnicza",
+  "adres": "ul. Gospodarcza 1",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MATEUSZ LEŚNIAK",
+  "trenerzy": [
+   "Mateusz Lesniak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? METEUSZ"
+  ],
+  "drukarz_raw": "METEUSZ",
+  "kod_tinkercad": "6RU 2MX NGF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DBT2PPQJA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Dąbrowa Górnicza",
+  "adres": "Ul. Gustawa Morcinka",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MATEUSZ LEŚNIAK",
+  "trenerzy": [
+   "Mateusz Lesniak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MATEUSZ L"
+  ],
+  "drukarz_raw": "MATEUSZ L",
+  "kod_tinkercad": "AYW WMT 4ZT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/9HPAQHSPF"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Dąbrowa Górnicza (gr.1)",
+  "adres": "( zamiana budynku szkoły - budynek właściwy znajduje się na ulicy: Stanisława Wyspiańskiego 1)",
+  "grupa": "1",
+  "godz_od": "13:00",
+  "godz_do": "14:00",
+  "godz_raw": "13:00–14:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "JQC D88 GRZ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/GXX4XTSTB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Dąbrowa Górnicza (gr.2)",
+  "adres": "( zamiana budynku szkoły - budynek właściwy znajduje się na ulicy: Stanisława Wyspiańskiego 1)",
+  "grupa": "2",
+  "godz_od": "14:05",
+  "godz_do": "15:05",
+  "godz_raw": "14:05–15:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "KRS AMG HGM",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QJYUZ385X"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Będzin",
+  "adres": "Będzin - SP 13, Rewolucjonistów 18, 42-500 Będzin",
+  "grupa": "1",
+  "godz_od": "12:55",
+  "godz_do": "13:55",
+  "godz_raw": "12:55–13:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "SZ3XFCSSQ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JWJCBGQKZ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 13 Będzin (gr.2)",
+  "adres": "Będzin - SP 13, Rewolucjonistów 18, 42-500 Będzin",
+  "grupa": "2",
+  "godz_od": "14:05",
+  "godz_do": "15:05",
+  "godz_raw": "14:05–15:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HGRQ6ZXYK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Siemianowice Śląskie (gr.1)",
+  "adres": "ul. M. Dąbrowskiej 10,",
+  "grupa": "1",
+  "godz_od": "16:00",
+  "godz_do": "17:00",
+  "godz_raw": "16:00–17:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KAROLINA BRZOZOWSKA",
+  "trenerzy": [
+   "Karolina Brzozowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "KNY GKM DM3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HMT5BBSXA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - Korczakowska Szkoła Marzeń, gr 3",
+  "adres": "Katowicka 27",
+  "grupa": "3",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "9QI X7I 2XW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UKDVMJCHC"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 33 KATOWICE",
+  "adres": "ul.Witosa 23",
+  "grupa": "1",
+  "godz_od": "12:40",
+  "godz_do": "13:40",
+  "godz_raw": "12:40–13:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DKVWEZZ6E"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 33 KATOWICE (GR. 2)",
+  "adres": "ul.Witosa 23",
+  "grupa": "2",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "9WF DMR 3JS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PRQP3XGNX"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.11 KATOWICE",
+  "adres": "Katowice - SP 11, ul. Nasypowa 16, 40-551 Katowice",
+  "grupa": "1",
+  "godz_od": "15:35",
+  "godz_do": "16:35",
+  "godz_raw": "15:35–16:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "LIWIA ŁUKASZEK",
+  "trenerzy": [
+   "Liwia Lukaszek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KDNCMGBF7"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 1",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "weronika małolepsza",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "FZG5BEJPC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JXPR82JXM"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 3",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "3",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZFC43THPU"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 42, gr 2",
+  "adres": "ul. Jurija Gagarina 2, 41-818 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "99TWV8ZAK",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NSXGANSIH"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 15 Chorzów",
+  "adres": "Chorzów - SP 15, ul. 3 Maja 78, 41-500 Chorzów",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "EMN AK6 ZMG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/G9BRAJKKP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Świętochłowice - SP 4, gr 1",
+  "adres": "ul. Szkolna 17, 41-600 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "GAWRON KORNELIA",
+  "trenerzy": [
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "UJ7 SYK HCY",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QALGMRQHU"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - Sp. 6",
+  "adres": "al. Walentego Roździeńskiego 82",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "KINGA",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2KQLNTGUQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 3, gr 1",
+  "adres": "ul. Rotmistrza Witolda Pileckiego 2, 41-800 Zabrze",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "kinga",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "KINGA",
+  "kod_tinkercad": "J7H FSA EUG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HRWA6DRG6"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 17 TYCHY",
+  "adres": "ul. Begonii 5, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "natalia miękina",
+  "trenerzy": [
+   "Natalia Miekina"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2JXSXLSE6"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 22 TYCHY",
+  "adres": "ul. Harcerska 25, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "ENC JFL SZM",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KHZS9R9KQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 40, gr 1",
+  "adres": "ul. Zgrzebnioka 45",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "mateusz pustelnik",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "HT6 ZAZ J92",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RTUMGTNMT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 40 (gr.2)",
+  "adres": "ul. Zgrzebnioka 45",
+  "grupa": "2",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "mateusz pustelnik",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? KASIA"
+  ],
+  "drukarz_raw": "KASIA",
+  "kod_tinkercad": "HMN D8A 3SD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/C8YBUYC86"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Mikołów - SP 1, gr 3",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATI PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "LXHHIKNX3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WM34AJWDD"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Mikołów - SP 12, gr 1",
+  "adres": "ul. SZKOLNA 1",
+  "grupa": "2",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "XFB LI8 YPU",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F8387XMAK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. ŁĄKA pod Pszczyną (gr.1)",
+  "adres": "Łąka - ZSP, ul. Grzegorza Fitelberga 1, 43-241 Łąka",
+  "grupa": "1",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PPIQ4X6SZ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZSP 5, gr 1",
+  "adres": "ul. dr. Mariana Różańskiego 14A, 44-200 Rybnik",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "FKT5W8PTC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/G4ESP78XP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - ZSP 5, gr 2",
+  "adres": "ul. dr. Mariana Różańskiego 14A, 44-200 Rybnik",
+  "grupa": "2",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "JSAMEPYXL",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PQRFR5M3P"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 9,
+  "dzien_tyg": "WTOREK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 1",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "1",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8LGRIM22L"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Piekary Śląskie SP 13",
+  "adres": "ul. Marii Curie-Skłodowskiej 108A,",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "QXK Z7M 72Y",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/DW5MIFAAE"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Siemianowice Śląskie - SP 13, gr 3",
+  "adres": "ul. Barlickiego 2, 41-103 Siemianowice Śląskie",
+  "grupa": "3",
+  "godz_od": "16:00",
+  "godz_do": "17:00",
+  "godz_raw": "16:00–17:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "XXW2HHCE5",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WK5AUXIW7"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 33 Dąbrowa Górnicza (gr.1)",
+  "adres": "ul. Chopina 34",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "78B Z84 XZE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZVKSLFJYK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 33 Dąbrowa Górnicza (gr.2)",
+  "adres": "ul. Chopina 34",
+  "grupa": "2",
+  "godz_od": "14:55",
+  "godz_do": "15:55",
+  "godz_raw": "14:55–15:55",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "U9R 53A FLT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Z87MFWX78"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Psary ZSP3",
+  "adres": "ul. Szkolna 32",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "WYX 4FJ FSZ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5YE8WGMGV"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Dąbrowa Górnicza (gr.2)",
+  "adres": "ul. Gustawa Morcinka 4",
+  "grupa": "2",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "AMC SL2 ZM3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/R4SNFGJYF"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 46 SOSNOWIEC",
+  "adres": "ul. Gwiezdna 2",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "!!!!!!!!!",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "majka",
+  "kod_tinkercad": "NSW X4M VYU",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HSVFD39YT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 46 SOSNOWIEC (gr.2)",
+  "adres": "ul. Gwiezdna 2",
+  "grupa": "2",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "DCT JVB ZZE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YWDQV9KH6"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Sosnowiec",
+  "adres": "ul. Teatralna 8",
+  "grupa": "1",
+  "godz_od": "16:15",
+  "godz_do": "17:15",
+  "godz_raw": "16:15–17:15",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KLAUDIA POLAKOWSKA",
+  "trenerzy": [
+   "Klaudia Polakowska"
+  ],
+  "zastepstwo": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo_raw": "damian paziewski",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "FUY XHW YJ3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RBPT8QLMT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 18 Dąbrowa Górnicza",
+  "adres": "Aleja Józefa Piłsudskiego 73",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ELA JANKOWSKA",
+  "trenerzy": [
+   "Ela Jankowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? ELA"
+  ],
+  "drukarz_raw": "ELA",
+  "kod_tinkercad": "FGJ M3E 4FW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KTN2YYAGK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp. 20 Dąbrowa Górnicza",
+  "adres": "ul. Karola Adamieckiego 12",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? DAMIAN"
+  ],
+  "drukarz_raw": "DAMIAN",
+  "kod_tinkercad": "SIF T95 SJB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TYKEBYYPF"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 27 Katowice",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "1",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X7RFTE8WQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 27 Katowice (gr.2)",
+  "adres": "ul. Łętowskiego 18",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MICHAŁ PŁASZCZYMĄKA",
+  "trenerzy": [
+   "Michal Plaszczymaka"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MICHAŁ"
+  ],
+  "drukarz_raw": "MICHAŁ",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YWESWVW88"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 37 Katowice",
+  "adres": "ul. Józefa Lompy 17",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo_raw": "patryk bednarek",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "9WD KPP NCQ",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8EYNSXZUJ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 32 Katowice",
+  "adres": "ul. Sobańskiego 86",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "EWA ŁACZAK",
+  "trenerzy": [
+   "Ewa Laczak"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/E9PWKMHRG"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 1 Chorzów",
+  "adres": "ul. Generała Henryka Dąbrowskiego 41",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [
+   "?? JULA GAJKIEWICZ"
+  ],
+  "zastepstwo_raw": "JULA GAJKIEWICZ",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZANNA",
+  "kod_tinkercad": "25Z WW9 HJG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/B6BDXVK7Z"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów",
+  "adres": "Stefana Batorego 46",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "CH9 WZF QA7",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MX8LDSEXV"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Siemianowice Śląskie (gr.2)",
+  "adres": "ul. Marii Dąbrowskiej 10",
+  "grupa": "2",
+  "godz_od": "15:50",
+  "godz_do": "16:50",
+  "godz_raw": "15:50–16:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "KAROLINA BRZOZOWSKA",
+  "trenerzy": [
+   "Karolina Brzozowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "BCF Z4K DXW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/7WMKHT999"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 18, gr 1",
+  "adres": "ul. Olchowa 2, 41-800 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "XCN FVP IDA",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PGFPG8GKL"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - SP 18, gr 2",
+  "adres": "ul. Olchowa 2, 41-800 Zabrze",
+  "grupa": "2",
+  "godz_od": "15:10",
+  "godz_do": "16:10",
+  "godz_raw": "15:10–16:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "martyna bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MAJA"
+  ],
+  "drukarz_raw": "MAJA",
+  "kod_tinkercad": "QXA SRY ZQL",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F8HJGDBGD"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 23, gr 1",
+  "adres": "ul. Jedności 51, 43-109 Tychy",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ANIELA CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "8UE9QRVCB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EQ9SZJ7CR"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 8, gr 1",
+  "adres": "ul. Wolności 27, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "T2V WFA TZN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X5KRYHBBZ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 8, gr 2",
+  "adres": "ul. Wolności 27, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "RF6 MX7 DRR",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BYKCMZLCI"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Mikołów",
+  "adres": "ul. księdza Biskupa Władysława Bandurskiego 1",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "FLY T8P GTE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RE4B5DSDQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 1",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "1",
+  "godz_od": "15:00",
+  "godz_do": "16:00",
+  "godz_raw": "15:00–16:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/6QIPBWKWV"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 2",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "2",
+  "godz_od": "16:05",
+  "godz_do": "17:05",
+  "godz_raw": "16:05–17:05",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/H6XA64V4A"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Mikołów (Borowa Wieś)",
+  "adres": "ul. Gliwicka 299",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "BYY UAP INH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5TABR65QY"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Orzesze",
+  "adres": "ul. Stuska 10",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULA ZEMELA",
+  "kod_tinkercad": "FA6K4FCUD",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/5V4SCKVTP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. ŁĄKA pod Pszczyną (GR.2)",
+  "adres": "Łąka - ZSP, ul. Grzegorza Fitelberga 1, 43-241 Łąka",
+  "grupa": "2",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "FHQ8AXLKB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8HB87KGSW"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 10,
+  "dzien_tyg": "ŚRODA",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 2",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "2",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALUS",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UMWHPDYAN"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 22 Sosnowiec",
+  "adres": "ul. Anieli Urbanowicz 14",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "CXF N3W HHG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/2T3EYASWZ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Sosnowiec - SP 39, gr 1",
+  "adres": "ul. Anieli Urbanowicz 14",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "RAT RPT 7WN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EMZCMYMTH"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Dąbrowa Górnicza",
+  "adres": "ul. Józefa Mireckiego 1",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "ELA JANKOWSKA",
+  "trenerzy": [
+   "Ela Jankowska"
+  ],
+  "zastepstwo": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo_raw": "Dominika Sacawa",
+  "drukarz": [
+   "?? ela"
+  ],
+  "drukarz_raw": "ela",
+  "kod_tinkercad": "JS3 SNK C9T",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/6EX7YAKTP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 17/ZSP 4 Dąbrowa Górnicza",
+  "adres": "ul. Ofiar Katynia 76",
+  "grupa": "1",
+  "godz_od": "14:10",
+  "godz_do": "15:10",
+  "godz_raw": "14:10–15:10",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "DOMINIKA SACAWA",
+  "trenerzy": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? MATEUSZ"
+  ],
+  "drukarz_raw": "MATEUSZ",
+  "kod_tinkercad": "LBA CMT VMP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/8FJDNUHGM"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP.9 Będzin",
+  "adres": "ul. Jedności 38",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "YFZ BT8 RSG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EXCKKJAD4"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 3 Będzin (gr.2)",
+  "adres": "ul. Hugona Kołłątaja 63",
+  "grupa": "2",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": ":",
+  "trenerzy": [],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "G7Z DPS UCH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JJ5VEWXWZ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Sosnowiec gr.3",
+  "adres": "ul. Wawel 13, 41-200 Sosnowiec",
+  "grupa": "3",
+  "godz_od": "14:45",
+  "godz_do": "15:45",
+  "godz_raw": "14:45–15:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": ":",
+  "trenerzy": [],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "ALS DM3 KCW",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WY2HABQY4"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 32, gr 2",
+  "adres": "",
+  "grupa": "2",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "AGATA BITTNER",
+  "trenerzy": [
+   "Agata Bittner"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/B6PCBA39N"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 32, gr 3",
+  "adres": "",
+  "grupa": "3",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "AGATA BITTNER",
+  "trenerzy": [
+   "Agata Bittner"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/PHTLDMHPP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. EduHub Katowice",
+  "adres": "ul. Mieczyków 14",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK + SARA",
+  "trenerzy": [
+   "Mateusz Pustelnik",
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "Z64 JGM CCS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QW8HUGGYY"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 20, gr 1",
+  "adres": "ul. Zarębskiego 2",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "Kinga",
+  "kod_tinkercad": "K7X R87 S9A",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/YLAV795JC"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 1 ŚWIĘTOCHŁOWICE",
+  "adres": "ul. Juliana Zubrzyckiego 38, 41-605 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "15:45",
+  "godz_do": "16:45",
+  "godz_raw": "15:45–16:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "23C URY XHT",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZN8HWLFNQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 2 ŚWIĘTOCHŁOWICE gr.1",
+  "adres": "ul. Wyzwolenia 50, 41-600 Świętochłowice",
+  "grupa": "1",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "QMW FDM GTB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/EZM9C3CN4"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP 2 ŚWIĘTOCHŁOWICE gr.2",
+  "adres": "ul. Wyzwolenia 50, 41-600 Świętochłowice",
+  "grupa": "2",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NINA JASIŃSKA",
+  "trenerzy": [
+   "Nina Jasinska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "TDA MIL FRC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XAH7AAWRD"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 48 Katowice",
+  "adres": "ul. Bielska 14, 40-749 Katowice",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MARTYNA BOCHNIARZ",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? paulina z"
+  ],
+  "drukarz_raw": "paulina z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/FHZETYFBA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 36 Katowice (gr.2)",
+  "adres": "ul. Kazimiery Iłłakowiczówny 13",
+  "grupa": "2",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZANNA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [
+   "?? SYLWIA ADAMCZYK"
+  ],
+  "zastepstwo_raw": "SYLWIA ADAMCZYK",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "TED9ARPWC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/TPUFFXAKQ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 34 Chorzów",
+  "adres": "ul. Kaliny 55",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "2DE XYN MRG",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/WUWTDCTWB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Chorzów",
+  "adres": "ul. Lwowska 36",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MAJKA",
+  "trenerzy": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "F99 NJT RJP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4NHKNGWQR"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 29 Chorzów (gr.2)",
+  "adres": "ul. Lwowska 36",
+  "grupa": "2",
+  "godz_od": "14:55",
+  "godz_do": "15:55",
+  "godz_raw": "14:55–15:55",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MAJKA",
+  "trenerzy": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "CND RFI ING",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/MX7QKB5RR"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 32 Chorzów (gr.2)",
+  "adres": "ul. Kaliny 61",
+  "grupa": "2",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "7BC 7BB CY4",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/SB8FG43KM"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "MSP 3 Knurów",
+  "adres": "ul. Feliksa Michalskiego 27, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOSMKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4BRSE8EJB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 2 Orzesze",
+  "adres": "ul. Bukowina 21",
+  "grupa": "1",
+  "godz_od": "13:40",
+  "godz_do": "14:40",
+  "godz_raw": "13:40–14:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo_raw": "noemi białas",
+  "drukarz": [
+   "?? PAULINA"
+  ],
+  "drukarz_raw": "PAULINA",
+  "kod_tinkercad": "XK7 YWZ 8WV",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/LJ889AHAW"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Tychy - SP 8 Tychy gr.1",
+  "adres": "ul. Cmentarna 54, 43-100 Tychy",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "SFT VSX SCS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/4ZKMP2MN6"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 6 Tychy (gr.2)",
+  "adres": "ul. Katowicka 102",
+  "grupa": "2",
+  "godz_od": "14:35",
+  "godz_do": "15:35",
+  "godz_raw": "14:35–15:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "U37 GNV H65",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/UAJYHBPXH"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Miedźna - SP we Frydku",
+  "adres": "ul. Miodowa 17",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "NOEMI BIAŁAS",
+  "trenerzy": [
+   "Noemi Bialas"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Noemi Bialas"
+  ],
+  "drukarz_raw": "NOEMI BIAŁAS",
+  "kod_tinkercad": "TQN TRH 4FH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/IUYWSFXTM"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "MSP 3 KNURÓW",
+  "adres": "ul. Feliksa Michalskiego 27, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": ""
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 11,
+  "dzien_tyg": "CZWARTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Rybnik - SP 28, gr 3",
+  "adres": "ul. Alojzego Szewczyka 6, 44-213 Rybnik",
+  "grupa": "2",
+  "godz_od": "16:45",
+  "godz_do": "17:45",
+  "godz_raw": "16:45–17:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK PALSU",
+  "trenerzy": [
+   "Patryk Palus"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [],
+  "drukarz_raw": "",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/Q6JEGEMFD"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Strzyżowice (gr.3)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "3",
+  "godz_od": "11:25",
+  "godz_do": "12:25",
+  "godz_raw": "11:25–12:25",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "NYX 5XX FKH",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NKTWQGMNG"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 16 Siemianowice Sl. gr 1",
+  "adres": "ul. Karola Szymanowskiego 11, 41-103 Siemianowice Śląskie",
+  "grupa": "1",
+  "godz_od": "13:10",
+  "godz_do": "14:10",
+  "godz_raw": "13:10–14:10",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "MONIKA SWOBODA",
+  "trenerzy": [
+   "Monika Swoboda"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Monika Swoboda"
+  ],
+  "drukarz_raw": "MONIKA",
+  "kod_tinkercad": "2TZ 8WW 3BB",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/QSSQAREHT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Dąbrowa Górnicza - SP 11, gr 1",
+  "adres": "Aleja Józefa Piłsudskiego 103, 41-300 Dąbrowa Górnicza",
+  "grupa": "1",
+  "godz_od": "12:50",
+  "godz_do": "13:50",
+  "godz_raw": "12:50–13:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "Q8B C3Q EGR",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XUKVJEKND"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Sp.1 Sosnowiec gr.1",
+  "adres": "ul. Niepodległości 7, 41-200 Sosnowiec",
+  "grupa": "1",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "DAMIAN PAZIEWSKI",
+  "trenerzy": [
+   "Damian Paziewski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? damian"
+  ],
+  "drukarz_raw": "damian",
+  "kod_tinkercad": "TRP RTD 9MK",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NHD9C7KE8"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 8 Będzin",
+  "adres": "ul. Orla 4",
+  "grupa": "1",
+  "godz_od": "12:45",
+  "godz_do": "13:45",
+  "godz_raw": "12:45–13:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ROBERT KOPCZYŃSKI",
+  "trenerzy": [
+   "Robert Kopczynski"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Dominika Sacawa"
+  ],
+  "drukarz_raw": "DOMINIKA",
+  "kod_tinkercad": "MHJ 8DD E8Q",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/KKAJ3E5ND"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 4 Będzin",
+  "adres": "ul. Wisławy Szymborskiej 1",
+  "grupa": "1",
+  "godz_od": "12:55",
+  "godz_do": "13:55",
+  "godz_raw": "12:55–13:55",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULA WESOŁOWKSA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "JYF LH7 A6X",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CHY52D7GA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów (gr.2)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "2",
+  "godz_od": "13:10",
+  "godz_do": "14:10",
+  "godz_raw": "13:10–14:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA + kornelia gawron (1)",
+  "trenerzy": [
+   "Weronika Malolepsza",
+   "Kornelia Gawron"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "SCE HED 5J3",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/CAP9CBZXP"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. Społeczna Chorzów (gr.3)",
+  "adres": "ul. Stefana Batorego 46",
+  "grupa": "3",
+  "godz_od": "14:20",
+  "godz_do": "15:20",
+  "godz_raw": "14:20–15:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "WERONIKA MAŁOLEPSZA",
+  "trenerzy": [
+   "Weronika Malolepsza"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "RJE DVF 6TE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/XFMZLQEDK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 5, gr 1",
+  "adres": "ul. Józefa Ryszki 55",
+  "grupa": "1",
+  "godz_od": "12:20",
+  "godz_do": "13:20",
+  "godz_raw": "12:20–13:20",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [
+   "?? SYLWIA ADAMCZYK"
+  ],
+  "zastepstwo_raw": "SYLWIA ADAMCZYK",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "CCQ NKQ ETF",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZNDFKIPCL"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Chorzów - SP 5, gr 2",
+  "adres": "ul. Józefa Ryszki 55",
+  "grupa": "2",
+  "godz_od": "13:30",
+  "godz_do": "14:30",
+  "godz_raw": "13:30–14:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ZUZIA OLSZEWSKA",
+  "trenerzy": [
+   "Zuzanna Olszewska"
+  ],
+  "zastepstwo": [
+   "?? SYLWIA ADAMCZYK"
+  ],
+  "zastepstwo_raw": "SYLWIA ADAMCZYK",
+  "drukarz": [
+   "Zuzanna Olszewska"
+  ],
+  "drukarz_raw": "ZUZIA",
+  "kod_tinkercad": "UFA MYI LZ2",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/NZ9SIMZD6"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 5 Siemianowice Śląsk. (gr.2)",
+  "adres": "ul. Michałkowicka 15",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "JULIA WESOŁOWSKA",
+  "trenerzy": [
+   "Julia Wesolowska"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "FAZ 2LG IGE",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/F5TVBQ75Y"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 42 Katowice",
+  "adres": "ul. Wiosny Ludów 22, 40-374 Katowice",
+  "grupa": "1",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "PVEJ44Z2Z",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ANRIJZGIT"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - ZSO 14/ SP 17, gr 1",
+  "adres": "ul. Korczoka 98, 41-806 Zabrze",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "P9Q QZI AWN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/HH4DCAXND"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Zabrze - ZSO 14/ SP 17, gr 2",
+  "adres": "ul. Korczoka 98, 41-806 Zabrze",
+  "grupa": "2",
+  "godz_od": "15:40",
+  "godz_do": "16:40",
+  "godz_raw": "15:40–16:40",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "KINGA KRÓL",
+  "trenerzy": [
+   "Kinga Krol"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Kinga Krol"
+  ],
+  "drukarz_raw": "kinga",
+  "kod_tinkercad": "MRG44CKPC",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/RIAN3LWRM"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Katowice - SP 37, gr 2",
+  "adres": "ul. Józefa Lompy 17",
+  "grupa": "2",
+  "godz_od": "14:40",
+  "godz_do": "15:40",
+  "godz_raw": "14:40–15:40",
+  "sprzet": "Sala komputerowa",
+  "trener_raw": "LIWIA ŁUKASZEK",
+  "trenerzy": [
+   "Liwia Lukaszek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Majka (do potwierdzenia — Maja? Małolepsza?)"
+  ],
+  "drukarz_raw": "MAJKA",
+  "kod_tinkercad": "JMY D4Y JNV",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/AMDAP8UYR"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 4, gr 1",
+  "adres": "ul. Jana Kilińskiego 6, 44-193 Knurów",
+  "grupa": "1",
+  "godz_od": "14:00",
+  "godz_do": "15:00",
+  "godz_raw": "14:00–15:00",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna Bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZUXTE7NTA"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Knurów - MSP 4, gr 2",
+  "adres": "ul. Jana Kilińskiego 6, 44-193 Knurów",
+  "grupa": "2",
+  "godz_od": "15:10",
+  "godz_do": "16:10",
+  "godz_raw": "15:10–16:10",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "Martyna Bochniarz",
+  "trenerzy": [
+   "Martyna Bochniarz"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? PAULINA Z"
+  ],
+  "drukarz_raw": "PAULINA Z",
+  "kod_tinkercad": "",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/3CE2ZTWQK"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Knurów - MSP 1, gr 1",
+  "adres": "ul. A. Słoniny 1, 44-190 Knurów",
+  "grupa": "1",
+  "godz_od": "13:45",
+  "godz_do": "14:45",
+  "godz_raw": "13:45–14:45",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "SKDVDBDLN",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/3MQHZ7WFF"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Knurów - MSP 1, gr 2",
+  "adres": "ul. A. Słoniny 1, 44-190 Knurów",
+  "grupa": "1",
+  "godz_od": "14:50",
+  "godz_do": "15:50",
+  "godz_raw": "14:50–15:50",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PAULINA ZEMELA",
+  "trenerzy": [
+   "Paulina Zemela"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Paulina Zemela"
+  ],
+  "drukarz_raw": "PAULINA ZEMELA",
+  "kod_tinkercad": "ZNHX7H8BP",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/94PYGDPCL"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Tychy - SP 18, gr 2",
+  "adres": "ul. Fitelberga 8, 43-100 Tychy",
+  "grupa": "2",
+  "godz_od": "12:35",
+  "godz_do": "13:35",
+  "godz_raw": "12:35–13:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIELA CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "ALMEKI22K",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/JXPNCYLFJ"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "START",
+  "placowka": "Mikołów - SP 1, gr 4",
+  "adres": "ul. Konstytucji 3 Maja 20, 43-190 Mikołów",
+  "grupa": "4",
+  "godz_od": "15:30",
+  "godz_do": "16:30",
+  "godz_raw": "15:30–16:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "MATEUSZ PUSTELNIK",
+  "trenerzy": [
+   "Mateusz Pustelnik"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "DIDAQB5C8",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZFANPSPTB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 9 Tychy (gr.2)",
+  "adres": "ul. Leśna 66",
+  "grupa": "2",
+  "godz_od": "12:30",
+  "godz_do": "13:30",
+  "godz_raw": "12:30–13:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "PATRYK BEDNAREK",
+  "trenerzy": [
+   "Patryk Bednarek"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "?? NATALIA M"
+  ],
+  "drukarz_raw": "NATALIA M",
+  "kod_tinkercad": "TNG QBB S6S",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/BPMGYXWBB"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 35 Tychy",
+  "adres": "ul. Marszałka Józefa Piłsudskiego 21",
+  "grupa": "1",
+  "godz_od": "14:30",
+  "godz_do": "15:30",
+  "godz_raw": "14:30–15:30",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIELA CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": ":",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "Q4H FM8 YE6",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/X9IT7KRHS"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "SP. 35 Tychy (gr.2)",
+  "adres": "ul. Marszałka Józefa Piłsudskiego 21",
+  "grupa": "2",
+  "godz_od": "15:35",
+  "godz_do": "16:35",
+  "godz_raw": "15:35–16:35",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "ANIEL CEBULA",
+  "trenerzy": [
+   "Aniela Cebula"
+  ],
+  "zastepstwo": [],
+  "zastepstwo_raw": "",
+  "drukarz": [
+   "Sara (do potwierdzenia — brak nazwiska w danych)"
+  ],
+  "drukarz_raw": "SARA",
+  "kod_tinkercad": "EY7 3ZC N9W",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZTMSFN5AE"
+ },
+ {
+  "tydzien": 2,
+  "dzien_nr": 12,
+  "dzien_tyg": "PIĄTEK",
+  "typ": "CYKLICZNE",
+  "placowka": "Łaziska Górne - SP 6, gr 1",
+  "adres": "ul. Wyrska 4",
+  "grupa": "1",
+  "godz_od": "13:50",
+  "godz_do": "14:50",
+  "godz_raw": "13:50–14:50💻💻>NASZE LAPTOPY<💻💻",
+  "sprzet": "Nasze laptopy",
+  "trener_raw": "NATALIA STARZOMSKA",
+  "trenerzy": [
+   "Natalia Starzomska"
+  ],
+  "zastepstwo": [
+   "Dominika Sacawa"
+  ],
+  "zastepstwo_raw": "Kasia Sacawa",
+  "drukarz": [
+   "Nina Jasinska"
+  ],
+  "drukarz_raw": "Natalia Jasińska",
+  "kod_tinkercad": "TXK K33 GBS",
+  "link_tinkercad": "https://www.tinkercad.com/co-teacher/join/ZT6ZA6C5R"
+ }
+]

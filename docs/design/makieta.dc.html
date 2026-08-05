@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/broadsheet-d8ae3107-20d8-40e7-9bbd-f2785a73dac5/styles.css">
+<script src="_ds/broadsheet-d8ae3107-20d8-40e7-9bbd-f2785a73dac5/_ds_bundle.js"></script>
+<style>
+  html,body{background:var(--color-bg)}
+  a{color:var(--color-accent)}
+  a:hover{color:var(--color-accent-700)}
+  .lead-cell{border:0;background:transparent;font:inherit;color:inherit;padding:2px 4px;border-radius:2px}
+  .lead-cell:hover{background:color-mix(in srgb,var(--color-accent) 9%,transparent)}
+  .lead-cell:focus-visible{outline:2px solid var(--color-accent);outline-offset:0}
+  .row-hover:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+  .scroll-x{overflow-x:auto}
+  .scroll-x::-webkit-scrollbar{height:10px}
+  .scroll-x::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:10px}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+
+  <header style="position:sticky;top:0;z-index:30;background:var(--color-bg);border-bottom:1px solid var(--color-divider)">
+    <nav class="nav" style="max-width:1360px;margin:0 auto;gap:var(--space-4);padding:var(--space-3) var(--space-6)">
+      <span class="nav-brand" style="display:flex;align-items:baseline;gap:10px;margin-right:auto">
+        System&nbsp;Leadów
+        <span style="font-family:var(--font-body);font-weight:400;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent-700);border:1px solid var(--color-accent-300);border-radius:2px;padding:2px 7px;white-space:nowrap">demo · zamiast arkusza</span>
+      </span>
+      <a href="#" onClick="{{ goPulpit }}" style="{{ navPulpit }}">Pulpit</a>
+      <a href="#" onClick="{{ goTabela }}" style="{{ navTabela }}">Tabela</a>
+      <a href="#" onClick="{{ goKalendarz }}" style="{{ navKalendarz }}">Kalendarz DT</a>
+      <a href="#" onClick="{{ goSlowniki }}" style="{{ navSlowniki }}">Słowniki</a>
+      <button type="button" class="btn btn-secondary" style="font-size:13px;padding:7px 14px">↓ Pobierz XLSX</button>
+      <button type="button" class="btn btn-primary" onClick="{{ toggleImport }}" style="font-size:13px;padding:7px 14px">↑ Import</button>
+    </nav>
+    <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:1px solid var(--color-divider);background:var(--color-surface)">
+        <form style="max-width:1360px;margin:0 auto;padding:var(--space-3) var(--space-6);display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap" onSubmit="{{ noop }}">
+          <input type="file" accept=".xlsx" class="input" style="max-width:280px;padding-top:5px">
+          <label class="radio"><input type="radio" name="tryb" checked><span class="dot"></span>zastąp dane</label>
+          <label class="radio"><input type="radio" name="tryb"><span class="dot"></span>dopisz</label>
+          <button type="button" class="btn btn-primary" style="font-size:13px">Wczytaj</button>
+          <span class="text-muted" style="font-size:12px">Układ jak „Zbiorczy" — zbitki (godziny, klasy/dzieci) rozbiją się automatycznie.</span>
+        </form>
+      </div>
+    </sc-if>
+  </header>
+
+  <main style="max-width:1360px;margin:0 auto;padding:var(--space-6) var(--space-6) var(--space-8)">
+
+    <!-- ══════════════ PULPIT ══════════════ -->
+    <sc-if value="{{ isPulpit }}" hint-placeholder-val="{{ true }}">
+    <section>
+      <div style="margin-bottom:var(--space-6)">
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Przegląd · {{ monthLabel }}</div>
+        <h1 style="font-size:46px;margin:0">Pulpit</h1>
+      </div>
+
+      <div style="display:flex;gap:var(--space-8);flex-wrap:wrap;padding-bottom:var(--space-6);border-bottom:1px solid var(--color-divider);margin-bottom:var(--space-6)">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+          <div style="min-width:120px">
+            <div style="font-family:var(--font-heading);font-size:52px;line-height:.95;color:{{ s.color }}">{{ s.value }}</div>
+            <div style="font-size:12px;letter-spacing:.04em;color:color-mix(in srgb,var(--color-text) 60%,transparent);margin-top:8px;max-width:130px;text-wrap:pretty">{{ s.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:var(--space-8)">
+        <div>
+          <h3 style="font-size:22px;display:flex;align-items:baseline;gap:10px">Po terminie <span style="font-size:12px;font-weight:400;color:var(--color-accent-2-700)">deadline minął, brak umówionego DT</span></h3>
+          <table class="table" style="margin-top:var(--space-2)">
+            <thead><tr><th>Deadline</th><th>Handlowiec</th><th>Placówka</th><th>Miejscowość</th><th>Status</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ overdueList }}" as="r" hint-placeholder-count="3">
+                <tr><td style="color:var(--color-accent-2-700);font-variant-numeric:tabular-nums">{{ r.deadline }}</td><td>{{ r.handlowiec }}</td><td>{{ r.placowka }}</td><td class="text-muted">{{ r.miejscowosc }}</td><td><span class="tag tag-outline">{{ r.status }}</span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+
+          <h3 style="font-size:22px;margin-top:var(--space-6);display:flex;align-items:baseline;gap:10px">Kolizje trenerów <span style="font-size:12px;font-weight:400;color:var(--color-accent-2-700)">nakładające się godziny</span></h3>
+          <table class="table" style="margin-top:var(--space-2)">
+            <thead><tr><th>Data</th><th>Trener</th><th>Godziny</th><th>Placówka</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ kolizjeList }}" as="e" hint-placeholder-count="2">
+                <tr><td style="font-variant-numeric:tabular-nums">{{ e.data }}</td><td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;background:{{ e.color }}"></span>{{ e.trener }}</span></td><td style="color:var(--color-accent-2-700);font-weight:600;font-variant-numeric:tabular-nums">{{ e.godziny }}</td><td>{{ e.szkola }}</td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h3 style="font-size:22px">Podział wg handlowca</h3>
+          <table class="table" style="margin-top:var(--space-2)">
+            <thead><tr><th>Handlowiec</th><th style="text-align:right">Leadów</th><th style="text-align:right">DT umówione</th><th style="width:34%">Postęp</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ perH }}" as="r" hint-placeholder-count="4">
+                <tr><td>{{ r.handlowiec }}</td><td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.c }}</td><td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.u }}</td>
+                  <td><span style="display:block;height:8px;border-radius:2px;background:var(--color-neutral-200);overflow:hidden"><span style="display:block;height:100%;width:{{ r.pct }};background:var(--color-accent)"></span></span></td></tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    </sc-if>
+
+    <!-- ══════════════ TABELA ══════════════ -->
+    <sc-if value="{{ isTabela }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="margin-bottom:var(--space-4)">
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Rejestr leadów</div>
+        <h1 style="font-size:46px;margin:0">Tabela</h1>
+      </div>
+
+      <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;margin-bottom:var(--space-4)">
+        <select class="input" style="width:auto;min-width:170px" value="{{ fHandlowiec }}" onChange="{{ setFHandlowiec }}">
+          <option value="">— handlowiec —</option>
+          <sc-for list="{{ handlowcy }}" as="v" hint-placeholder-count="4"><option value="{{ v }}">{{ v }}</option></sc-for>
+        </select>
+        <select class="input" style="width:auto;min-width:170px" value="{{ fStatus }}" onChange="{{ setFStatus }}">
+          <option value="">— status —</option>
+          <sc-for list="{{ statusOptions }}" as="v" hint-placeholder-count="5"><option value="{{ v }}">{{ v }}</option></sc-for>
+        </select>
+        <input type="search" class="input" style="width:auto;min-width:240px" placeholder="szukaj: placówka / miejscowość…" value="{{ q }}" onInput="{{ setQ }}">
+        <button type="button" class="btn btn-secondary" style="font-size:13px" onClick="{{ clearFilters }}">Wyczyść</button>
+        <span style="flex:1"></span>
+        <span class="text-muted" style="font-size:13px">{{ tableCount }} rekordów</span>
+        <button type="button" class="btn btn-primary" style="font-size:13px">+ Nowy lead</button>
+      </div>
+
+      <div class="scroll-x" style="border-top:1px solid var(--color-divider)">
+        <table class="table" style="min-width:1000px;font-size:13.5px">
+          <thead><tr>
+            <th style="width:34px;text-align:right">#</th>
+            <th>Handlowiec</th><th>Placówka</th><th>Miejscowość</th><th>Status realizacji</th>
+            <th>Deadline</th><th>Data DT</th><th>Prowadzący DT</th>
+            <th style="text-align:right">Klas</th><th style="text-align:right">Dzieci</th>
+          </tr></thead>
+          <tbody>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="10">
+              <tr class="row-hover">
+                <td style="text-align:right;color:var(--color-neutral-500);font-variant-numeric:tabular-nums">{{ r.idx }}</td>
+                <td>{{ r.handlowiec }}</td>
+                <td style="font-weight:600">{{ r.placowka }}</td>
+                <td class="text-muted">{{ r.miejscowosc }}</td>
+                <td>
+                  <select class="lead-cell" style="font-size:12px" value="{{ r.status }}" onChange="{{ r.onStatus }}">
+                    <sc-for list="{{ statusOptions }}" as="s" hint-placeholder-count="5"><option value="{{ s }}">{{ s }}</option></sc-for>
+                  </select>
+                </td>
+                <td style="font-variant-numeric:tabular-nums;{{ r.deadlineStyle }}">{{ r.deadline }}</td>
+                <td style="font-variant-numeric:tabular-nums" class="text-muted">{{ r.dataDt }}</td>
+                <td><span style="display:inline-flex;align-items:center;gap:7px"><sc-if value="{{ r.hasTrener }}" hint-placeholder-val="{{ true }}"><span style="width:9px;height:9px;border-radius:50%;background:{{ r.trenerColor }}"></span></sc-if>{{ r.trener }}</span></td>
+                <td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.klas }}</td>
+                <td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.dzieci }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted" style="font-size:12px;margin-top:var(--space-3);max-width:80ch;text-wrap:pretty">
+        <span style="color:var(--color-accent-2-700)">■</span> przekroczony deadline bez umówionego DT · Edytuj status w komórce — listy (handlowiec, trener, status) wymuszają wartość ze słownika, więc literówka typu „Olaszewska" jest niemożliwa.
+      </p>
+    </section>
+    </sc-if>
+
+    <!-- ══════════════ KALENDARZ DT ══════════════ -->
+    <sc-if value="{{ isKalendarz }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;margin-bottom:var(--space-4)">
+        <div>
+          <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Grafik trenerów · {{ monthLabel }}</div>
+          <h1 style="font-size:46px;margin:0">Kalendarz DT</h1>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap">
+          <sc-if value="{{ isDtView }}" hint-placeholder-val="{{ true }}"><span class="text-muted" style="font-size:13px">{{ nEvents }} spotkań DT · <b style="color:var(--color-accent-2-700);font-weight:600">{{ nCollisions }} w kolizji</b></span></sc-if>
+          <sc-if value="{{ isStarty }}" hint-placeholder-val="{{ false }}"><span class="text-muted" style="font-size:13px">{{ startyTotal }} zajęć · <b style="color:var(--color-accent-2-700);font-weight:600">{{ startyStarts }} startów</b></span></sc-if>
+          <div class="seg">
+            <label class="seg-opt"><input type="radio" name="calview" checked="{{ isMatrix }}" onChange="{{ setMatrix }}">▦ Macierz</label>
+            <label class="seg-opt"><input type="radio" name="calview" checked="{{ isAgenda }}" onChange="{{ setAgenda }}">☰ Agenda</label>
+            <label class="seg-opt"><input type="radio" name="calview" checked="{{ isStarty }}" onChange="{{ setStarty }}">▤ Starty</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kierunek A: macierz trener × dzień -->
+      <sc-if value="{{ isMatrix }}" hint-placeholder-val="{{ true }}">
+      <div class="scroll-x" style="border-top:1px solid var(--color-divider)">
+        <table style="border-collapse:collapse;min-width:1100px;width:100%">
+          <thead>
+            <tr>
+              <th style="position:sticky;left:0;z-index:2;background:var(--color-bg);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:var(--space-2);border-bottom:1px solid var(--color-divider);min-width:150px">Trener \ dzień</th>
+              <sc-for list="{{ matrixDays }}" as="d" hint-placeholder-count="10">
+                <th style="padding:var(--space-2) 6px;border-bottom:1px solid var(--color-divider);border-left:1px solid var(--color-divider);text-align:center;min-width:96px">
+                  <span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,var(--color-text) 55%,transparent)">{{ d.dow }}</span>
+                  <span style="display:block;font-family:var(--font-heading);font-size:19px;line-height:1.1">{{ d.day }}</span>
+                </th>
+              </sc-for>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ matrixRows }}" as="row" hint-placeholder-count="4">
+              <tr>
+                <td style="position:sticky;left:0;z-index:1;background:var(--color-bg);padding:var(--space-2);border-bottom:1px solid var(--color-divider);font-weight:600;white-space:nowrap">
+                  <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:11px;height:11px;border-radius:50%;background:{{ row.color }}"></span>{{ row.trener }}</span>
+                </td>
+                <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="10">
+                  <td style="vertical-align:top;padding:5px;border-bottom:1px solid var(--color-divider);border-left:1px solid var(--color-divider)">
+                    <sc-for list="{{ cell }}" as="e" hint-placeholder-count="0">
+                      <div style="{{ e.tileStyle }}" title="{{ e.title }}">
+                        <b style="display:block;font-size:11px;font-variant-numeric:tabular-nums;{{ e.hrsStyle }}">{{ e.hrs }}</b>
+                        <span style="display:block;font-size:11.5px;font-weight:600;line-height:1.25">{{ e.szkola }}</span>
+                        <span style="display:block;font-size:10.5px;color:color-mix(in srgb,var(--color-text) 55%,transparent)">{{ e.miejscowosc }}</span>
+                        <sc-if value="{{ e.collision }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;margin-top:3px;background:var(--color-accent-2-600);color:#fff;font-size:9px;letter-spacing:.04em;padding:1px 6px;border-radius:2px">kolizja</span></sc-if>
+                      </div>
+                    </sc-for>
+                  </td>
+                </sc-for>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted" style="font-size:12px;margin-top:var(--space-3);max-width:80ch;text-wrap:pretty">Wiersze = trenerzy (swój kolor), kolumny = dni; dwa DT trenera jednego dnia to dwa kafelki w komórce. <span style="color:var(--color-accent-2-700)">■</span> kolizja godzin. Przewiń w prawo po dalsze dni. Kolory zmienisz w Słownikach → Trenerzy.</p>
+      </sc-if>
+
+      <!-- Kierunek B: agenda dzienna -->
+      <sc-if value="{{ isAgenda }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:1px solid var(--color-divider)">
+        <sc-for list="{{ agendaGroups }}" as="g" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:120px 1fr;gap:var(--space-4);padding:var(--space-4) 0;border-bottom:1px solid var(--color-divider)">
+            <div style="text-align:right">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:color-mix(in srgb,var(--color-text) 55%,transparent)">{{ g.dow }}</div>
+              <div style="font-family:var(--font-heading);font-size:40px;line-height:.95">{{ g.day }}</div>
+              <div class="text-muted" style="font-size:11px">{{ g.month }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ g.events }}" as="e" hint-placeholder-count="2">
+                <div style="{{ e.rowStyle }}">
+                  <span style="width:11px;height:11px;border-radius:50%;background:{{ e.color }};flex:none"></span>
+                  <b style="font-size:13px;font-variant-numeric:tabular-nums;min-width:104px;{{ e.hrsStyle }}">{{ e.hrs }}</b>
+                  <span style="font-size:14px;font-weight:600">{{ e.szkola }}</span>
+                  <span class="text-muted" style="font-size:13px">· {{ e.miejscowosc }}</span>
+                  <span style="flex:1"></span>
+                  <span class="text-muted" style="font-size:12.5px">{{ e.trener }}</span>
+                  <sc-if value="{{ e.collision }}" hint-placeholder-val="{{ false }}"><span style="background:var(--color-accent-2-600);color:#fff;font-size:10px;letter-spacing:.04em;padding:2px 8px;border-radius:2px">kolizja</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <p class="text-muted" style="font-size:12px;margin-top:var(--space-3);max-width:80ch;text-wrap:pretty">Widok dzienny — każdy dzień z listą spotkań w kolejności godzin, kolor = trener. <span style="color:var(--color-accent-2-700)">■</span> kolizja godzin tego samego trenera.</p>
+      </sc-if>
+
+      <!-- Kierunek C: STARTY (jak zakładka STARTY CZERWIEC) -->
+      <sc-if value="{{ isStarty }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ startyLoaded }}" hint-placeholder-val="{{ false }}">
+      <div style="border-top:1px solid var(--color-divider);padding-top:var(--space-4)">
+        <sc-for list="{{ startyWeeks }}" as="w" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--space-3);align-items:start;margin-bottom:var(--space-8)">
+            <sc-for list="{{ w.days }}" as="d" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+                <div style="display:flex;align-items:baseline;gap:8px;padding-bottom:8px;border-bottom:2px solid var(--color-text)">
+                  <span style="font-family:var(--font-heading);font-size:34px;line-height:.9">{{ d.day }}</span>
+                  <div style="display:flex;flex-direction:column">
+                    <span style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent)">{{ d.dow }}</span>
+                    <span style="font-size:10.5px;color:var(--color-accent-700)">{{ d.count }} zajęć</span>
+                  </div>
+                </div>
+                <sc-for list="{{ d.entries }}" as="e" hint-placeholder-count="4">
+                  <div style="{{ e.cardStyle }};display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;flex-wrap:wrap">
+                      <span style="{{ e.badgeStyle }}">{{ e.typeLabel }}</span>
+                      <b style="font-size:15px;font-variant-numeric:tabular-nums;color:{{ e.hrsColor }}">{{ e.godz }}</b>
+                    </div>
+                    <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;line-height:1.15;text-wrap:pretty">{{ e.school }}</div>
+                    <div class="text-muted" style="font-size:12px;line-height:1.3">{{ e.address }}</div>
+                    <sc-if value="{{ e.hasMeta }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:var(--color-accent-800)">{{ e.meta }}</div></sc-if>
+                    <sc-if value="{{ e.hasTrener }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:13px;margin-top:2px"><span class="text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em">Trener&nbsp;</span>{{ e.trener }}</div>
+                    </sc-if>
+                    <sc-if value="{{ e.hasZast }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px" class="text-muted">Zastępstwo: {{ e.zast }}</div></sc-if>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px;flex-wrap:wrap">
+                      <sc-if value="{{ e.hasKod }}" hint-placeholder-val="{{ false }}"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11.5px;letter-spacing:.05em;background:var(--color-neutral-100);padding:2px 7px;border-radius:2px">{{ e.kod }}</span></sc-if>
+                      <sc-if value="{{ e.hasLink }}" hint-placeholder-val="{{ false }}"><a href="{{ e.link }}" target="_blank" style="font-size:11.5px">Tinkercad ↗</a></sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <p class="text-muted" style="font-size:12px;margin-top:var(--space-2);max-width:82ch;text-wrap:pretty">Układ jak zakładka „STARTY CZERWIEC" — tygodnie jeden pod drugim, pięć kolumn dni, każde zajęcia jako czytelna karta z pełnymi danymi. <span style="color:var(--color-accent-2-700)">■</span> START (nowa grupa) · <span style="color:var(--color-accent-700)">■</span> zajęcia cykliczne.</p>
+      </sc-if>
+      </sc-if>
+
+    <!-- ══════════════ SŁOWNIKI ══════════════ -->
+    <sc-if value="{{ isSlowniki }}" hint-placeholder-val="{{ false }}">
+    <section>
+      <div style="margin-bottom:var(--space-3)">
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-700);margin-bottom:6px">Jedno źródło list</div>
+        <h1 style="font-size:46px;margin:0">Słowniki</h1>
+      </div>
+      <p class="text-muted" style="font-size:13.5px;max-width:70ch;margin-bottom:var(--space-6);text-wrap:pretty">Jedno miejsce dla wszystkich list rozwijanych — zmiana tutaj działa wszędzie. Koniec z czterema wersjami tej samej listy i literówkami. Trenerom nadajesz kolor, który pojawia się w kalendarzu.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--space-4)">
+        <sc-for list="{{ dictionaries }}" as="d" hint-placeholder-count="6">
+          <div class="card elev-sm">
+            <div class="card-kicker">{{ d.count }} pozycji</div>
+            <div class="card-title" style="margin-bottom:var(--space-1)">{{ d.label }}</div>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ d.items }}" as="it" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)">
+                  <sc-if value="{{ it.hasColor }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;border-radius:3px;background:{{ it.color }};flex:none;border:1px solid var(--color-divider)"></span></sc-if>
+                  <span style="flex:1;font-size:13.5px">{{ it.value }}</span>
+                  <button type="button" class="btn btn-ghost" style="padding:0 4px;font-size:13px;color:var(--color-neutral-500)">✕</button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:var(--space-2)">
+              <input type="text" class="input" style="min-height:32px;font-size:13px" placeholder="nowa pozycja…">
+              <button type="button" class="btn btn-primary" style="padding:6px 12px">+</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'pulpit',
+    importOpen: false,
+    calView: 'matrix',
+    fHandlowiec: '',
+    fStatus: '',
+    q: '',
+    leads: null,
+  };
+
+  TODAY = new Date('2026-07-20');
+  MONTH = '03';
+  YEAR = '2026';
+  monthLabel = 'Marzec 2026';
+
+  trenerColors = {
+    'Ewa Kaczmarek': '#0088b0',
+    'Piotr Nowak': '#d6006c',
+    'Julia Wiśniewska': '#7a5cc0',
+    'Bartosz Lewandowski': '#2f8f6b',
+  };
+  handlowcy = ['Anna Olszewska', 'Marek Bitner', 'Katarzyna Wójcik', 'Tomasz Zieliński'];
+  statusOptions = ['01. Nowy', '02. Kontakt', '02. Umówiony DT', '03. Zrealizowany', '03. Zamknięty'];
+
+  seed() {
+    // day/dow/od/do define the DT event (only when data_dt present)
+    return [
+      { id: 1,  handlowiec: 'Anna Olszewska',    placowka: 'SP nr 12', miejscowosc: 'Warszawa', status: '02. Umówiony DT', deadline: '2026-06-15', day: 2,  dow: 'Pon', od: '08:00', do: '12:30', trener: 'Ewa Kaczmarek',        klas: 10, dzieci: 240 },
+      { id: 2,  handlowiec: 'Marek Bitner',      placowka: 'SP nr 8',  miejscowosc: 'Wrocław',  status: '02. Umówiony DT', deadline: '2026-06-20', day: 2,  dow: 'Pon', od: '10:00', do: '14:00', trener: 'Piotr Nowak',          klas: 8,  dzieci: 190 },
+      { id: 3,  handlowiec: 'Anna Olszewska',    placowka: 'SP nr 4',  miejscowosc: 'Warszawa', status: '02. Umówiony DT', deadline: '2026-07-25', day: 3,  dow: 'Wt',  od: '08:00', do: '12:30', trener: 'Julia Wiśniewska',     klas: 6,  dzieci: 150 },
+      { id: 4,  handlowiec: 'Katarzyna Wójcik',  placowka: 'SP nr 6',  miejscowosc: 'Gdańsk',   status: '02. Umówiony DT', deadline: '2026-07-30', day: 3,  dow: 'Wt',  od: '09:00', do: '13:00', trener: 'Bartosz Lewandowski',  klas: 12, dzieci: 300 },
+      { id: 5,  handlowiec: 'Tomasz Zieliński',  placowka: 'SP nr 3',  miejscowosc: 'Kraków',   status: '01. Nowy',        deadline: '2026-06-05', day: null, dow: null, od: null, do: null, trener: '',                     klas: 9,  dzieci: 210 },
+      { id: 6,  handlowiec: 'Marek Bitner',      placowka: 'SP nr 1',  miejscowosc: 'Gdańsk',   status: '02. Kontakt',     deadline: '2026-06-10', day: null, dow: null, od: null, do: null, trener: '',                     klas: 7,  dzieci: 160 },
+      { id: 7,  handlowiec: 'Anna Olszewska',    placowka: 'ZS nr 5',  miejscowosc: 'Łódź',     status: '02. Umówiony DT', deadline: '2026-07-28', day: 9,  dow: 'Pon', od: '08:30', do: '12:00', trener: 'Ewa Kaczmarek',        klas: 5,  dzieci: 120 },
+      { id: 8,  handlowiec: 'Katarzyna Wójcik',  placowka: 'SP nr 14', miejscowosc: 'Katowice', status: '02. Umówiony DT', deadline: '2026-08-01', day: 9,  dow: 'Pon', od: '09:00', do: '13:00', trener: 'Piotr Nowak',          klas: 11, dzieci: 260 },
+      { id: 9,  handlowiec: 'Tomasz Zieliński',  placowka: 'SP nr 2',  miejscowosc: 'Poznań',   status: '02. Umówiony DT', deadline: '2026-08-05', day: 10, dow: 'Wt',  od: '09:00', do: '13:00', trener: 'Julia Wiśniewska',     klas: 8,  dzieci: 200 },
+      { id: 10, handlowiec: 'Anna Olszewska',    placowka: 'SP nr 21', miejscowosc: 'Poznań',   status: '02. Umówiony DT', deadline: '2026-08-10', day: 11, dow: 'Śr',  od: '10:00', do: '14:00', trener: 'Ewa Kaczmarek',        klas: 10, dzieci: 240 },
+      { id: 11, handlowiec: 'Katarzyna Wójcik',  placowka: 'SP nr 18', miejscowosc: 'Warszawa', status: '02. Umówiony DT', deadline: '2026-08-12', day: 11, dow: 'Śr',  od: '08:00', do: '11:30', trener: 'Bartosz Lewandowski',  klas: 6,  dzieci: 140, collision: true },
+      { id: 12, handlowiec: 'Katarzyna Wójcik',  placowka: 'SP nr 19', miejscowosc: 'Warszawa', status: '02. Umówiony DT', deadline: '2026-08-12', day: 11, dow: 'Śr',  od: '11:00', do: '14:30', trener: 'Bartosz Lewandowski',  klas: 7,  dzieci: 170, collision: true },
+      { id: 13, handlowiec: 'Marek Bitner',      placowka: 'SP nr 7',  miejscowosc: 'Lublin',   status: '01. Nowy',        deadline: '2026-06-25', day: null, dow: null, od: null, do: null, trener: '',                     klas: 4,  dzieci: 90  },
+      { id: 14, handlowiec: 'Tomasz Zieliński',  placowka: 'SP nr 9',  miejscowosc: 'Kraków',   status: '03. Zrealizowany',deadline: '2026-05-30', day: null, dow: null, od: null, do: null, trener: 'Julia Wiśniewska',     klas: 9,  dzieci: 220, dataDtRaw: '20.02' },
+      { id: 15, handlowiec: 'Anna Olszewska',    placowka: 'SP nr 30', miejscowosc: 'Kraków',   status: '02. Umówiony DT', deadline: '2026-08-15', day: 4,  dow: 'Śr',  od: '09:00', do: '13:00', trener: 'Ewa Kaczmarek',        klas: 7,  dzieci: 165 },
+      { id: 16, handlowiec: 'Marek Bitner',      placowka: 'SP nr 31', miejscowosc: 'Gdańsk',   status: '02. Umówiony DT', deadline: '2026-08-18', day: 5,  dow: 'Czw', od: '08:00', do: '12:00', trener: 'Piotr Nowak',          klas: 8,  dzieci: 185 },
+      { id: 17, handlowiec: 'Katarzyna Wójcik',  placowka: 'SP nr 32', miejscowosc: 'Wrocław',  status: '02. Umówiony DT', deadline: '2026-08-20', day: 6,  dow: 'Pt',  od: '08:00', do: '12:00', trener: 'Bartosz Lewandowski',  klas: 10, dzieci: 230 },
+      { id: 18, handlowiec: 'Tomasz Zieliński',  placowka: 'SP nr 33', miejscowosc: 'Lublin',   status: '02. Umówiony DT', deadline: '2026-08-22', day: 12, dow: 'Czw', od: '08:00', do: '12:30', trener: 'Piotr Nowak',          klas: 6,  dzieci: 145 },
+    ];
+  }
+
+  leads() { return this.state.leads || (this.state.leads = this.seed()); }
+  color(t) { return this.trenerColors[t] || '#9b9797'; }
+  fmtDate(iso) { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; }
+  isOverdue(l) { return new Date(l.deadline) < this.TODAY && !l.day && !l.dataDtRaw && !l.status.startsWith('03.'); }
+  dataDtLabel(l) { return l.dataDtRaw ? l.dataDtRaw : (l.day ? `${String(l.day).padStart(2, '0')}.${this.MONTH}` : '—'); }
+
+  updateLead(id, value) {
+    const leads = this.leads().map(l => l.id === id ? { ...l, status: value } : l);
+    this.setState({ leads });
+  }
+
+  componentDidMount() {
+    import('./starty-czerwiec.js').then(m => this.setState({ starty: m.default })).catch(() => {});
+  }
+
+  clean(v) { const s = (v || '').replace(/^[:\s]+|[:\s]+$/g, '').trim(); return s; }
+
+  buildStarty() {
+    const data = this.state.starty;
+    if (!data) return { weeks: [], total: 0, starts: 0 };
+    const monthShort = 'czerwca';
+    let total = 0, starts = 0;
+    const weeks = data.map(w => ({
+      days: w.days.map(d => {
+        const entries = d.entries.map(e => {
+          const isStart = e.type === 'START';
+          total++; if (isStart) starts++;
+          const trener = this.clean(e.trener), zast = this.clean(e.zastepstwo), druk = this.clean(e.drukarz);
+          const meta = [e.grupa ? 'Gr. ' + e.grupa : '', e.sprzet].filter(Boolean).join(' · ');
+          const border = isStart ? 'var(--color-accent-2-600)' : 'var(--color-accent-600)';
+          return {
+            isStart, typeLabel: e.type, school: e.school, address: e.address, godz: e.godz || '—',
+            meta, hasMeta: !!meta, trener, hasTrener: !!trener, zast, hasZast: !!zast,
+            druk, hasDruk: !!druk, kod: e.kod, hasKod: !!e.kod, link: e.link, hasLink: !!e.link,
+            cardStyle: `background:var(--color-surface);border-left:4px solid ${border};border-radius:2px;padding:11px 13px`,
+            badgeStyle: isStart
+              ? 'align-self:flex-start;background:var(--color-accent-2-600);color:#fff;font-size:10px;font-weight:600;letter-spacing:.08em;padding:2px 9px;border-radius:2px'
+              : 'align-self:flex-start;background:var(--color-accent-100);color:var(--color-accent-800);font-size:10px;letter-spacing:.08em;padding:2px 9px;border-radius:2px',
+            hrsColor: isStart ? 'var(--color-accent-2-700)' : 'var(--color-accent-700)',
+          };
+        });
+        return { dow: d.dow, day: d.day, count: entries.length, entries };
+      }),
+    }));
+    return { weeks, total, starts, monthShort };
+  }
+
+  renderVals() {
+    const leads = this.leads();
+    const s = this.state;
+    const starty = this.buildStarty();
+    const navBase = 'font-size:14px;text-decoration:none;';
+    const navStyle = (k) => navBase + (s.screen === k ? 'color:var(--color-accent);font-weight:600' : 'color:var(--color-text)');
+    const go = (k) => (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ screen: k }); };
+
+    // ── pulpit stats ──
+    const withDT = leads.filter(l => l.day || l.dataDtRaw);
+    const overdue = leads.filter(l => this.isOverdue(l));
+    const collisions = leads.filter(l => l.collision);
+    const stats = [
+      { value: leads.length, label: 'leadów łącznie', color: 'var(--color-text)' },
+      { value: withDT.length, label: 'DT umówione', color: 'var(--color-accent)' },
+      { value: withDT.length, label: 'z ustaloną datą DT', color: 'var(--color-text)' },
+      { value: overdue.length, label: 'po terminie', color: 'var(--color-accent-2-600)' },
+      { value: collisions.length, label: 'kolizji trenerów', color: 'var(--color-accent-2-600)' },
+    ];
+    const overdueList = overdue.map(l => ({ deadline: this.fmtDate(l.deadline), handlowiec: l.handlowiec, placowka: l.placowka, miejscowosc: l.miejscowosc, status: l.status }));
+    const kolizjeList = collisions.map(l => ({ data: `${String(l.day).padStart(2, '0')}.${this.MONTH}`, trener: l.trener, color: this.color(l.trener), godziny: `${l.od}–${l.do}`, szkola: `${l.placowka} ${l.miejscowosc}` }));
+    const perH = this.handlowcy.map(h => {
+      const mine = leads.filter(l => l.handlowiec === h);
+      const u = mine.filter(l => l.day || l.dataDtRaw).length;
+      return { handlowiec: h, c: mine.length, u, pct: mine.length ? Math.round(u / mine.length * 100) + '%' : '0%' };
+    });
+
+    // ── table ──
+    const filtered = leads.filter(l => {
+      if (s.fHandlowiec && l.handlowiec !== s.fHandlowiec) return false;
+      if (s.fStatus && l.status !== s.fStatus) return false;
+      if (s.q) { const q = s.q.toLowerCase(); if (!((l.placowka + ' ' + l.miejscowosc).toLowerCase().includes(q))) return false; }
+      return true;
+    });
+    const tableRows = filtered.map((l, i) => {
+      const overdueCell = this.isOverdue(l);
+      return {
+        idx: i + 1, handlowiec: l.handlowiec, placowka: l.placowka, miejscowosc: l.miejscowosc,
+        status: l.status, deadline: this.fmtDate(l.deadline),
+        deadlineStyle: overdueCell ? 'background:var(--color-accent-2-100);color:var(--color-accent-2-700);font-weight:600;border-radius:2px' : '',
+        dataDt: this.dataDtLabel(l), trener: l.trener || '—', hasTrener: !!l.trener, trenerColor: this.color(l.trener),
+        klas: l.klas, dzieci: l.dzieci,
+        onStatus: (e) => this.updateLead(l.id, e.target.value),
+      };
+    });
+
+    // ── calendar ──
+    const events = leads.filter(l => l.day);
+    const dayMeta = { 2: 'Pon', 3: 'Wt', 4: 'Śr', 5: 'Czw', 6: 'Pt', 9: 'Pon', 10: 'Wt', 11: 'Śr', 12: 'Czw', 13: 'Pt' };
+    const matrixDays = [2, 3, 4, 5, 6, 9, 10, 11, 12, 13].map(d => ({ day: d, dow: dayMeta[d] }));
+    const tileStyle = (c, coll) => coll
+      ? 'background:var(--color-accent-2-100);border-left:3px solid var(--color-accent-2-600);border-radius:2px;padding:4px 7px;margin-bottom:5px'
+      : `background:color-mix(in srgb,${c} 12%,var(--color-bg));border-left:3px solid ${c};border-radius:2px;padding:4px 7px;margin-bottom:5px`;
+    const hrsStyle = (c, coll) => coll ? 'color:var(--color-accent-2-700)' : `color:color-mix(in srgb,${c} 70%,#000)`;
+    const trenerNames = Object.keys(this.trenerColors);
+    const matrixRows = trenerNames.map(t => {
+      const c = this.color(t);
+      const cells = matrixDays.map(d => events.filter(e => e.trener === t && e.day === d.day).map(e => ({
+        hrs: `${e.od}–${e.do}`, szkola: e.placowka, miejscowosc: e.miejscowosc, collision: !!e.collision,
+        title: `${e.placowka} ${e.miejscowosc} — ${e.handlowiec}`, tileStyle: tileStyle(c, e.collision), hrsStyle: hrsStyle(c, e.collision),
+      })));
+      return { trener: t, color: c, cells };
+    });
+    const monthName = 'mar';
+    const dayNums = [...new Set(events.map(e => e.day))].sort((a, b) => a - b);
+    const agendaGroups = dayNums.map(dn => ({
+      day: dn, dow: dayMeta[dn], month: monthName,
+      events: events.filter(e => e.day === dn).sort((a, b) => a.od.localeCompare(b.od)).map(e => {
+        const c = this.color(e.trener);
+        return {
+          color: c, hrs: `${e.od}–${e.do}`, szkola: e.placowka, miejscowosc: e.miejscowosc, trener: e.trener, collision: !!e.collision,
+          hrsStyle: e.collision ? 'color:var(--color-accent-2-700)' : '',
+          rowStyle: 'display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:2px;' + (e.collision ? 'background:var(--color-accent-2-100)' : ''),
+        };
+      }),
+    }));
+
+    // ── słowniki ──
+    const dict = (label, items) => ({ label, count: items.length, items });
+    const dictionaries = [
+      dict('Handlowcy', this.handlowcy.map(v => ({ value: v, hasColor: false }))),
+      dict('Trenerzy', trenerNames.map(v => ({ value: v, hasColor: true, color: this.color(v) }))),
+      dict('Miejscowości', ['Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Łódź', 'Katowice', 'Lublin'].map(v => ({ value: v, hasColor: false }))),
+      dict('Status realizacji', this.statusOptions.map(v => ({ value: v, hasColor: false }))),
+      dict('Status szkoły', ['Publiczna', 'Niepubliczna', 'Zespół szkół'].map(v => ({ value: v, hasColor: false }))),
+      dict('Dni tygodnia', ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'].map(v => ({ value: v, hasColor: false }))),
+    ];
+
+    return {
+      isPulpit: s.screen === 'pulpit', isTabela: s.screen === 'tabela', isKalendarz: s.screen === 'kalendarz', isSlowniki: s.screen === 'slowniki',
+      navPulpit: navStyle('pulpit'), navTabela: navStyle('tabela'), navKalendarz: navStyle('kalendarz'), navSlowniki: navStyle('slowniki'),
+      goPulpit: go('pulpit'), goTabela: go('tabela'), goKalendarz: go('kalendarz'), goSlowniki: go('slowniki'),
+      importOpen: s.importOpen, toggleImport: () => this.setState({ importOpen: !s.importOpen }), noop: (e) => e && e.preventDefault && e.preventDefault(),
+      monthLabel: this.monthLabel,
+      stats, overdueList, kolizjeList, perH,
+      handlowcy: this.handlowcy, statusOptions: this.statusOptions,
+      fHandlowiec: s.fHandlowiec, fStatus: s.fStatus, q: s.q,
+      setFHandlowiec: (e) => this.setState({ fHandlowiec: e.target.value }),
+      setFStatus: (e) => this.setState({ fStatus: e.target.value }),
+      setQ: (e) => this.setState({ q: e.target.value }),
+      clearFilters: () => this.setState({ fHandlowiec: '', fStatus: '', q: '' }),
+      tableRows, tableCount: filtered.length,
+      isMatrix: s.calView === 'matrix', isAgenda: s.calView === 'agenda', isStarty: s.calView === 'starty',
+      setMatrix: () => this.setState({ calView: 'matrix' }), setAgenda: () => this.setState({ calView: 'agenda' }), setStarty: () => this.setState({ calView: 'starty' }),
+      matrixDays, matrixRows, agendaGroups, nEvents: events.length, nCollisions: collisions.length,
+      isDtView: s.calView !== 'starty',
+      startyWeeks: starty.weeks, startyTotal: starty.total, startyStarts: starty.starts, startyLoaded: starty.weeks.length > 0,
+      dictionaries,
+    };
+  }
+}
+</script>
+</body>
+</html>

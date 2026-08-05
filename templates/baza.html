@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie with context %}
+{% block title %}{{ tytul }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">{{ kicker }}</div>
+    <h1>{{ tytul }}</h1>
+  </div>
+  <div class="head-actions">
+    <div class="seg">
+      {# „Do rozdania" to filtr, a nie osobna zakładka — lead nigdzie się nie przenosi #}
+      <a class="seg-opt {{ 'on' if f.zakres == 'nieprzydzielone' }}"
+         href="{{ url_for('baza', zakres='nieprzydzielone') }}">Do rozdania</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'przydzielone' }}"
+         href="{{ url_for('baza', zakres='przydzielone') }}">Przydzielone</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'po_terminie' }}"
+         href="{{ url_for('baza', zakres='po_terminie') }}">Po terminie</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'wszystkie' }}"
+         href="{{ url_for('baza', zakres='wszystkie') }}">Wszystkie</a>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btn-nowy-lead">+ Nowa placówka</button>
+  </div>
+</div>
+
+{# Nowa placówka „z ręki" — wszystkie listy ze słownika, więc nie da się wpisać
+   nowego wariantu miejscowości ani literówki w nazwisku handlowca. #}
+<div class="card nowa-placowka" id="nowa-placowka" hidden>
+  <h3>Nowa placówka</h3>
+  <div class="form-grid">
+    <label class="fld">
+      <span class="fld-l">Nazwa placówki</span>
+      <input class="input" id="np-nazwa" placeholder="np. MSP 2">
+    </label>
+    <label class="fld">
+      <span class="fld-l">Typ</span>
+      <select class="input" id="np-typ">
+        <option value="">—</option>
+        {% for v in slowniki.get('typ_placowki', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="fld">
+      <span class="fld-l">Miejscowość</span>
+      <select class="input" id="np-miejscowosc">
+        <option value="">—</option>
+        {% for v in slowniki.get('miasto', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="fld">
+      <span class="fld-l">Handlowiec (opcjonalnie)</span>
+      <select class="input" id="np-handlowiec">
+        <option value="">— nieprzydzielony —</option>
+        {% for v in slowniki.get('handlowiec', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+  <div class="dodaj-event-akcje">
+    <button type="button" class="btn btn-primary" id="btn-zapisz-lead">Utwórz i otwórz kartę</button>
+    <span class="muted small">Resztę pól (adres, kontakt, telefon) uzupełnisz w karcie leada
+      albo wprost w tabeli.</span>
+  </div>
+</div>
+
+{{ pasek_filtrow(f, slowniki, total, query, pokaz_status_szkoly=true) }}
+
+{{ pasek_masowy(slowniki, tryb='przypisz', etykieta='Przypisz zaznaczone') }}
+
+{{ tabela_leadow(rows,
+     ['chk','nr','placowka','typ','miejscowosc','kontakt','handlowiec',
+      'status_szkoly','status_realizacji','deadline','akcje'],
+     slowniki, kolory, lead_fields, julia_fields,
+     min_szer='1180px',
+     pusto='Brak placówek dla tych filtrów. Wgraj bazę RSPO w „↑ Import" albo wczytaj dane demo.') }}
+
+{{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
+
+{{ legenda('Przypisanie leada to zmiana właściciela i statusu — rekord zostaje w jednej
+            bazie, zmienia się tylko to, na których ekranach go widać.') }}
+{% endblock %}

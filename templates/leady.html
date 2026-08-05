@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie with context %}
+{% block title %}{{ tytul }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">{{ kicker }}{{ ' · ' ~ f.handlowiec if f.handlowiec }}</div>
+    <h1>{{ tytul }}</h1>
+  </div>
+  <div class="head-actions">
+    <div class="seg">
+      <a class="seg-opt {{ 'on' if f.zakres == 'przydzielone' }}"
+         href="{{ url_for('leady', zakres='przydzielone', handlowiec=f.handlowiec or none) }}">W pracy</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'umowione' }}"
+         href="{{ url_for('leady', zakres='umowione', handlowiec=f.handlowiec or none) }}">DT umówione</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'po_terminie' }}"
+         href="{{ url_for('leady', zakres='po_terminie', handlowiec=f.handlowiec or none) }}">Po terminie</a>
+      <a class="seg-opt {{ 'on' if f.zakres == 'cykle' }}"
+         href="{{ url_for('leady', zakres='cykle', handlowiec=f.handlowiec or none) }}">Z cyklami</a>
+    </div>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('tydzien') }}">★ Plan tygodnia</a>
+  </div>
+</div>
+
+{{ pasek_filtrow(f, slowniki, total, query, pokaz_status_szkoly=true, pokaz_dt=true) }}
+
+{{ pasek_masowy(slowniki, tryb='oba', etykieta='Przypisz innemu') }}
+
+{{ tabela_leadow(rows,
+     ['chk','pin','nr','placowka','miejscowosc','handlowiec','status_szkoly',
+      'status_realizacji','deadline','dt','dt_data','dt_trener','klas','dzieci','uwagi','akcje'],
+     slowniki, kolory, lead_fields, julia_fields,
+     min_szer='1560px',
+     pusto='Brak leadów. Koordynator rozdaje je na ekranie „Baza".') }}
+
+{{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
+
+{{ legenda('★ przypina szkołę na bieżący tydzień (poniedziałek ' ~ poniedzialek ~ ') — wtedy ląduje
+            na górze listy i na ekranie „Tydzień". „Odbierz handlowcowi" przenosi lead do puli
+            „Niewykorzystane rekordy" bez usuwania danych.') }}
+{% endblock %}

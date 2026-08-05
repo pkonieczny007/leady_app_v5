@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, legenda, stronicowanie with context %}
+{% block title %}{{ tytul }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">{{ kicker }}</div>
+    <h1>{{ tytul }}</h1>
+    <p class="lede small">„Wybrane szkoły na tydzień do góry" — to, co handlowiec sam wskazał
+      jako plan na bieżący tydzień (od poniedziałku {{ poniedzialek|pl_data }}).
+      Przypina się gwiazdką na ekranie „Leady".</p>
+  </div>
+  <div class="head-actions">
+    <span class="muted small nums">{{ total }} przypiętych</span>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ query if query else '' }}">↓ Pobierz XLSX</a>
+  </div>
+</div>
+
+{{ pasek_filtrow(f, slowniki, total, query) }}
+
+{% if rows %}
+  {% set znani = slowniki.get('handlowiec', []) %}
+  {% set kolumny = ['pin','nr','placowka','miejscowosc','status_realizacji','deadline',
+                    'dt_data','dt_godz','dt_trener','uwagi','akcje'] %}
+
+  {% for h in znani %}
+    {% set grupa = rows | selectattr('handlowiec', 'equalto', h) | list %}
+    {% if grupa %}
+    <section class="section">
+      <div class="grupa-head">
+        <h2>{{ h|bez_prefiksu }}</h2>
+        <span class="tag tag-accent nums">{{ grupa|length }} szkół na ten tydzień</span>
+        <span class="grupa-line"></span>
+        <a class="small" href="{{ url_for('leady', handlowiec=h) }}">wszystkie leady →</a>
+      </div>
+      {{ tabela_leadow(grupa, kolumny, slowniki, kolory, lead_fields, julia_fields,
+                       min_szer='1240px') }}
+    </section>
+    {% endif %}
+  {% endfor %}
+
+  {% set inni = rows | rejectattr('handlowiec', 'in', znani) | list %}
+  {% if inni %}
+  <section class="section">
+    <div class="grupa-head">
+      <h2>Bez handlowca</h2>
+      <span class="tag tag-accent-2 nums">{{ inni|length }}</span>
+      <span class="grupa-line"></span>
+    </div>
+    {{ tabela_leadow(inni, kolumny, slowniki, kolory, lead_fields, julia_fields,
+                     min_szer='1240px') }}
+  </section>
+  {% endif %}
+{% else %}
+<p class="empty">Nikt nie przypiął jeszcze szkół na ten tydzień.
+  Wejdź w „Leady" i kliknij ☆ przy wybranych rekordach.</p>
+{% endif %}
+
+{{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
+
+{{ legenda('Przypięcie zapisuje datę poniedziałku, więc w nowym tygodniu plan zaczyna się
+            od czystej listy, a stary jest w historii zmian leada.') }}
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Import danych{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Dane wejściowe</div>
+    <h1>Import</h1>
+    <p class="lede">Wgraj arkusz, z którego dziś korzystacie — aplikacja rozbije zbitki
+      („10 klas" → 10, „około 240" → 240, „08:00-12:30" → godzina od/do) i podstawi wartości
+      kanoniczne przez aliasy, więc „ZUZIA OLSZEWSKA" i „02. Olaszewska" trafią na jedną osobę.
+      Nic nie trzeba czyścić ręcznie przed wgraniem.</p>
+  </div>
+</div>
+
+<div class="cols cols-2">
+  <section class="section">
+    <div class="section-title">Wgraj plik</div>
+    <form class="card import-form" method="post" action="{{ url_for('import_view') }}"
+          enctype="multipart/form-data">
+      <label class="fld">
+        <span class="fld-l">Plik arkusza (.xlsx / .xlsm)</span>
+        <input class="input" type="file" name="plik" accept=".xlsx,.xlsm" required>
+      </label>
+
+      <label class="fld">
+        <span class="fld-l">Źródło</span>
+        <select class="input" name="zrodlo">
+          <option value="ph_nowy">„PH Nowy" — wasz arkusz roboczy (BAZA, zakładki handlowców, Zbiorczy)</option>
+          <option value="rspo">RSPO — czysta baza placówek (szkoły, przedszkola, instytucje kultury)</option>
+        </select>
+      </label>
+
+      <div class="fld">
+        <span class="fld-l">Tryb</span>
+        <label class="check"><input type="radio" name="tryb" value="merge" checked>
+          <b>dopisz / zaktualizuj</b> — dopasowanie po RSPO albo nazwie placówki</label>
+        <label class="check"><input type="radio" name="tryb" value="replace">
+          <b>zastąp dane</b> — czyści bazę leadów przed wgraniem</label>
+      </div>
+
+      <div class="dodaj-event-akcje">
+        <button type="submit" class="btn btn-primary">↑ Wczytaj plik</button>
+        <button type="button" class="btn btn-secondary" id="btn-demo">Wczytaj dane demo</button>
+      </div>
+      <p class="muted small">Dane demo = realny wycinek waszego arkusza + plansza
+        „STARTY CZERWIEC". Dobre na pierwsze kliknięcie po instalacji.</p>
+    </form>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Co jest teraz w bazie</div>
+    <table class="table table-tight">
+      <tbody>
+        <tr><td>Placówki</td><td class="right nums strong">{{ m.placowki }}</td></tr>
+        <tr><td>Leady</td><td class="right nums strong">{{ m.leady }}</td></tr>
+        <tr><td>Nieprzydzielone</td><td class="right nums">{{ m.nieprzydzielone }}</td></tr>
+        <tr><td>DT umówione</td><td class="right nums">{{ m.umowione }}</td></tr>
+        <tr><td>Pula zwrotna (04.)</td><td class="right nums">{{ m.niewykorzystane }}</td></tr>
+        <tr><td>Po terminie</td><td class="right nums alert">{{ m.po_terminie }}</td></tr>
+        <tr><td>Spotkania DT</td><td class="right nums">{{ m.eventy_dt }}</td></tr>
+        <tr><td>Wpisy cykliczne</td><td class="right nums">{{ m.eventy_cykl }}</td></tr>
+      </tbody>
+    </table>
+
+    {% if raport %}
+    <div class="section-title" style="margin-top:var(--space-6)">Raport z ostatniego importu</div>
+    <table class="table table-tight">
+      <tbody>
+        {% for klucz, wartosc in raport.items() %}
+        <tr>
+          <td>{{ klucz }}</td>
+          <td class="right nums">
+            {%- if wartosc is string or wartosc is number %}{{ wartosc }}
+            {%- elif wartosc is mapping %}{{ wartosc|length }} pozycji
+            {%- elif wartosc is sequence %}{{ wartosc|length }}
+            {%- else %}{{ wartosc }}{% endif -%}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% for klucz, wartosc in raport.items() %}
+      {% if wartosc is sequence and wartosc is not string and wartosc is not mapping and wartosc %}
+      <details class="raport-det">
+        <summary>{{ klucz }} — {{ wartosc|length }} wpisów</summary>
+        <ul class="raport-lista">
+          {% for w in wartosc[:60] %}<li class="small">{{ w }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    {% endfor %}
+    {% else %}
+    <p class="legend">Po wgraniu pliku pokaże się tu raport: ile placówek, leadów i spotkań
+      zostało wczytanych oraz co zostało pominięte i dlaczego.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="section">
+  <div class="section-title">Jak to działa</div>
+  <div class="cols cols-2">
+    <p class="lede small">Import nie tworzy kolejnej kopii tabeli. Placówka trafia do jednej
+      tabeli placówek (klucz: nr RSPO, a gdy go nie ma — nazwa + miejscowość), przypisanie
+      do handlowca do tabeli leadów, a każde spotkanie DT i każde zajęcia cykliczne jako
+      osobny wiersz w tabeli spotkań. Dlatego trener z trzema DT w jednym dniu ma trzy wpisy,
+      a nie jeden nadpisany.</p>
+    <p class="lede small">Wartości list rozwijanych są sprawdzane ze słownikami. Jeśli
+      w arkuszu jest wariant zapisu, którego nie ma w słowniku ani w aliasach, rekord idzie
+      do „pominiętych" z powodem — nie wchodzi do bazy po cichu. Aliasy dopisujesz na ekranie
+      <a href="{{ url_for('slowniki_view') }}">Słowniki</a> i wgrywasz plik ponownie.</p>
+  </div>
+</section>
+{% endblock %}

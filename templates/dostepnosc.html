@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% from "_makra.html" import dot with context %}
+{% block title %}Dostępność trenerów{% endblock %}
+
+{#
+  W zeszłorocznym pliku dostępność była POŁOWĄ treści kalendarza DT
+  ('DOSTĘPNA 8 - 12:00', 'XXX') i jedynym wejściem do umawiania — a w PH Nowy
+  zniknęła całkiem. Ten ekran ją przywraca, z jedną rzeczą, której arkusz nie
+  umiał: komórka pokazuje WOLNE OKNA (deklaracja minus kalendarz).
+#}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Kiedy kto może · {{ grid.month_label }}</div>
+    <h1>Dostępność trenerów</h1>
+  </div>
+  <div class="head-actions">
+    <span class="muted small nums">
+      {{ grid.n_wpisow }} deklaracji ·
+      <b class="alert">{{ grid.n_niedostepnych }} dni niedostępności</b>
+    </span>
+    <button class="btn btn-secondary btn-sm" id="btn-av-demo" data-m="{{ month }}"
+      title="Wypełnia miesiąc przykładowym wzorem — tylko do pokazania, jak ekran działa">
+      Wypełnij przykładem (demo)</button>
+  </div>
+</div>
+
+<form class="filters" method="get" action="{{ url_for('dostepnosc') }}">
+  <select class="input input-auto" name="m" onchange="this.form.submit()">
+    {% for mm in miesiace %}
+    <option value="{{ mm }}"{{ ' selected' if mm == month else '' }}>{{ mm }}</option>{% endfor %}
+    {% if not miesiace %}<option value="{{ month }}" selected>{{ month }}</option>{% endif %}
+  </select>
+  <label class="check"><input type="checkbox" name="weekend" value="1"
+    {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
+  <span class="filters-right">
+    <span class="muted small">kliknij komórkę, żeby wpisać lub poprawić dostępność</span>
+  </span>
+</form>
+
+{# ── wypełnianie zakresu — tak realnie wpisywali: całymi tygodniami ── #}
+<section class="section av-zakres">
+  <div class="section-title">Wypełnij zakres <span class="muted small">— istniejących wpisów nie nadpisuje</span></div>
+  <div class="av-zakres-form">
+    <select class="input input-auto" id="az-trener">
+      <option value="">— trener —</option>
+      {% for v in slowniki.get('trener', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+    </select>
+    <label class="small muted">od <input class="input input-auto" type="date" id="az-od" value="{{ month }}-01"></label>
+    <label class="small muted">do <input class="input input-auto" type="date" id="az-do" value="{{ month }}-28"></label>
+    <span class="av-dni">
+      {% for i, skr in [(0,'pon'),(1,'wt'),(2,'śr'),(3,'czw'),(4,'pt'),(5,'sob'),(6,'niedz')] %}
+      <label class="check"><input type="checkbox" class="az-dzien" value="{{ i }}"
+        {{ 'checked' if i < 5 }}> {{ skr }}</label>
+      {% endfor %}
+    </span>
+    <select class="input input-auto" id="az-tryb">
+      <option value="caly">dostępny cały dzień</option>
+      <option value="okno">dostępny w godzinach…</option>
+      <option value="nie">niedostępny</option>
+    </select>
+    <span id="az-godziny" hidden>
+      <input class="input input-auto" type="time" id="az-god" value="08:00">–<input
+        class="input input-auto" type="time" id="az-gdo" value="16:00">
+    </span>
+    <button class="btn btn-primary btn-sm" id="btn-az-zapisz">Wypełnij</button>
+  </div>
+</section>
+
+{# ─────────────────────────────────────────────── siatka trener × dzień ── #}
+{% for t in grid.tygodnie %}
+<section class="section cal-week">
+  <div class="cal-week-head">
+    <span class="cal-week-label">Tydzień {{ t.label }}</span>
+  </div>
+  <div class="table-scroll">
+    <table class="cal-matrix av-matrix">
+      <thead>
+        <tr>
+          <th class="cal-trener">Trener \ dzień</th>
+          {% for d in t.dni %}
+          <th class="{{ 'cal-weekend' if d.weekend }}{{ ' cal-today' if d.dzis }}{{ ' cal-out' if not d.in_month }}">
+            <span class="cal-dow">{{ d.dow_skr }}</span>
+            <span class="cal-day">{{ d.day }}</span>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in t.wiersze %}
+        <tr>
+          <td class="cal-trener">{{ dot(w.kolor) }}{{ w.trener }}</td>
+          {% for c in w.cells %}
+          <td class="cal-cell av-cell av-{{ c.status }}{{ ' cal-out' if not t.dni[loop.index0].in_month }}{{ ' cal-cell-today' if t.dni[loop.index0].dzis }}"
+              data-trener="{{ w.trener }}" data-data="{{ c.iso }}"
+              data-od="{{ c.wpis.godz_od or '' if c.wpis else '' }}"
+              data-do="{{ c.wpis.godz_do or '' if c.wpis else '' }}"
+              data-nied="{{ 1 if c.wpis and c.wpis.niedostepny else 0 }}"
+              data-uwagi="{{ c.wpis.uwagi or '' if c.wpis else '' }}"
+              tabindex="0" role="button"
+              title="{{ w.trener }} · {{ c.iso }} — kliknij, żeby edytować">
+            {% if c.status == 'niedostepny' %}
+              <span class="av-status av-status-nie">niedostępny</span>
+            {% elif c.status != 'brak' %}
+              <span class="av-status av-status-ok">{{ c.okno }}</span>
+            {% endif %}
+            {% for e in c.zajete %}
+            <span class="av-zajete" title="{{ e.typ }} · {{ e.placowka }}{{ ' · ' ~ e.miejscowosc|bez_prefiksu if e.miejscowosc }}">
+              {{ e.godz_od or '?' }}{{ '–' ~ e.godz_do if e.godz_do }} {{ e.placowka|krotka(16) }}</span>
+            {% endfor %}
+            {% if c.wolne %}
+            <span class="av-wolne-l">wolne:</span>
+            {% for okno in c.wolne %}<span class="av-wolne nums">{{ okno }}</span>{% endfor %}
+            {% elif c.status in ('okno', 'caly') and c.zajete %}
+            <span class="av-wolne-l av-brak-okien">brak wolnych okien</span>
+            {% endif %}
+            {% if c.wpis and c.wpis.uwagi %}<span class="av-uwagi">{{ c.wpis.uwagi|krotka(24) }}</span>{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+
+<div class="legend">
+  <span><span class="sq sq-av-ok"></span>zadeklarowana dostępność (okno albo cały dzień)</span>
+  <span><span class="sq sq-2"></span>niedostępny — arkuszowe „XXX”</span>
+  <span>biała komórka = <b>dostępność nieznana</b> (to nie to samo co niedostępny)</span>
+  <span><b>wolne:</b> deklaracja minus zajęcia z kalendarza — liczone samo, okna &lt; 45 min pomijamy</span>
+</div>
+
+{# ── edytor komórki — jeden, przenoszony do klikniętej komórki ── #}
+<div id="av-editor" class="av-editor" hidden>
+  <div class="av-editor-head" id="ave-head"></div>
+  <label class="check"><input type="checkbox" id="ave-nied"> niedostępny (XXX)</label>
+  <div class="av-editor-row" id="ave-godziny">
+    <input class="input" type="time" id="ave-od">–<input class="input" type="time" id="ave-do">
+    <span class="muted small">puste = cały dzień</span>
+  </div>
+  <input class="input" type="text" id="ave-uwagi" placeholder="uwagi (np. tylko Zabrze)">
+  <div class="av-editor-row">
+    <button class="btn btn-primary btn-sm" id="ave-zapisz">Zapisz</button>
+    <button class="btn btn-secondary btn-sm" id="ave-wyczysc">Wyczyść</button>
+    <button class="btn btn-secondary btn-sm" id="ave-anuluj">Anuluj</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='dostepnosc.js') }}"></script>
+{% endblock %}
