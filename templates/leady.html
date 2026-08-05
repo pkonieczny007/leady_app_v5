@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie with context %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie, href_zakres with context %}
 {% block title %}{{ tytul }}{% endblock %}
 
 {% block content %}
@@ -11,13 +11,13 @@
   <div class="head-actions">
     <div class="seg">
       <a class="seg-opt {{ 'on' if f.zakres == 'przydzielone' }}"
-         href="{{ url_for('leady', zakres='przydzielone', handlowiec=f.handlowiec or none) }}">W pracy</a>
+         href="{{ href_zakres('leady', 'przydzielone', f, f.handlowiec) }}">W pracy</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'umowione' }}"
-         href="{{ url_for('leady', zakres='umowione', handlowiec=f.handlowiec or none) }}">DT umówione</a>
+         href="{{ href_zakres('leady', 'umowione', f, f.handlowiec) }}">DT umówione</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'po_terminie' }}"
-         href="{{ url_for('leady', zakres='po_terminie', handlowiec=f.handlowiec or none) }}">Po terminie</a>
+         href="{{ href_zakres('leady', 'po_terminie', f, f.handlowiec) }}">Po terminie</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'cykle' }}"
-         href="{{ url_for('leady', zakres='cykle', handlowiec=f.handlowiec or none) }}">Z cyklami</a>
+         href="{{ href_zakres('leady', 'cykle', f, f.handlowiec) }}">Z cyklami</a>
     </div>
     <a class="btn btn-secondary btn-sm" href="{{ url_for('tydzien') }}">★ Plan tygodnia</a>
   </div>

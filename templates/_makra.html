@@ -310,6 +310,101 @@
 {% endmacro %}
 
 
+{# ------------------------------------------------------------------ FILTR OSÓB (chipy)
+   Zgłoszenie klienta: „rozsuwane listy z trenerami wyglądają jak filtr, ale to są
+   wypełnij". Filtrować dało się tylko po handlowcu, jedną wartością z listy;
+   po trenerze nie dało się wcale. Tutaj się WPISUJE fragment nazwiska.
+
+   Trzy rzeczy, o które prosił wprost:
+     wpisywanie  — pole tekstowe (lista podpowiedzi tylko pomaga, nie ogranicza:
+                   w danych ta sama osoba bywa „18. Bitner" i „Bitner"),
+     kilka wpisów — każdy Enter dokłada chip; LUB / ORAZ przełącza sposób złożenia,
+     wyłączanie  — klik w chip gasi go bez kasowania (wraca jednym kliknięciem),
+     blokada     — kłódka: chip przeżywa „Wyczyść" i przejście na inny ekran.
+
+   Stanem rządzi ukryte pole `osoby` (ten sam zapis, który czyta serwer) — JS tylko
+   je przepisuje i wysyła formularz. Dzięki temu filtr działa tak samo dla widoku,
+   stronicowania i eksportu XLSX, bo wszystkie trzy czytają ten sam query string.
+#}
+{% macro pasek_chipow(ch, etykieta='Osoby', podpowiedzi=[],
+                      placeholder='wpisz nazwisko i naciśnij Enter…',
+                      dymek='Wystarczy fragment — „bitn” znajdzie i „18. Bitner”, i „Bitner”') %}
+<div class="osoby" id="osoby-filtr" data-zakresy="{{ ch.dozwolone|join('') }}"
+     data-domyslny="{{ ch.domyslny }}" data-wszystkie="{{ ZAKRESY.keys()|join('') }}">
+  <input type="hidden" name="osoby" id="osoby-wartosc" value="{{ ch.tekst }}">
+  <input type="hidden" name="osoby_tryb" id="osoby-tryb" value="{{ ch.tryb }}">
+
+  <span class="osoby-lab" title="Filtr, w który się WPISUJE — nie lista do wyboru">{{ etykieta }}</span>
+
+  <div class="chipy">
+    {%- for c in ch.lista %}
+    {%- set zak = ZAKRESY.get(c.zakres) %}
+    <span class="chip{{ ' chip-off' if c.wylaczony }}{{ ' chip-zamk' if c.zablokowany }}"
+          data-i="{{ loop.index0 }}">
+      <button type="button" class="chip-zakres" data-akcja="zakres" data-i="{{ loop.index0 }}"
+              title="{{ zak[1] }} — {{ zak[2] }}. Kliknij, żeby zmienić.">{{ zak[0] }}</button>
+      <button type="button" class="chip-txt" data-akcja="wl" data-i="{{ loop.index0 }}"
+              title="{{ 'Wpis wyłączony — kliknij, żeby włączyć' if c.wylaczony else 'Kliknij, żeby wyłączyć bez kasowania' }}">{{ c.tekst }}</button>
+      <button type="button" class="chip-lock" data-akcja="lock" data-i="{{ loop.index0 }}"
+              title="{{ 'Przypięty — przeżywa „Wyczyść”. Kliknij, żeby odpiąć' if c.zablokowany else 'Przypnij: wpis przeżyje „Wyczyść” i zmianę miesiąca' }}">{{ '🔒' if c.zablokowany else '🔓' }}</button>
+      <button type="button" class="chip-x" data-akcja="usun" data-i="{{ loop.index0 }}"
+              title="Usuń wpis">✕</button>
+    </span>
+    {%- endfor %}
+    {%- if not ch.lista %}
+    <span class="chipy-pusto">brak wpisów — wpisz obok i naciśnij Enter</span>
+    {%- endif %}
+  </div>
+
+  {# Zakres jest listą, bo tu wybór jest ZAMKNIĘTY (dwie–trzy pozycje) i nic nie
+     zapisuje do bazy. Filtruje się wpisywaniem w polu obok. #}
+  <select class="input input-auto osoby-zakres" id="osoby-nowy-zakres"
+          title="Gdzie szukać tego, co wpiszesz">
+    {%- for z in ch.dozwolone %}{% set zak = ZAKRESY.get(z) %}
+    <option value="{{ z }}" title="{{ zak[2] }}">{{ zak[0] }} {{ zak[1] }}</option>{% endfor %}
+  </select>
+
+  <input type="text" class="input osoby-wpis" id="osoby-wpis" list="lista-osob"
+         autocomplete="off" placeholder="{{ placeholder }}" title="{{ dymek }}">
+  <datalist id="lista-osob">
+    {%- for wartosc, opis in podpowiedzi %}<option value="{{ wartosc }}">{{ opis }}</option>{% endfor -%}
+  </datalist>
+  <button type="button" class="btn btn-secondary btn-sm" id="osoby-dodaj" title="Dodaj wpis do filtra">+ Dodaj</button>
+
+  <span class="seg seg-sm" title="Jak łączyć wpisy">
+    <button type="button" class="seg-opt{{ ' on' if ch.tryb != 'oraz' }}" data-tryb="lub"
+            title="Dowolny z wpisów — „Zemela albo Knurów”">LUB</button>
+    <button type="button" class="seg-opt{{ ' on' if ch.tryb == 'oraz' }}" data-tryb="oraz"
+            title="Wszystkie naraz — „Zemela ORAZ Knurów”">ORAZ</button>
+  </span>
+
+  {%- if ch.lista %}
+  <button type="button" class="btn btn-ghost btn-sm" id="osoby-czysc"
+          title="Usuwa wpisy, które nie są przypięte">Wyczyść wpisy</button>
+  {%- endif %}
+</div>
+{% endmacro %}
+
+
+{# Adres zakładki („W pracy", „Po terminie", „Z cyklami"…) — z zachowaniem filtra
+   osób. Przełączenie zakładki ma zmieniać ZAKRES, a nie kasować to, co wpisano;
+   bez tego „gdzie jest Zemela" trzeba wpisywać od nowa po każdym kliknięciu. #}
+{% macro href_zakres(endpoint, zakres, f, handlowiec=none) -%}
+{{ url_for(endpoint, zakres=zakres, handlowiec=handlowiec or none,
+           osoby=f.osoby or none,
+           osoby_tryb='oraz' if f.osoby_tryb == 'oraz' else none) }}
+{%- endmacro %}
+
+
+{# Skrót dla list leadów: chipy + podpowiedzi z handlowców i trenerów. #}
+{% macro pasek_osob(f, slowniki) %}
+{%- set lista = [] -%}
+{%- for v in slowniki.get('handlowiec', []) %}{% set _ = lista.append((v, 'handlowiec')) %}{% endfor -%}
+{%- for v in slowniki.get('trener', []) %}{% set _ = lista.append((v, 'prowadzący')) %}{% endfor -%}
+{{ pasek_chipow(f.ch, 'Osoby', lista) }}
+{% endmacro %}
+
+
 {# ------------------------------------------------------------------ PASEK FILTRÓW
    Formularz GET — te same parametry, których używa eksport, więc „pobierz XLSX"
    oddaje DOKŁADNIE to, co widać na ekranie (wprost zgłoszone życzenie klienta).
@@ -364,13 +459,19 @@
   <input type="search" class="input input-auto" name="q" value="{{ f.q }}" style="min-width:250px"
          placeholder="szukaj: placówka / miejscowość / kontakt…">
   <button type="submit" class="btn btn-secondary btn-sm">Filtruj</button>
-  <a class="btn btn-secondary btn-sm" href="{{ url_for(request.endpoint) }}">Wyczyść</a>
+  {# „Wyczyść" celowo NIE kasuje chipów z kłódką — po to jest blokada #}
+  <a class="btn btn-secondary btn-sm"
+     href="{{ url_for(request.endpoint, osoby=f.osoby_zablokowane or none,
+                      osoby_tryb='oraz' if f.osoby_tryb == 'oraz' else none) }}"
+     title="{{ 'Zostawia wpisy z kłódką' if f.osoby_zablokowane else 'Zdejmuje wszystkie filtry' }}">Wyczyść</a>
 
   <span class="filters-right">
     <span class="muted small nums">{{ total }} rekordów</span>
     <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ query if query else '' }}"
        title="Eksport dokładnie tego, co widać po filtrach">↓ Pobierz XLSX</a>
   </span>
+
+  {{ pasek_osob(f, slowniki) }}
 </form>
 {% endmacro %}
 
@@ -402,6 +503,10 @@
 
 {% macro legenda(nota='') %}
 <div class="legend">
+  {# Kolor niesie znaczenie: zimne = zawężam widok, ciepłe = piszę do bazy.
+     Bez tego rozróżnienia listy w komórkach brano za filtry i nadpisywano dane. #}
+  <span><span class="sq sq-filtr"></span><strong>filtr</strong> — zawęża widok, danych nie zmienia</span>
+  <span><span class="sq sq-fill"></span><strong>wypełnij</strong> — zapis do bazy od razu po zmianie</span>
   <span><span class="sq sq-2"></span>przekroczony termin ostateczny bez umówionego DT</span>
   <span><span class="sq sq-1"></span>pole z listy słownikowej — literówka niemożliwa</span>
   {% if nota %}<span>{{ nota }}</span>{% endif %}

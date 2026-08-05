@@ -25,6 +25,7 @@ from flask import (Flask, render_template, request, jsonify, redirect,
 
 import calendar_view as cv
 import dostepnosc_view as dv
+import filtry as fl
 import przydzial as pz
 import repo
 from db import (get_conn, wszystkie_slowniki, slownik, slownik_values, trener_colors,
@@ -174,6 +175,24 @@ def lead_detail(lead_id):
     return render_template("lead.html", **ctx)
 
 
+def _chipy_grafiku(args):
+    """
+    Filtr na chipach dla kalendarza i dostępności: zakresy „wszystko" i „nazwisko".
+
+    Stary parametr `trener=` (jedna wartość z listy rozwijanej) przepuszczamy
+    jako chip „nazwisko". Lista rozwijana zniknęła — działała tylko w widoku
+    Agenda, a w Macierzy i Startach udawała filtr, nie robiąc nic — ale stare
+    zakładki i linki mają dalej działać, tyle że teraz we wszystkich widokach.
+    """
+    ch = fl.czytaj(args, fl.ZAKRESY_GRAFIK)
+    stary = (args.get("trener") or "").strip()
+    if stary and not ch["lista"]:
+        ch = fl.czytaj({"osoby": "n:" + stary,
+                        "osoby_tryb": args.get("osoby_tryb") or ""},
+                       fl.ZAKRESY_GRAFIK)
+    return ch
+
+
 @app.route("/kalendarz")
 def kalendarz():
     conn = get_conn()
@@ -183,23 +202,25 @@ def kalendarz():
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
     typ = request.args.get("typ", "")          # '' | DT | CYKLICZNE
-    trener = request.args.get("trener", "")
     typy = [typ] if typ in ("DT", "CYKLICZNE") else None
+    ch = _chipy_grafiku(request.args)
 
     if widok == "agenda":
         cal = cv.build_agenda(conn, month, weekend=True, typy=typy,
-                              trener=trener or None)
+                              chipy=ch["lista"], tryb=ch["tryb"])
     elif widok == "starty":
-        cal = cv.build_starty(conn, month, weekend=weekend)
+        cal = cv.build_starty(conn, month, weekend=weekend,
+                              chipy=ch["lista"], tryb=ch["tryb"])
     else:
         widok = "macierz"
         cal = cv.build_matrix(conn, month, weekend=weekend,
-                              tylko_zajete=tylko_zajete, typy=typy)
+                              tylko_zajete=tylko_zajete, typy=typy,
+                              chipy=ch["lista"], tryb=ch["tryb"])
 
     ctx = {
         "cal": cal, "widok": widok, "month": month, "miesiace": miesiace,
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
-        "trener": trener, "slowniki": wszystkie_slowniki(conn),
+        "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
         "today": dzis(),
     }
@@ -219,10 +240,12 @@ def dostepnosc():
     miesiace = cv.available_months(conn)
     month = request.args.get("m") or (miesiace[-1] if miesiace else dzis()[:7])
     weekend = request.args.get("weekend") == "1"
-    grid = dv.build_dostepnosc(conn, month, weekend=weekend)
+    ch = _chipy_grafiku(request.args)
+    grid = dv.build_dostepnosc(conn, month, weekend=weekend,
+                               chipy=ch["lista"], tryb=ch["tryb"])
     ctx = {
         "grid": grid, "month": month, "miesiace": miesiace, "weekend": weekend,
-        "slowniki": wszystkie_slowniki(conn), "today": dzis(),
+        "ch": ch, "slowniki": wszystkie_slowniki(conn), "today": dzis(),
     }
     conn.close()
     return render_template("dostepnosc.html", **ctx)
@@ -957,7 +980,9 @@ def f_bez_prefiksu(v):
 
 @app.context_processor
 def inject_nav():
-    return {"nav_active": request.endpoint, "q_all": request.args.to_dict()}
+    # ZAKRESY — opisy chipów filtra (znak, nazwa, dymek); rysuje je makro `pasek_chipow`
+    return {"nav_active": request.endpoint, "q_all": request.args.to_dict(),
+            "ZAKRESY": fl.ZAKRESY}
 
 
 bootstrap()

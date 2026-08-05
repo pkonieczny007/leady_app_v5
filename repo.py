@@ -9,7 +9,8 @@ z której korzysta i ekran, i eksporter.
 """
 import datetime as dt
 
-from db import STATUS_SUKCES_PREFIX, STATUS_ODPADL_PREFIX
+import filtry
+from db import STATUS_SUKCES_PREFIX, STATUS_ODPADL_PREFIX, pl_fold
 
 # Pola, po których wolno sortować — biała lista, bo nazwa kolumny wchodzi do SQL.
 SORT_POLA = {
@@ -63,9 +64,42 @@ JOIN placowki p ON p.id = l.placowka_id
 """
 
 
+# ------------------------------------------------------------------ FILTR OSÓB
+#
+# Zgłoszenie klienta: „rozsuwane listy z trenerami wyglądają jak filtr, ale to są
+# wypełnij". Faktycznie — filtrować dało się tylko po handlowcu, jedną wartością
+# wybraną z listy, a trenera nie dało się w ogóle. Ten filtr działa odwrotnie:
+# WPISUJE SIĘ kawałek nazwiska, wpisów może być kilka, każdy da się chwilowo
+# wyłączyć (bez kasowania) i przypiąć (przeżywa „Wyczyść").
+#
+# Parser, zapis w URL i lista zakresów siedzą w `filtry.py`, bo ten sam filtr
+# działa też na kalendarzu i dostępności. Tutaj zostaje tylko to, co dotyczy
+# leadów: przełożenie chipów na WHERE.
+MAX_OSOB = filtry.MAX_CHIPOW
+ZAKRESY_OSOB = filtry.ZAKRESY_LEADY
+
+parsuj_osoby = filtry.parsuj                    # zakresy leadowe: o / h / t
+zapisz_osoby = filtry.zapisz
+
+# Prowadzący to nie tylko `trener` — zastępstwo i drukarz też jeżdżą na spotkanie,
+# więc szukając „kto tam był" trzeba przejrzeć wszystkie cztery kolumny naraz.
+_TRENERZY_EVENTU = ("COALESCE(e.trener,'')||' '||COALESCE(e.trener2,'')||' '||"
+                    "COALESCE(e.zastepstwo,'')||' '||COALESCE(e.drukarz,'')")
+_WAR_HANDLOWIEC = "pl_fold(l.handlowiec) LIKE ?"
+_WAR_TRENER = ("EXISTS (SELECT 1 FROM eventy e WHERE e.lead_id = l.id "
+               "AND pl_fold(%s) LIKE ?)" % _TRENERZY_EVENTU)
+
+
+def _chipy(f):
+    """Chipy z filtra — gotowe (widok) albo doraźnie sparsowane (eksport, testy)."""
+    chipy = f.get("osoby_lista")
+    return parsuj_osoby(f.get("osoby")) if chipy is None else chipy
+
+
 def pusty_filtr():
     return {"handlowiec": "", "miasto": "", "status": "", "status_szkoly": "",
-            "typ": "", "dt": "", "q": "", "zakres": "", "sort": "", "kier": ""}
+            "typ": "", "dt": "", "q": "", "osoby": "", "osoby_tryb": "",
+            "zakres": "", "sort": "", "kier": ""}
 
 
 def czytaj_filtr(args):
@@ -73,7 +107,43 @@ def czytaj_filtr(args):
     f = pusty_filtr()
     for k in f:
         f[k] = (args.get(k) or "").strip()
+    # znormalizowana postać: szablon rysuje chipy z listy, a hidden input i linki
+    # („Wyczyść", stronicowanie, eksport) noszą tekst odtworzony z tej samej listy
+    f["ch"] = filtry.czytaj(args, ZAKRESY_OSOB)
+    f["osoby_lista"] = f["ch"]["lista"]
+    f["osoby"] = f["ch"]["tekst"]
+    f["osoby_zablokowane"] = f["ch"]["zablokowane"]
+    f["osoby_tryb"] = f["ch"]["tryb"]
+    f["osoby_czynne"] = f["ch"]["czynne"]
     return f
+
+
+def _warunek_osob(f):
+    """
+    Chipy → jeden nawias w WHERE. Zwraca (fragment_sql, parametry).
+
+    Domyślnie chipy łączy LUB („pokaż leady Sacawy ORAZ Bitnera" znaczy po ludzku
+    „jednego albo drugiego" — lead ma jednego handlowca, więc I dałoby pustkę).
+    Tryb „oraz" zostaje pod przyciskiem, bo ma sens przy mieszaniu zakresów:
+    handlowiec Sacawa I prowadzący Bitner.
+    """
+    chipy = [c for c in _chipy(f) if not c["wylaczony"]]
+    if not chipy:
+        return None, []
+    czesci, p = [], []
+    for c in chipy:
+        like = "%" + pl_fold(c["tekst"]) + "%"
+        if c["zakres"] == "h":
+            czesci.append(_WAR_HANDLOWIEC)
+            p.append(like)
+        elif c["zakres"] == "t":
+            czesci.append(_WAR_TRENER)
+            p.append(like)
+        else:
+            czesci.append("(%s OR %s)" % (_WAR_HANDLOWIEC, _WAR_TRENER))
+            p += [like, like]
+    spoiwo = " AND " if (f.get("osoby_tryb") == "oraz") else " OR "
+    return "(" + spoiwo.join(czesci) + ")", p
 
 
 def _warunki(f, dzis):
@@ -107,6 +177,11 @@ def _warunki(f, dzis):
                  "OR p.mail LIKE ? OR p.telefon LIKE ? OR p.osoba_kontakt LIKE ? "
                  "OR l.uwagi LIKE ? OR p.rspo LIKE ?)")
         p += [like] * 8
+
+    war_osoby, par_osoby = _warunek_osob(f)
+    if war_osoby:
+        w.append(war_osoby)
+        p += par_osoby
 
     z = f["zakres"]
     if z in ("", "wszystkie"):

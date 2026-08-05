@@ -27,6 +27,7 @@ import datetime as dt
 import re
 
 from db import trener_colors, slownik_values
+from filtry import filtruj_eventy
 
 DNI = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
 DNI_SKR = ["pon", "wt", "śr", "czw", "pt", "sob", "niedz"]
@@ -83,6 +84,16 @@ def overlaps(od1, do1, od2, do2):
     if b2 is None or b2 <= b1:
         b2 = b1 + 60
     return a1 < b2 and b1 < a2
+
+
+def _ile_kolizji(evs, kolizje):
+    """
+    Ile kolizji WIDAĆ. Wykrywamy je na pełnym komplecie (żeby filtr nie ukrył
+    drugiej strony nakładki), ale w nagłówku liczymy tylko to, co zostało po
+    filtrze — inaczej „31 spotkań · 12 w kolizji" wskazywałoby na spotkania,
+    których na ekranie nie ma.
+    """
+    return sum(1 for e in evs if e["_key"] in kolizje)
 
 
 def find_collisions(evs):
@@ -280,19 +291,29 @@ def roster_trenerow(conn, evs):
 
 # ------------------------------------------------------------------ widok MACIERZ
 
-def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None):
+def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
+                 chipy=(), tryb="lub"):
     """
     Bloki tygodniowe jeden pod drugim; każdy blok to tabela trenerzy × dni.
     Tak jak w ich arkuszu, tylko że bloki są POD sobą, a nie obok siebie
     (w przeglądarce przewijanie w dół jest naturalniejsze niż w prawo).
 
     weekend=False → pon–pt (jak u nich). tylko_zajete=True → pomija puste wiersze.
+
+    KOLIZJE liczymy PRZED filtrem, na pełnym komplecie. Inaczej wyfiltrowanie
+    jednej ze szkół chowałoby drugą stronę nakładki i ostrzeżenie znikałoby po
+    cichu — a to najgorszy możliwy błąd w tym projekcie.
     """
     y, m = [int(x) for x in month.split("-")]
     ile_dni = 7 if weekend else 5
 
     evs = events_for_month(conn, month, typy=typy)
     kolizje = find_collisions(evs)
+    evs = filtruj_eventy(evs, chipy, tryb)
+    # przy czynnym filtrze puste wiersze tylko przeszkadzają: skoro pytam „gdzie
+    # jest Zemela", nie chcę oglądać 34 pustych wierszy pozostałych trenerów
+    if chipy and any(not c.get("wylaczony") for c in chipy):
+        tylko_zajete = True
     komorki = {}
     for e in evs:
         e["kolizja"] = e["_key"] in kolizje
@@ -324,18 +345,17 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None):
                          "ma": n_ev > 0, "n": n_ev})
 
     return {"tygodnie": tygodnie, "trenerzy": trenerzy, "kolory": kolory,
-            "n_events": len(evs), "n_kolizji": len(kolizje),
+            "n_events": len(evs), "n_kolizji": _ile_kolizji(evs, kolizje),
             "month": month, "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ widok AGENDA
 
-def build_agenda(conn, month, weekend=True, typy=None, trener=None):
+def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
     """Dzień po dniu; w dniu spotkania posortowane po godzinie. Puste dni pomijamy."""
     evs = events_for_month(conn, month, typy=typy)
-    kolizje = find_collisions(evs)
-    if trener:
-        evs = [e for e in evs if e["trener"] == trener]
+    kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
+    evs = filtruj_eventy(evs, chipy, tryb)
 
     po_dniach = {}
     for e in evs:
@@ -357,13 +377,13 @@ def build_agenda(conn, month, weekend=True, typy=None, trener=None):
                     "dzis": d == dt.date.today(), "eventy": lista, "n": len(lista)})
 
     return {"dni": dni, "kolory": kolory, "n_events": sum(d["n"] for d in dni),
-            "n_kolizji": len(kolizje), "month": month,
+            "n_kolizji": _ile_kolizji(evs, kolizje), "month": month,
             "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ widok STARTY
 
-def build_starty(conn, month, weekend=False):
+def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
     """
     Plansza całej firmy — odwzorowanie zakładki „STARTY <MIESIĄC>".
     Tygodnie jeden pod drugim, w tygodniu kolumny pon–pt, w kolumnie karty zajęć.
@@ -374,7 +394,8 @@ def build_starty(conn, month, weekend=False):
     ile_dni = 7 if weekend else 5
 
     evs = events_for_month(conn, month)
-    kolizje = find_collisions(evs)
+    kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
+    evs = filtruj_eventy(evs, chipy, tryb)
     kolory = trener_colors(conn)
     po_dniach = {}
     for e in evs:
@@ -405,7 +426,7 @@ def build_starty(conn, month, weekend=False):
         })
 
     return {"tygodnie": tygodnie, "kolory": kolory, "n_events": len(evs),
-            "n_kolizji": len(kolizje), "month": month,
+            "n_kolizji": _ile_kolizji(evs, kolizje), "month": month,
             "month_label": month_label(month)}
 
 

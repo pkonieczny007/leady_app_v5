@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_makra.html" import tabela_leadow, pasek_filtrow, legenda, stronicowanie with context %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, legenda, stronicowanie, href_zakres with context %}
 {% block title %}{{ tytul }}{% endblock %}
 
 {% block content %}
@@ -14,11 +14,11 @@
   <div class="head-actions">
     <div class="seg">
       <a class="seg-opt {{ 'on' if f.zakres == 'umowione' }}"
-         href="{{ url_for('zbiorczy', zakres='umowione') }}">Z umówionym DT</a>
+         href="{{ href_zakres('zbiorczy', 'umowione', f) }}">Z umówionym DT</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'cykle' }}"
-         href="{{ url_for('zbiorczy', zakres='cykle') }}">Z cyklami</a>
+         href="{{ href_zakres('zbiorczy', 'cykle', f) }}">Z cyklami</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'wszystkie' }}"
-         href="{{ url_for('zbiorczy', zakres='wszystkie') }}">Wszystkie</a>
+         href="{{ href_zakres('zbiorczy', 'wszystkie', f) }}">Wszystkie</a>
     </div>
   </div>
 </div>

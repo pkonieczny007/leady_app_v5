@@ -22,6 +22,7 @@ import datetime as dt
 from calendar_view import (_mins, events_for_month, roster_trenerow,
                            month_label, DNI, DNI_SKR)
 from db import trener_colors
+from filtry import pasuje, POLA_WSZYSTKO
 
 # „cały dzień" na potrzeby liczenia wolnych okien
 DZIEN_OD = 8 * 60          # 08:00
@@ -87,7 +88,50 @@ def _wpisy_miesiaca(conn, month):
     return {(r["trener"], r["data"]): dict(r) for r in rows}
 
 
-def build_dostepnosc(conn, month, weekend=False):
+def _widoczni_trenerzy(trenerzy, wpisy, evs, chipy, tryb):
+    """
+    Którzy trenerzy zostają na siatce po filtrze.
+
+    Filtrujemy WIERSZE, nie komórki: ekran odpowiada na pytanie „kiedy ta osoba
+    może", więc pokazanie jej dnia w kawałkach byłoby kłamstwem — wolne okna
+    liczą się z całego dnia. Rozstrzygamy raz na miesiąc, a nie w pętli tygodni,
+    żeby siatka nie zrobiła się poszarpana (w jednym tygodniu wiersz jest,
+    w drugim go nie ma).
+
+    Zakres „nazwisko" patrzy tylko na nazwisko trenera. Zakres „wszystko"
+    obejmuje dodatkowo jego uwagi z deklaracji i szkoły, do których w tym
+    miesiącu jeździ — dzięki temu „Knurów" pokazuje tych, którzy tam bywają.
+    """
+    if not [c for c in chipy if not c.get("wylaczony")]:
+        return trenerzy
+    po_trenerze = {}
+    for e in evs:
+        if e.get("trener"):
+            po_trenerze.setdefault(e["trener"], []).append(e)
+    uwagi = {}
+    for (tr, _data), w in wpisy.items():
+        if w.get("uwagi"):
+            uwagi.setdefault(tr, []).append(str(w["uwagi"]))
+
+    def pola(tr):
+        """`pobierz_pole` dla jednego trenera; „wszystko" składamy leniwie."""
+        pamiec = {}
+
+        def pobierz(zakres):
+            if zakres == "n":
+                return tr
+            if "w" not in pamiec:
+                czesci = [tr] + uwagi.get(tr, [])
+                for e in po_trenerze.get(tr, []):
+                    czesci += [str(e.get(k) or "") for k in POLA_WSZYSTKO]
+                pamiec["w"] = " ".join(czesci)
+            return pamiec["w"]
+        return pobierz
+
+    return [tr for tr in trenerzy if pasuje(chipy, tryb, pola(tr))]
+
+
+def build_dostepnosc(conn, month, weekend=False, chipy=(), tryb="lub"):
     """
     Siatka trener × dzień w blokach tygodniowych — ten sam układ co macierz
     Kalendarza DT, żeby niczego nie trzeba było się uczyć na nowo.
@@ -104,7 +148,8 @@ def build_dostepnosc(conn, month, weekend=False):
         if e.get("trener"):
             zajetosc.setdefault((e["trener"], e["data"]), []).append(e)
 
-    trenerzy = roster_trenerow(conn, evs)
+    wszyscy = roster_trenerow(conn, evs)
+    trenerzy = _widoczni_trenerzy(wszyscy, wpisy, evs, chipy, tryb)
     kolory = trener_colors(conn)
 
     tygodnie = []
@@ -149,10 +194,16 @@ def build_dostepnosc(conn, month, weekend=False):
                                             ostatni.day, ostatni.month),
         })
 
-    n_wpisow = sum(1 for k in wpisy if k[1][:7] == month)
-    n_niedost = sum(1 for w in wpisy.values() if w.get("niedostepny"))
+    # liczniki w nagłówku dotyczą TEGO, co widać — po zawężeniu do jednej osoby
+    # „1700 deklaracji" byłoby liczbą znikąd
+    widoczni = set(trenerzy)
+    n_wpisow = sum(1 for (tr, data) in wpisy
+                   if tr in widoczni and data[:7] == month)
+    n_niedost = sum(1 for (tr, _d), w in wpisy.items()
+                    if tr in widoczni and w.get("niedostepny"))
     return {"tygodnie": tygodnie, "trenerzy": trenerzy, "kolory": kolory,
             "n_wpisow": n_wpisow, "n_niedostepnych": n_niedost,
+            "n_trenerow": len(trenerzy), "n_trenerow_all": len(wszyscy),
             "month": month, "month_label": month_label(month)}
 
 

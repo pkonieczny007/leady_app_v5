@@ -1,7 +1,14 @@
 {% extends "base.html" %}
-{% from "_makra.html" import dot with context %}
+{% from "_makra.html" import dot, pasek_chipow with context %}
 {% block title %}Kalendarz DT{% endblock %}
 {% block wrap_class %}wrap{% endblock %}
+
+{# Podpowiedzi do filtra: trenerzy (najczęstsze pytanie „gdzie jest X")
+   i miejscowości (drugie najczęstsze „co się dzieje w Y"). Podpowiedź niczego
+   nie ogranicza — wpisać można dowolny fragment. #}
+{% set podpowiedzi = [] %}
+{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'prowadzący')) %}{% endfor %}
+{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość')) %}{% endfor %}
 
 {#
   Trzy widoki JEDNYCH danych (tabela `eventy`). W arkuszu komórka kalendarza była
@@ -41,8 +48,11 @@
     </span>
     <div class="seg">
       {% for k, ikona, nazwa in [('macierz','▦','Macierz'), ('agenda','☰','Agenda'), ('starty','▤','Starty')] %}
+      {# przełączenie widoku NIE gubi filtra — inaczej „gdzie jest Zemela" trzeba
+         by wpisywać od nowa po każdym kliknięciu Macierz/Agenda/Starty #}
       <a class="seg-opt {{ 'on' if widok == k }}"
-         href="{{ url_for('kalendarz', widok=k, m=month, typ=typ or none, trener=trener or none,
+         href="{{ url_for('kalendarz', widok=k, m=month, typ=typ or none,
+                          osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
                           weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0') }}">{{ ikona }} {{ nazwa }}</a>
       {% endfor %}
     </div>
@@ -63,11 +73,10 @@
     <option value="CYKLICZNE"{{ ' selected' if typ == 'CYKLICZNE' else '' }}>tylko cykliczne</option>
   </select>
 
-  <select class="input input-auto" name="trener" onchange="this.form.submit()">
-    <option value="">— wszyscy trenerzy —</option>
-    {% for v in slowniki.get('trener', []) %}
-    <option value="{{ v }}"{{ ' selected' if v == trener else '' }}>{{ v }}</option>{% endfor %}
-  </select>
+  {# Listy „— wszyscy trenerzy —" już tu nie ma. Działała TYLKO w widoku Agenda,
+     a w Macierzy i Startach wyglądała jak filtr, nie robiąc nic. Zastąpił ją
+     filtr wpisywany poniżej, który działa we wszystkich trzech widokach.
+     Stary link z `?trener=…` dalej działa — wjeżdża jako chip „nazwisko". #}
 
   <label class="check"><input type="checkbox" name="weekend" value="1"
     {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
@@ -76,7 +85,17 @@
 
   <span class="filters-right">
     <span class="muted small">{{ cal.month_label }}</span>
+    <a class="btn btn-secondary btn-sm"
+       href="{{ url_for('kalendarz', widok=widok, m=month,
+                        osoby=ch.zablokowane or none,
+                        osoby_tryb='oraz' if ch.tryb == 'oraz' else none) }}"
+       title="{{ 'Zostawia wpisy przypięte kłódką' if ch.zablokowane else 'Zdejmuje wszystkie filtry' }}">Wyczyść</a>
   </span>
+
+  {{ pasek_chipow(ch, 'Szukaj', podpowiedzi,
+                  'wpisz cokolwiek i naciśnij Enter…',
+                  'Domyślnie szuka we wszystkim: szkoła, miasto, osoba, sala, uwagi.
+                   Przełącz chip na „N nazwisko”, żeby szukać tylko po ludziach.') }}
 </form>
 
 

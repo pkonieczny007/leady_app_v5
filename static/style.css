@@ -69,6 +69,21 @@
   --grad-brand:linear-gradient(135deg,#1d4757 0%,#0d232a 100%);
   --grad-amber:linear-gradient(135deg,#fcaf23 0%,#d68a29 100%);
 
+  /* --- DWA JĘZYKI POLA: „filtruj" kontra „wypełnij" ------------------------
+     Zgłoszenie klienta: „rozsuwane listy z trenerami wyglądają jak filtr, ale
+     to są wypełnij". Miał rację — jedne i drugie były białym polem z tą samą
+     ramką. Od teraz kolor niesie znaczenie i jest to jedyna zasada, po której
+     się je rozróżnia (nie położenie na ekranie, bo to trzeba pamiętać):
+       ZIMNY BŁĘKIT  = zawężam widok, danych nie ruszam  → pasek filtrów
+       CIEPŁY KREM   = wpisuję do bazy, zapis leci od razu → komórki „wypełnij"
+     Ta sama para wraca w legendzie pod tabelą. */
+  --filtr:#eef7fb;              /* tło paska filtrów */
+  --filtr-b:#bfe4f2;            /* obramowania wewnątrz paska */
+  --filtr-t:#0b6f93;            /* tekst etykiet „FILTR" / „Osoby" */
+  --fill:#fffcf2;               /* tło pola „wypełnij" */
+  --fill-b:#ecd9a6;             /* podkreślenie pola „wypełnij" */
+  --fill-t:#8a6516;
+
   /* --- skala odstępów (używana też w kilku miejscach inline w szablonach) --- */
   --space-1:4px; --space-2:8px; --space-3:12px;
   --space-4:16px; --space-6:24px; --space-8:32px;
@@ -288,8 +303,80 @@ select.input{cursor:pointer}
   color:var(--muted);
 }
 
-.filters{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;margin-bottom:var(--space-4)}
+/* ------------------------------------------------------------------ pasek filtrów
+   Cały pasek jest wyraźnie ZIMNY i podpisany „FILTR" — po to, żeby lista rozwijana
+   w nim nie dała się pomylić z listą w komórce tabeli, która zapisuje do bazy.
+   Podpis wchodzi przez ::before, więc dostają go wszystkie trzy paski
+   (listy leadów, kalendarz, dostępność) bez ruszania szablonów. */
+.filters{
+  display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;
+  margin-bottom:var(--space-4);
+  padding:10px 12px 10px 14px;
+  background:var(--filtr);
+  border:1px solid var(--filtr-b);border-left:4px solid var(--cyan);
+  border-radius:var(--radius-md);
+}
+.filters::before{
+  content:"FILTR";align-self:center;
+  font-size:10.5px;font-weight:700;letter-spacing:.09em;color:var(--filtr-t);
+  padding-right:2px;
+}
+.filters .input{border-color:var(--filtr-b)}
+.filters .input:hover{border-color:var(--cyan-d)}
 .filters-right{margin-left:auto;display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap}
+
+/* ------------------------------------------------------------------ filtr osób (chipy)
+   Druga linia paska: wpisywane nazwiska. Osobny wiersz (flex-basis:100%), bo
+   liczba chipów rośnie i nie może rozpychać selectów nad nim. */
+.osoby{
+  flex-basis:100%;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  margin-top:2px;padding-top:9px;border-top:1px dashed var(--filtr-b);
+}
+.osoby-lab{
+  font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--filtr-t);cursor:help;
+}
+.osoby .input{min-height:32px;font-size:12.5px}
+.osoby-wpis{width:auto;min-width:230px;max-width:300px}
+.osoby-zakres{min-width:150px}
+.chipy{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chipy-pusto{font-size:12px;color:var(--muted-2);font-style:italic}
+
+.chip{
+  display:inline-flex;align-items:stretch;overflow:hidden;
+  background:var(--panel);border:1px solid var(--cyan-d);border-radius:20px;
+  font-size:12.5px;line-height:1;box-shadow:var(--shadow-sm);
+}
+.chip button{
+  font:inherit;font-size:12.5px;background:transparent;border:0;cursor:pointer;
+  color:var(--ink-2);padding:5px 4px;transition:background .12s,color .12s;
+}
+.chip button:hover{background:var(--accent-l)}
+.chip-zakres{
+  font-weight:700;color:#fff;background:var(--accent)!important;
+  padding:5px 7px;min-width:24px;
+}
+.chip-zakres:hover{filter:brightness(1.12)}
+.chip-txt{padding:5px 8px;font-weight:600;color:var(--accent-d);max-width:220px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-lock{font-size:11px;padding:5px 3px;opacity:.55}
+.chip-x{color:var(--muted-2);padding:5px 7px 5px 3px}
+.chip-x:hover{background:var(--warn-l)!important;color:var(--warn-d)}
+
+/* wyłączony: widoczny, ale jawnie martwy — przekreślony i wyszarzony.
+   Klient prosił o „wyłączanie" filtra, nie o kasowanie: wpis ma zostać
+   pod ręką, żeby wrócić do niego jednym kliknięciem. */
+.chip-off{border-color:var(--line);border-style:dashed;background:var(--panel-2);box-shadow:none}
+.chip-off .chip-txt{color:var(--muted-2);text-decoration:line-through;font-weight:500}
+.chip-off .chip-zakres{background:var(--muted-2)!important}
+
+/* zablokowany: przeżywa „Wyczyść" — bursztyn, tak samo jak przypięcie na tydzień */
+.chip-zamk{border-color:var(--amber-d);background:var(--amber-l)}
+.chip-zamk .chip-lock{opacity:1}
+.chip-zamk .chip-zakres{background:var(--amber-d)!important}
+.chip-zamk .chip-txt{color:var(--fill-t)}
+
+.seg-sm .seg-opt{font-size:11.5px;padding:5px 10px}
 
 /* ------------------------------------------------------------------ panele */
 
@@ -331,14 +418,21 @@ select.input{cursor:pointer}
 .table tbody tr.row-warn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .table tbody tr.row-ok td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
 
-/* komórka z edycją inline — ramka i tło dopiero przy interakcji */
+/* komórka z edycją inline — „WYPEŁNIJ"
+   Było: tło przezroczyste, ramka dopiero na hover. Efekt uboczny: lista rozwijana
+   w komórce wyglądała identycznie jak lista w pasku filtrów, więc klient brał
+   ją za filtr („wyglądają jak filtr, ale to są wypełnij") i nadpisywał dane
+   przy próbie zawężenia widoku. Teraz każde pole zapisujące do bazy ma CIEPŁE
+   kremowe tło i bursztynowe podkreślenie — przeciwieństwo zimnego paska filtrów. */
 .lead-cell{
   width:100%;padding:3px 6px;
   font:inherit;font-size:13px;color:inherit;
-  background:transparent;border:1px solid transparent;border-radius:var(--radius-sm);
+  background:var(--fill);
+  border:1px solid transparent;border-bottom:1px solid var(--fill-b);
+  border-radius:var(--radius-sm);
   transition:background .1s,border-color .1s;
 }
-.lead-cell:hover{background:#fff;border-color:var(--accent-b)}
+.lead-cell:hover{background:#fff8e6;border-color:var(--amber-d)}
 .lead-cell:focus,.lead-cell:focus-visible{
   outline:none;background:#fff;border-color:var(--cyan);
   box-shadow:0 0 0 3px rgba(34,194,242,.18);
@@ -657,7 +751,9 @@ tr.flash td{animation:flash .9s ease-out}
 }
 .kv-l{font-size:12px;color:var(--muted)}
 .kv-v{font-size:13px}
-.kv-v .lead-cell{border:1px solid var(--line);background:var(--panel)}
+/* karta leada: pole ma pełną ramkę, ale kremowe tło zostaje — na karcie też
+   wszystko, co widać na tym tle, zapisuje się do bazy od razu po zmianie */
+.kv-v .lead-cell{border:1px solid var(--fill-b);background:var(--fill)}
 .julia-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
   gap:0 var(--space-6);
@@ -751,6 +847,9 @@ tr.flash td{animation:flash .9s ease-out}
 .legend .sq{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
 .sq-1{background:var(--cyan)}
 .sq-2{background:var(--warn)}
+/* dwa języki pola — te same kolory, co w pasku filtrów i w komórkach */
+.sq-filtr{background:var(--filtr);border:1px solid var(--cyan)}
+.sq-fill{background:var(--fill);border:1px solid var(--fill-b)}
 
 .empty{
   padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;
@@ -804,15 +903,19 @@ tr.flash td{animation:flash .9s ease-out}
 .av-uwagi{display:block;font-size:10px;color:var(--muted);font-style:italic;margin-top:2px}
 .sq-av-ok{background:var(--ok-l);border:1px solid var(--ok)}
 
+/* „Wypełnij zakres" i edytor komórki dostępności PISZĄ do bazy — ta sama ciepła
+   barwa, co komórki „wypełnij" w tabelach. Zimny błękit zostaje zarezerwowany
+   dla pasków filtrów, żeby zasada „kolor mówi, co pole robi" działała wszędzie. */
 .av-zakres-form{
   display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;
-  padding:var(--space-2) 0;
+  padding:var(--space-2) var(--space-3);
+  background:var(--fill);border:1px solid var(--fill-b);border-radius:var(--radius-md);
 }
 .av-dni{display:flex;gap:var(--space-2);flex-wrap:wrap}
 
 .av-editor{
-  margin-top:6px;padding:8px;background:var(--panel);
-  border:1px solid var(--accent);border-radius:var(--radius-sm);
+  margin-top:6px;padding:8px;background:var(--fill);
+  border:1px solid var(--amber-d);border-radius:var(--radius-sm);
   box-shadow:var(--shadow-md);
   display:flex;flex-direction:column;gap:6px;min-width:200px;
   cursor:default;position:relative;z-index:40;

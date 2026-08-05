@@ -125,11 +125,27 @@ STATUS_SUKCES_PREFIX = "03."
 STATUS_ODPADL_PREFIX = "04."
 
 
+# Ogonki → litery bez ogonków. SQLite-owe LIKE ignoruje wielkość liter TYLKO
+# dla ASCII, więc „ŁUKASZ" nie znalazłby się po wpisaniu „łukasz", a „Zemeła"
+# po „zemela". Filtr osób (wpisywanie nazwisk) ma działać tak, jak człowiek
+# oczekuje, dlatego obie strony porównania przepuszczamy przez `pl_fold`.
+_OGONKI = str.maketrans("ąćęłńóśźż", "acelnoszz")
+
+
+def pl_fold(s):
+    """„02. Żmuda-Trzebiatowski" → „02. zmuda-trzebiatowski". Do porównań, nie do wyświetlania."""
+    if s is None:
+        return ""
+    return str(s).lower().translate(_OGONKI)
+
+
 def get_conn():
     os.makedirs(DATA_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # `pl_fold` w SQL — używa go filtr osób w repo.py
+    conn.create_function("pl_fold", 1, pl_fold)
     return conn
 
 

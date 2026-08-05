@@ -1,6 +1,10 @@
 {% extends "base.html" %}
-{% from "_makra.html" import dot with context %}
+{% from "_makra.html" import dot, pasek_chipow with context %}
 {% block title %}Dostępność trenerów{% endblock %}
+
+{% set podpowiedzi = [] %}
+{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'trener')) %}{% endfor %}
+{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość')) %}{% endfor %}
 
 {#
   W zeszłorocznym pliku dostępność była POŁOWĄ treści kalendarza DT
@@ -35,9 +39,29 @@
   <label class="check"><input type="checkbox" name="weekend" value="1"
     {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
   <span class="filters-right">
-    <span class="muted small">kliknij komórkę, żeby wpisać lub poprawić dostępność</span>
+    <span class="muted small nums">
+      {{ grid.n_trenerow }}{% if grid.n_trenerow != grid.n_trenerow_all %} z {{ grid.n_trenerow_all }}{% endif %} trenerów
+    </span>
+    <a class="btn btn-secondary btn-sm"
+       href="{{ url_for('dostepnosc', m=month, weekend='1' if weekend else none,
+                        osoby=ch.zablokowane or none,
+                        osoby_tryb='oraz' if ch.tryb == 'oraz' else none) }}"
+       title="{{ 'Zostawia wpisy przypięte kłódką' if ch.zablokowane else 'Zdejmuje wszystkie filtry' }}">Wyczyść</a>
   </span>
+
+  {# Filtr zawęża WIERSZE, nie komórki: ekran odpowiada „kiedy ta osoba może",
+     więc pokazanie dnia w kawałkach byłoby kłamstwem — wolne okna liczą się
+     z całego dnia. #}
+  {{ pasek_chipow(ch, 'Szukaj', podpowiedzi,
+                  'wpisz cokolwiek i naciśnij Enter…',
+                  'Domyślnie szuka we wszystkim, co dotyczy trenera w tym miesiącu:
+                   nazwisko, uwagi z deklaracji, szkoły i miasta, do których jeździ.
+                   Przełącz chip na „N nazwisko”, żeby szukać tylko po nazwisku.') }}
 </form>
+
+<p class="muted small" style="margin:-8px 0 var(--space-3)">
+  kliknij komórkę, żeby wpisać lub poprawić dostępność
+</p>
 
 {# ── wypełnianie zakresu — tak realnie wpisywali: całymi tygodniami ── #}
 <section class="section av-zakres">

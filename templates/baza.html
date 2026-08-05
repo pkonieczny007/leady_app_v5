@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie with context %}
+{% from "_makra.html" import tabela_leadow, pasek_filtrow, pasek_masowy, legenda, stronicowanie, href_zakres with context %}
 {% block title %}{{ tytul }}{% endblock %}
 
 {% block content %}
@@ -12,13 +12,13 @@
     <div class="seg">
       {# „Do rozdania" to filtr, a nie osobna zakładka — lead nigdzie się nie przenosi #}
       <a class="seg-opt {{ 'on' if f.zakres == 'nieprzydzielone' }}"
-         href="{{ url_for('baza', zakres='nieprzydzielone') }}">Do rozdania</a>
+         href="{{ href_zakres('baza', 'nieprzydzielone', f) }}">Do rozdania</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'przydzielone' }}"
-         href="{{ url_for('baza', zakres='przydzielone') }}">Przydzielone</a>
+         href="{{ href_zakres('baza', 'przydzielone', f) }}">Przydzielone</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'po_terminie' }}"
-         href="{{ url_for('baza', zakres='po_terminie') }}">Po terminie</a>
+         href="{{ href_zakres('baza', 'po_terminie', f) }}">Po terminie</a>
       <a class="seg-opt {{ 'on' if f.zakres == 'wszystkie' }}"
-         href="{{ url_for('baza', zakres='wszystkie') }}">Wszystkie</a>
+         href="{{ href_zakres('baza', 'wszystkie', f) }}">Wszystkie</a>
     </div>
     <button type="button" class="btn btn-primary btn-sm" id="btn-nowy-lead">+ Nowa placówka</button>
   </div>
