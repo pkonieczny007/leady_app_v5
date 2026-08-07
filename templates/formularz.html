@@ -1,9 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Formularz ustaleń{% endblock %}
 {% block wrap_class %}fx-strona{% endblock %}
+{% block body_class %}f-pelny-ekran{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='formularz.css') }}">
 {% endblock %}
+
+{# Formularz zajmuje CAŁE okno: pasek nawigacji aplikacji i stopka znikają.
+   Powód z terenu: na telefonie pasek z logo, dziesięcioma zakładkami i dwoma
+   przyciskami zjadał pół ekranu i się rozjeżdżał, a handlowiec i tak używa
+   wyłącznie tego jednego ekranu. Wyjście jest jedno i jawne — „Zakończ”. #}
+{% block topbar %}
+<header class="f-pasek">
+  <span class="f-pasek-tytul">Formularz ustaleń <span class="f-pasek-wariant">v1</span></span>
+  <a class="f-pasek-wyjscie" href="{{ url_for('formularz') }}" id="fx-zakoncz">Zakończ</a>
+</header>
+{% endblock %}
+
+{% block stopka %}{% endblock %}
 
 {#
   FORMULARZ USTALEŃ Z PLACÓWKĄ — ekran handlowca w terenie.
@@ -23,19 +37,15 @@
      data-handlowiec="{{ handlowiec }}"
      data-dzis="{{ dzis_iso }}">
 
-  {# ------------------------------------------------------------ nagłówek #}
-  <header class="fx-head">
-    <div class="fx-head-txt">
-      <h1>Formularz ustaleń z placówką</h1>
-      <p class="fx-kto">
-        {% if handlowiec %}
-          {{ handlowiec }}
-        {% else %}
-          <span class="fx-brak-kto">wybierz siebie z listy poniżej</span>
-        {% endif %}
-      </p>
-    </div>
-  </header>
+  {# Tytuł nosi już pasek u góry — tu zostaje wyłącznie to, czego tam nie ma:
+     kto wypełnia. Na małym ekranie każdy powtórzony nagłówek to stracony wiersz. #}
+  <p class="fx-kto">
+    {% if handlowiec %}
+      Wypełnia: <b>{{ handlowiec }}</b>
+    {% else %}
+      <span class="fx-brak-kto">wybierz siebie z listy poniżej</span>
+    {% endif %}
+  </p>
 
   {# Do czasu logowania (etap PIN) handlowiec wybiera się z listy. Wybór ląduje
      w adresie, więc zakładka „dodaj do ekranu początkowego" pamięta osobę. #}
@@ -297,5 +307,6 @@
 <script>
   window.FX_MOJE = {{ moje|tojson }};
 </script>
+<script src="{{ url_for('static', filename='formularz_awaria.js') }}"></script>
 <script src="{{ url_for('static', filename='formularz.js') }}"></script>
 {% endblock %}

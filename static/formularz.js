@@ -36,6 +36,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var moje = window.FX_MOJE || [];
 
+  // Awaria w trakcie wypełniania: szkic, ostrzeżenie przy wyjściu i kolejka
+  // „niewysłane" — całość w formularz_awaria.js, bo dotyczy obu wariantów.
+  var awaria = null;
+
   /* ------------------------------------------------------------------ toast */
 
   var toastEl = null, toastTimer = null;
@@ -544,15 +548,23 @@
     }
     btnZapisz.disabled = true;
     btnZapisz.textContent = "Zapisuję…";
-    api("POST", "/api/formularz", zbierz())
+    var payload = zbierz();
+    // Klucz próby: gdy zapis dojdzie, a odpowiedź nie wróci, ponowienie z tym
+    // samym kluczem NIE stworzy drugiego leada (serwer zwróci poprzedni wynik).
+    payload.klucz_zapisu = FxAwaria.losowyKlucz();
+    api("POST", "/api/formularz", payload)
       .then(function (j) {
         localStorage.removeItem(KLUCZ_SZKICU);
+        if (awaria) awaria.wyczysc();
+        zapisano = true;
         pokazSukces(j);
       })
       .catch(function (e) {
         btnZapisz.disabled = false;
         btnZapisz.textContent = "Zapisz formularz";
-        // Szkic zostaje w telefonie — po poprawieniu błędu nic nie trzeba wpisywać od nowa.
+        // Treść formularza NIE ginie: ląduje w kolejce „niewysłane" i wraca
+        // czerwoną ramką z przyciskiem „Ponów wysyłkę".
+        if (awaria) awaria.zapamietaj(payload, e.message);
         toast("Nie zapisano: " + e.message, true);
       });
   });
@@ -673,6 +685,28 @@
   });
 
   /* =============================================================== START */
+
+  var zapisano = false;
+
+  function czyCosWpisane() {
+    if (zapisano) return false;
+    if (stan.wybrana || stan.nowa || stan.trener) return true;
+    return POLA.some(function (id) {
+      var el = $(id);
+      return el && String(el.value || "").trim();
+    });
+  }
+
+  awaria = FxAwaria.utworz({
+    klucz: "fx-niewyslany-v1",
+    kontener: root,
+    handlowiec: stan.handlowiec,
+    toast: toast,
+    naSukces: function (j) { zapisano = true; pokazSukces(j); }
+  });
+
+  FxAwaria.pilnujWyjscia(czyCosWpisane);
+  FxAwaria.pilnujZakonczenia($("fx-zakoncz"), czyCosWpisane);
 
   pokazKrok(1);
   if (stan.handlowiec) wczytajSzkic();

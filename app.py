@@ -922,6 +922,21 @@ def api_formularz():
         conn.close()
         return jsonify(ok=False, error=msg), kod
 
+    # --- 0. ochrona przed dublem po zerwanym połączeniu ---------------------
+    # Scenariusz: zapis doszedł, ale odpowiedź nie wróciła. Formularz uznaje to
+    # za błąd i proponuje „Ponów wysyłkę". Bez tego druga próba tworzyłaby drugą
+    # szkołę i drugie DT. Klucz nadaje przeglądarka — jeden na próbę wysyłki.
+    klucz_zapisu = (d.get("klucz_zapisu") or "").strip()
+    if klucz_zapisu:
+        byl = conn.execute("SELECT odpowiedz FROM zapisy_formularza WHERE klucz=?",
+                           (klucz_zapisu,)).fetchone()
+        if byl:
+            conn.close()
+            import json as _json
+            odp = _json.loads(byl["odpowiedz"])
+            odp["powtorka"] = True          # dla formularza: „to już było zapisane"
+            return jsonify(odp)
+
     handlowiec = (d.get("handlowiec") or "").strip()
     if handlowiec and handlowiec not in slownik_values(conn, "handlowiec"):
         return blad("Nieznany handlowiec: %s" % handlowiec)
@@ -991,8 +1006,8 @@ def api_formularz():
 
     # --- 3. spotkania: DT i cykl -------------------------------------------
     utworzone, kolizja = [], None
-    for typ, klucz in (("DT", "dt"), ("CYKLICZNE", "cykl")):
-        blok = d.get(klucz) or {}
+    for typ, pole_bloku in (("DT", "dt"), ("CYKLICZNE", "cykl")):
+        blok = d.get(pole_bloku) or {}
         if not blok:
             continue
         # DT bez daty nie ma sensu; cykl bez dnia tygodnia też nie
@@ -1037,9 +1052,18 @@ def api_formularz():
 
     nazwa = conn.execute("SELECT nazwa FROM placowki WHERE id=?",
                          (placowka_id,)).fetchone()["nazwa"]
+
+    odpowiedz = {"ok": True, "lead_id": lead_id, "placowka_id": placowka_id,
+                 "placowka": nazwa, "miasto": miasto, "eventy": utworzone,
+                 "kolizja": kolizja}
+    if klucz_zapisu:
+        import json as _json
+        conn.execute("INSERT OR REPLACE INTO zapisy_formularza "
+                     "(klucz, lead_id, odpowiedz) VALUES (?,?,?)",
+                     (klucz_zapisu, lead_id, _json.dumps(odpowiedz)))
+        conn.commit()
     conn.close()
-    return jsonify(ok=True, lead_id=lead_id, placowka_id=placowka_id,
-                   placowka=nazwa, miasto=miasto, eventy=utworzone, kolizja=kolizja)
+    return jsonify(odpowiedz)
 
 
 # ------------------------------------------------ auto-zwrot po terminie (v5)

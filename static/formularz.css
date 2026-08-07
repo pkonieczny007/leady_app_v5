@@ -206,8 +206,65 @@ select.fx-pole{
   text-decoration:none;
 }
 
-/* Na telefonie górna nawigacja aplikacji tylko zabiera miejsce — handlowiec
-   w terenie używa wyłącznie tego jednego ekranu. Na komputerze zostaje. */
-@media (max-width:720px){
-  .fx-ukryj-mobile{display:none}
+
+/* =============================================================================
+   PEŁNY EKRAN — wspólne dla obu wariantów formularza.
+
+   Powód z terenu: pasek aplikacji (logo + 10 zakładek + 2 przyciski) zjadał na
+   telefonie pół ekranu i się zawijał w kilka linii. Handlowiec i tak używa
+   wyłącznie tego jednego ekranu, więc formularz dostaje całe okno, a wyjście
+   jest JEDNO i jawne — przycisk „Zakończ”. Cofnięcie w obrębie formularza
+   odbywa się przyciskami Wstecz/Dalej, nie nawigacją przeglądarki.
+   ============================================================================= */
+
+body.f-pelny-ekran{
+  min-height:100dvh;                 /* dvh, nie vh: pasek adresu w Safari chowa
+                                        się przy przewijaniu i vh liczy za dużo */
+  background:var(--bg);
 }
+body.f-pelny-ekran > main{padding-top:8px}
+
+.f-pasek{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
+  background:var(--grad-brand);color:#fff;
+  box-shadow:var(--shadow-sm);
+}
+.f-pasek-tytul{
+  flex:1;min-width:0;
+  font:600 15px/1.3 "Segoe UI",system-ui,sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.f-pasek-wariant{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;
+  background:rgba(255,255,255,.16);font-size:11.5px;font-weight:700;
+  letter-spacing:.05em;
+}
+.f-pasek-wyjscie{
+  flex:none;min-height:36px;padding:0 14px;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+  color:#fff;text-decoration:none;
+  font:600 14px/1 "Segoe UI",system-ui,sans-serif;
+}
+.f-pasek-wyjscie:hover{background:rgba(255,255,255,.24)}
+
+/* Pasek profilu bazy nad paskiem formularza — bez tego oba byłyby przyklejone
+   do góry i nachodziłyby na siebie. */
+body.f-pelny-ekran .pasek-profilu{position:static}
+
+/* --- niewysłany formularz (awaria w trakcie zapisu) --------------------- */
+.f-niewyslany{
+  margin:0 0 14px;padding:12px 14px;border-radius:var(--radius-md);
+  background:var(--warn-l);border:1px solid var(--warn);
+}
+.f-niewyslany b{display:block;margin-bottom:4px;color:var(--warn-d);font-size:14px}
+.f-niewyslany p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+.f-niewyslany-akcje{display:flex;gap:8px;flex-wrap:wrap}
+.f-niewyslany-akcje button{
+  min-height:42px;padding:0 16px;border-radius:var(--radius-sm);cursor:pointer;
+  font:600 14px/1 "Segoe UI",system-ui,sans-serif;
+}
+.f-ponow{background:var(--grad-cyan);border:1px solid transparent;color:#fff}
+.f-odrzuc{background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}

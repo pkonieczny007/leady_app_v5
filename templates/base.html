@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{% block title %}System Leadów{% endblock %} · System Leadów</title>
 {# Czcionka systemowa (Segoe UI) — jak w pierwszej wersji i jak w generatorze raportów.
    Żadnego pobierania z zewnątrz: na VPS bez internetu strona wygląda tak samo. #}
@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 {% set _q = query|default('', true) %}
 
@@ -24,6 +24,7 @@
 </div>
 {% endif %}
 
+{% block topbar %}
 <header class="topbar">
   <div class="topbar-in">
     {# logo na białym kafelku — tukan jest czarny z przezroczystym tłem,
@@ -39,7 +40,7 @@
 
     {# Na ekranie formularza (telefon) nawigacja aplikacji tylko zabiera miejsce —
        handlowiec w terenie używa wyłącznie tego jednego ekranu. #}
-    <nav class="nav{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
+    <nav class="nav{{ '' if false }}">
       <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">Formularz</a>
       <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
       <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
@@ -53,7 +54,7 @@
       <a href="{{ url_for('slowniki_view') }}"  class="{{ 'on' if nav_active == 'slowniki_view' }}">Słowniki</a>
     </nav>
 
-    <div class="topbar-right{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
+    <div class="topbar-right{{ '' if false }}">
       <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
          title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
       <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
@@ -61,6 +62,7 @@
     </div>
   </div>
 </header>
+{% endblock %}
 
 {% with komunikaty = get_flashed_messages(with_categories=true) %}
   {% if komunikaty %}
@@ -76,11 +78,13 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="stopka wrap{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
+{% block stopka %}
+<footer class="stopka wrap{{ '' if false }}">
   <span>Prototyp v4 · jedno źródło danych (placówka + lead + spotkania), ekrany to filtry —
     nic się nie kopiuje między zakładkami.</span>
   <span class="muted nums">{{ today|pl_data }}</span>
 </footer>
+{% endblock %}
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
