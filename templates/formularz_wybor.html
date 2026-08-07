@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Formularz — wybór wariantu{% endblock %}
+{% block wrap_class %}fw-strona{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz.css') }}">
+{% endblock %}
+
+{#
+  EKRAN WYBORU — dwa warianty formularza do pokazania klientowi.
+
+  Na spotkaniu 06.08 przysłali makietę jednego długiego formularza. My uważamy,
+  że w terenie lepiej sprawdzi się podział na kroki. Zamiast się o to spierać na
+  słowa, pokazujemy OBA na ich własnych danych i niech wybiorą sami.
+
+  Oba wariantu zapisują przez to samo API i tę samą walidację — wybór dotyczy
+  wyłącznie sposobu podania i jest w każdej chwili odwracalny.
+#}
+
+{% block content %}
+<div class="fw" data-handlowiec="{{ handlowiec }}">
+
+  <header class="fw-head">
+    <h1>Formularz ustaleń z placówką</h1>
+    <p class="fw-lead">
+      Przygotowaliśmy <b>dwa warianty</b> tego samego formularza. Zapisują identycznie —
+      różni je tylko sposób wypełniania. Otwórz oba na telefonie i wybierzcie ten,
+      który lepiej leży w ręku.
+    </p>
+  </header>
+
+  {# Wybór osoby zostaje na tym ekranie, żeby oba warianty dostały go w adresie
+     i pokazywały „moje szkoły" bez pytania po raz drugi. #}
+  <div class="fx-karta fw-kto">
+    <label class="fx-etykieta" for="fw-kto">Kto wypełnia?</label>
+    <select id="fw-kto" class="fx-pole">
+      <option value="">— wybierz siebie —</option>
+      {% for h in slowniki.handlowiec %}
+      <option value="{{ h }}" {{ 'selected' if h == handlowiec }}>{{ h }}</option>
+      {% endfor %}
+    </select>
+    <p class="fx-podpowiedz">
+      Dzięki temu formularz podpowie <b>Twoje szkoły</b> na górze listy.
+      Docelowo zastąpi to logowanie PIN-em.
+    </p>
+  </div>
+
+  <div class="fw-kafle">
+
+    {# ---------------------------------------------------------- WARIANT 1 #}
+    <article class="fw-kafel">
+      <div class="fw-kafel-naglowek">
+        <span class="fw-odznaka fw-odznaka-1">Typ 1</span>
+        <h2>Krok po kroku</h2>
+        <p class="fw-podtytul">Cztery ekrany, jeden pod drugim</p>
+      </div>
+
+      {# Podgląd rysowany CSS-em, nie obrazkiem — zawsze zgodny z tym,
+         co realnie jest w środku, i nie waży nic na LTE. #}
+      <div class="fw-podglad" aria-hidden="true">
+        <div class="fw-p-kroki">
+          <span class="fw-p-krok on"></span><span class="fw-p-krok"></span>
+          <span class="fw-p-krok"></span><span class="fw-p-krok"></span>
+        </div>
+        <div class="fw-p-karta">
+          <span class="fw-p-tytul"></span>
+          <span class="fw-p-pole duze"></span>
+          <span class="fw-p-wynik"></span>
+          <span class="fw-p-wynik krotki"></span>
+        </div>
+        <div class="fw-p-stopka"><span class="fw-p-btn"></span></div>
+      </div>
+
+      <ul class="fw-zalety">
+        <li><b>Jedno pytanie naraz</b> — na małym ekranie nic nie ucieka poza kadr</li>
+        <li><b>Nie przejdziesz dalej</b> z pustym polem wymaganym</li>
+        <li><b>Krok 4 to podsumowanie</b> do przeczytania na głos dyrektorowi</li>
+        <li>Szkołę znajdujesz <b>wpisując</b> fragment nazwy lub miasta</li>
+      </ul>
+      <p class="fw-dla">Lepszy na <b>telefonie</b>, przy rozmowie na stojąco.</p>
+
+      <a class="fx-btn fx-btn-dalej fw-btn" href="{{ url_for('formularz_kroki') }}"
+         data-cel="{{ url_for('formularz_kroki') }}">Otwórz typ 1</a>
+    </article>
+
+    {# ---------------------------------------------------------- WARIANT 2 #}
+    <article class="fw-kafel">
+      <div class="fw-kafel-naglowek">
+        <span class="fw-odznaka fw-odznaka-2">Typ 2</span>
+        <h2>Jeden ciągły</h2>
+        <p class="fw-podtytul">Wszystko widoczne, przewijasz w dół</p>
+      </div>
+
+      <div class="fw-podglad" aria-hidden="true">
+        <div class="fw-p-karta wysoka">
+          <span class="fw-p-tytul"></span>
+          <span class="fw-p-para"><i></i><i></i></span>
+          <span class="fw-p-tytul"></span>
+          <span class="fw-p-para"><i></i><i></i></span>
+          <span class="fw-p-pole"></span>
+          <span class="fw-p-tytul"></span>
+          <span class="fw-p-para"><i></i><i></i></span>
+        </div>
+        <div class="fw-p-stopka"><span class="fw-p-btn puste"></span><span class="fw-p-btn"></span></div>
+      </div>
+
+      <ul class="fw-zalety">
+        <li><b>Zgodny z makietą</b>, którą przysłaliście 06.08</li>
+        <li><b>Widać całość naraz</b> — łatwo cofnąć się do wcześniejszej sekcji</li>
+        <li>Szkołę wybierasz z listy: <b>miejscowość → placówka</b></li>
+        <li>Na komputerze układa się w <b>dwie kolumny</b></li>
+      </ul>
+      <p class="fw-dla">Lepszy na <b>komputerze i tablecie</b>, przy biurku.</p>
+
+      <a class="fx-btn fx-btn-dalej fw-btn" href="{{ url_for('formularz_ciagly') }}"
+         data-cel="{{ url_for('formularz_ciagly') }}">Otwórz typ 2</a>
+    </article>
+  </div>
+
+  <p class="fw-stopka">
+    Oba warianty zapisują do tej samej bazy, przez to samo API i tę samą walidację.
+    Wybór można zmienić w każdej chwili — nic nie trzeba przepisywać.
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Wybór osoby doklejamy do obu odnośników, żeby wariant od razu znał handlowca
+   i pokazał „moje szkoły" bez pytania drugi raz. Wybór zostaje w telefonie. */
+(function () {
+  "use strict";
+  var sel = document.getElementById("fw-kto");
+  var KLUCZ = "fx-handlowiec";
+  if (!sel) return;
+
+  if (!sel.value) {
+    var z = localStorage.getItem(KLUCZ);
+    if (z) sel.value = z;
+  }
+
+  function odswiez() {
+    var kto = sel.value;
+    if (kto) localStorage.setItem(KLUCZ, kto);
+    document.querySelectorAll("[data-cel]").forEach(function (a) {
+      a.href = a.dataset.cel + (kto ? "?handlowiec=" + encodeURIComponent(kto) : "");
+    });
+  }
+
+  sel.addEventListener("change", odswiez);
+  odswiez();
+})();
+</script>
+{% endblock %}

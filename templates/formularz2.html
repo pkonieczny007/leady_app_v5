@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}Formularz ustaleń (typ 2){% endblock %}
+{% block wrap_class %}f2-strona{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz2.css') }}">
+{% endblock %}
+
+{#
+  WARIANT 2 — jeden ciągły formularz, przewijany w dół.
+
+  Wierny makiecie przysłanej 06.08 (`ChatGPT Image 6 sie 2026, 16_33_49.png`):
+  te same trzy sekcje w tej samej kolejności, ikony w niebieskich kółkach,
+  para list „Miejscowość → Placówka", gwiazdki przy polach wymaganych,
+  stopka „Wyczyść formularz | Zapisz formularz".
+
+  Odstępstwa są wyłącznie takie, bez których nie dałoby się tego używać:
+
+    · dwie kolumny zwijają się do jednej poniżej 700 px (makieta ma sztywne
+      cztery pola w rzędzie — na telefonie wychodzi poziome przewijanie),
+    · lista placówek zawęża się po wyborze miejscowości (551 szkół w jednej
+      liście to przewijanie kciukiem przez pół województwa),
+    · przy „Prowadzący DT" pokazujemy, KTO JEST WOLNY tego dnia — w makiecie
+      jest tam zwykłe pole tekstowe „Wpisz imię i nazwisko", a wpisywanie
+      nazwiska z pamięci to dokładnie to źródło literówek, przez które
+      w ich arkuszu jedna osoba figurowała pod pięcioma zapisami.
+#}
+
+{% block content %}
+<div class="f2" id="f2"
+     data-handlowiec="{{ handlowiec }}"
+     data-dzis="{{ dzis_iso }}">
+
+  <header class="f2-head">
+    <div class="f2-ikona f2-ikona-duza">
+      <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+        <path fill="currentColor" d="M12 2 3 7v2h18V7zM5 11v7H3v2h18v-2h-2v-7h-2v7h-3v-7h-2v7H8v-7z"/>
+      </svg>
+    </div>
+    <h1>Formularz ustaleń z placówką</h1>
+  </header>
+
+  <p class="f2-kto">
+    {% if handlowiec %}
+      Wypełnia: <b>{{ handlowiec }}</b>
+    {% else %}
+      <a href="{{ url_for('formularz') }}">Wybierz, kto wypełnia →</a>
+    {% endif %}
+    <a class="f2-przelacz" href="{{ url_for('formularz') }}">zmień wariant</a>
+  </p>
+
+  {% if ostrzezenia %}
+  <div class="fx-alarm">
+    <strong>Uwaga — kończy się termin</strong>
+    <ul>
+      {% for o in ostrzezenia[:5] %}
+      <li>
+        <span class="fx-alarm-szkola">{{ o.placowka }}</span>
+        <span class="muted">{{ o.miejscowosc }}</span>
+        {% if o.dni_do_zwrotu <= 0 %}
+          <b class="fx-alarm-dzis">wraca do puli lada moment</b>
+        {% else %}
+          <b>wraca do puli za {{ o.dni_do_zwrotu }} dni</b>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form id="f2-form" autocomplete="off" novalidate>
+
+  {# ==================================================== DANE PLACÓWKI #}
+  <section class="f2-sekcja">
+    <h2 class="f2-tytul">
+      <span class="f2-ikona">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M12 2 3 7v2h18V7zM5 11v7H3v2h18v-2h-2v-7h-2v7h-3v-7h-2v7H8v-7z"/>
+        </svg>
+      </span>
+      Dane placówki
+    </h2>
+
+    <div class="f2-siatka f2-siatka-2">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-miasto">Miejscowość <span class="f2-wym">*</span></label>
+        <select id="f2-miasto" class="f2-pole">
+          <option value="">Wybierz miejscowość</option>
+          {% for m in slowniki.miasto %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-szkola">Placówka (szkoła) <span class="f2-wym">*</span></label>
+        <select id="f2-szkola" class="f2-pole" disabled>
+          <option value="">Najpierw wybierz miejscowość</option>
+        </select>
+        <p class="f2-info" id="f2-szkola-info"></p>
+      </div>
+    </div>
+
+    {# Makieta nie przewiduje dodania nowej szkoły — a w terenie to się zdarza
+       i bez tego handlowiec zapisuje ustalenia na kartce. #}
+    <button type="button" class="f2-link" id="f2-nowa-otworz">
+      + Nie ma jej na liście — dodaj nową placówkę
+    </button>
+
+    <div id="f2-nowa" class="f2-nowa" hidden>
+      <div class="f2-siatka f2-siatka-2">
+        <div class="f2-pole-grupa">
+          <label class="f2-etykieta" for="f2-nowa-nazwa">Nazwa placówki <span class="f2-wym">*</span></label>
+          <input type="text" id="f2-nowa-nazwa" class="f2-pole" placeholder="np. SP 12 im. Kopernika">
+        </div>
+        <div class="f2-pole-grupa">
+          <label class="f2-etykieta" for="f2-nowa-typ">Typ</label>
+          <select id="f2-nowa-typ" class="f2-pole">
+            <option value="">Wybierz typ</option>
+            {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-nowa-adres">Adres</label>
+        <input type="text" id="f2-nowa-adres" class="f2-pole" placeholder="ulica i numer">
+      </div>
+    </div>
+
+    <div class="f2-siatka f2-siatka-3">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-osoba">Osoba decyzyjna</label>
+        <input type="text" id="f2-osoba" class="f2-pole" placeholder="imię, nazwisko, funkcja">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-telefon">Telefon</label>
+        <input type="tel" id="f2-telefon" class="f2-pole" inputmode="tel" placeholder="000 000 000">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-mail">Mail</label>
+        <input type="email" id="f2-mail" class="f2-pole" inputmode="email"
+               autocapitalize="off" spellcheck="false" placeholder="sekretariat@...">
+      </div>
+    </div>
+  </section>
+
+  {# =================================================== DZIEŃ TECHNOLOGII #}
+  <section class="f2-sekcja">
+    <h2 class="f2-tytul">
+      <span class="f2-ikona">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v10H5z"/>
+        </svg>
+      </span>
+      Dzień Technologii
+    </h2>
+
+    <div class="f2-siatka f2-siatka-4">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-data">Data DT <span class="f2-wym">*</span></label>
+        <input type="date" id="f2-dt-data" class="f2-pole">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-od">Godzina DT <span class="f2-wym">*</span></label>
+        <input type="time" id="f2-dt-od" class="f2-pole" step="300">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-do">Godzina do</label>
+        <input type="time" id="f2-dt-do" class="f2-pole" step="300">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-sala">Numer sali DT</label>
+        <input type="text" id="f2-dt-sala" class="f2-pole" placeholder="Wpisz numer sali">
+      </div>
+    </div>
+
+    {# W makiecie „Prowadzący DT" to pole tekstowe. Zamieniamy na listę z żywą
+       dostępnością: w ich arkuszu jedna trenerka figurowała pod pięcioma
+       zapisami nazwiska, bo każdy wpisywał z pamięci. #}
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-dt-trener">Prowadzący DT <span class="f2-wym">*</span></label>
+      <select id="f2-dt-trener" class="f2-pole">
+        <option value="">Wybierz prowadzącego</option>
+        {% for t in slowniki.trener %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select>
+      <p class="f2-dostepnosc" id="f2-dostepnosc">
+        Po wybraniu daty pokażemy, kto jest wolny i jeździ po tej okolicy.
+      </p>
+    </div>
+
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-dt-uwagi">Ustalenia dotyczące DT</label>
+      <textarea id="f2-dt-uwagi" class="f2-pole f2-pole-txt" rows="4"
+                placeholder="Wpisz ustalenia lub dodatkowe informacje…"></textarea>
+    </div>
+
+    <div class="f2-siatka f2-siatka-2">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-klas">Ilość klas 1–4 <span class="f2-wym">*</span></label>
+        <input type="number" id="f2-dt-klas" class="f2-pole" inputmode="numeric"
+               min="0" max="40" placeholder="Wpisz liczbę klas">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-dt-dzieci">Ilość dzieci w klasach <span class="f2-wym">*</span></label>
+        <input type="number" id="f2-dt-dzieci" class="f2-pole" inputmode="numeric"
+               min="0" max="2000" placeholder="Wpisz liczbę dzieci">
+      </div>
+    </div>
+
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-mail-rodzice">
+        Czy szkoła wyśle wiadomość do rodziców na dziennik elektroniczny?
+        <span class="f2-wym">*</span>
+      </label>
+      <select id="f2-mail-rodzice" class="f2-pole">
+        <option value="">Wybierz odpowiedź</option>
+        {% for v in slowniki.tak_nie %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+    </div>
+  </section>
+
+  {# =================================================== ZAJĘCIA CYKLICZNE #}
+  <section class="f2-sekcja">
+    <h2 class="f2-tytul">
+      <span class="f2-ikona">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M12 6V3L8 7l4 4V8a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>
+        </svg>
+      </span>
+      Zajęcia cykliczne
+    </h2>
+
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-cykle">Cykle</label>
+      <select id="f2-cykle" class="f2-pole">
+        <option value="">Wybierz cykl zajęć</option>
+        {% for v in slowniki.tak_nie %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="f2-siatka f2-siatka-3">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-cykl-dzien">Zajęcia cykliczne (dzień tygodnia)</label>
+        <select id="f2-cykl-dzien" class="f2-pole">
+          <option value="">Wybierz dzień</option>
+          {% for d in slowniki.dzien_tyg %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-cykl-od">Zajęcia cykliczne (godzina)</label>
+        <input type="time" id="f2-cykl-od" class="f2-pole" step="300">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-cykl-sala">Numer sali cykle</label>
+        <input type="text" id="f2-cykl-sala" class="f2-pole" placeholder="Wpisz numer sali">
+      </div>
+    </div>
+
+    {# W makiecie tego nie ma, a w planszach STARTY jest zawsze — bez tego trener
+       przyjeżdża i nie wie, na czym dzieci mają pracować. #}
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-cykl-sprzet">Sprzęt</label>
+      <select id="f2-cykl-sprzet" class="f2-pole">
+        <option value="">Wybierz sprzęt</option>
+        {% for s in slowniki.sprzet %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f2-cykl-uwagi">Dodatkowe ustalenia i uwagi</label>
+      <textarea id="f2-cykl-uwagi" class="f2-pole f2-pole-txt" rows="4"
+                placeholder="Wpisz dodatkowe informacje…"></textarea>
+    </div>
+  </section>
+
+  </form>
+
+  <div class="f2-akcje">
+    <button type="button" class="f2-btn f2-btn-wyczysc" id="f2-wyczysc">
+      <span aria-hidden="true">🗑</span> Wyczyść formularz
+    </button>
+    <button type="button" class="f2-btn f2-btn-zapisz" id="f2-zapisz">
+      <span aria-hidden="true">💾</span> Zapisz formularz
+    </button>
+  </div>
+
+  <p class="f2-szkic" id="f2-szkic" hidden></p>
+
+  <div class="fx-sukces" id="f2-sukces" hidden>
+    <div class="fx-sukces-znak">✓</div>
+    <h2 id="f2-sukces-tytul">Zapisano</h2>
+    <p id="f2-sukces-tresc" class="fx-sukces-tresc"></p>
+    <div id="f2-sukces-kolizja" class="fx-sukces-kolizja" hidden></div>
+    <div class="fx-sukces-akcje">
+      <button type="button" class="fx-btn fx-btn-dalej" id="f2-nowy">Wypełnij kolejny</button>
+      <a class="fx-btn fx-btn-lekki" id="f2-do-leada" href="#">Otwórz kartę szkoły</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.FX_MOJE = {{ moje|tojson }};
+</script>
+<script src="{{ url_for('static', filename='formularz2.js') }}"></script>
+{% endblock %}

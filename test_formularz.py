@@ -166,20 +166,68 @@ def main():
     sprawdz("formularz nie przejmuje szkoły innego handlowca",
             kod == 200 and wlasciciel == H2)
 
-    # ==================================================== F3 — ekran się renderuje
-    print("\nF3 — ekran formularza")
+    # ================================================== F3 — ekran wyboru wariantu
+    print("\nF3 — wybór wariantu formularza")
     r = KL.get("/formularz")
     sprawdz("/formularz zwraca 200", r.status_code == 200)
     html = r.get_data(as_text=True)
-    sprawdz("bez handlowca pyta, kto wypełnia", 'id="fx-kto"' in html)
-    r = KL.get("/formularz?handlowiec=" + H)
-    html = r.get_data(as_text=True)
-    sprawdz("z handlowcem pokazuje cztery kroki", html.count('class="fx-krok"') == 4)
-    sprawdz("dołącza arkusz stylów formularza", "formularz.css" in html)
+    sprawdz("pokazuje DWA kafelki wariantów", html.count("fw-kafel-naglowek") == 2)
+    sprawdz("kafelki prowadzą do obu wariantów",
+            "/formularz/kroki" in html and "/formularz/ciagly" in html)
+    sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
+
+    # ============================================ F4 — wariant 1 (krok po kroku)
+    print("\nF4 — wariant 1: krok po kroku")
+    sprawdz("/formularz/kroki zwraca 200", KL.get("/formularz/kroki").status_code == 200)
+    html = KL.get("/formularz/kroki?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("cztery kroki", html.count('class="fx-krok"') == 4)
+    sprawdz("dołącza własny arkusz stylów", "formularz.css" in html)
     sprawdz("nagłówki sekcji jak we wzorze klienta",
             "Dane placówki" in html and "Dzień Technologii" in html
             and "Zajęcia cykliczne" in html)
 
+    # ============================================== F5 — wariant 2 (jeden ciągły)
+    print("\nF5 — wariant 2: jeden ciągły, wg makiety klienta")
+    sprawdz("/formularz/ciagly zwraca 200", KL.get("/formularz/ciagly").status_code == 200)
+    html = KL.get("/formularz/ciagly?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("trzy sekcje makiety, jedna pod drugą", html.count('class="f2-sekcja"') == 3)
+    sprawdz("para list Miejscowość → Placówka",
+            'id="f2-miasto"' in html and 'id="f2-szkola"' in html)
+    sprawdz("lista szkół zablokowana do czasu wyboru miasta",
+            'id="f2-szkola" class="f2-pole" disabled' in html)
+    sprawdz("stopka z dwoma przyciskami jak w makiecie",
+            "Wyczyść formularz" in html and "Zapisz formularz" in html)
+    sprawdz("pola z makiety obecne",
+            "Numer sali DT" in html and "Ilość dzieci w klasach" in html
+            and "Zajęcia cykliczne (dzień tygodnia)" in html)
+    sprawdz("dołącza własny arkusz stylów", "formularz2.css" in html)
+
+    # Oba warianty muszą zapisywać TAK SAMO — gdyby się rozjechały, klient
+    # wybierałby między funkcjami, a nie między układem, i porównanie nic nie znaczy.
+    kod2, j2 = post("/api/formularz", {
+        "handlowiec": H,
+        "placowka": {"nazwa": "SP 6 z wariantu 2", "miejscowosc": M},
+        "cykle": "01. Tak",
+        "mail_rodzice": "01. Tak",
+        "dt": {"data": dni(25), "godz_od": "10:00", "trener": T,
+               "ilosc_klas": "3", "ilosc_dzieci": "60"},
+        "cykl": {"cykl_dzien": "środa", "godz_od": "13:00", "sprzet": sprzet[0]},
+    })
+    sprawdz("wariant 2 zapisuje przez to samo API", kod2 == 200, str(j2)[:110])
+    sprawdz("wariant 2 też tworzy DT i cykl", len((j2 or {}).get("eventy") or []) == 2)
+    conn = db.get_conn()
+    sprawdz("pole „Cykle” z makiety trafia do leada",
+            conn.execute("SELECT cykle FROM leady WHERE id=?",
+                         ((j2 or {}).get("lead_id"),)).fetchone()["cykle"] == "01. Tak")
+    conn.close()
+
+    poz = KL.get("/api/placowki?miejscowosc=" + M + "&handlowiec=" + H).get_json()["pozycje"]
+    sprawdz("lista placówek dla miasta niepusta", len(poz) > 0)
+    sprawdz("oznacza szkoły handlowca", any(p["moja"] for p in poz))
+    sprawdz("bez miasta zwraca pustą listę",
+            KL.get("/api/placowki").get_json()["pozycje"] == [])
+
+    print("\nF6 — wyszukiwarka szkół (wariant 1)")
     r = KL.get("/api/placowki/szukaj?q=" + "sp 1")
     poz = r.get_json()["pozycje"]
     sprawdz("wyszukiwarka znajduje po nazwie", any(p["nazwa"] == "SP 1 Nowa" for p in poz))

@@ -79,12 +79,12 @@
     var zapamietany = localStorage.getItem(KLUCZ_OSOBY);
     if (zapamietany) {
       selKto.value = zapamietany;
-      if (selKto.value) { location.replace("/formularz?handlowiec=" + encodeURIComponent(zapamietany)); return; }
+      if (selKto.value) { location.replace("/formularz/kroki?handlowiec=" + encodeURIComponent(zapamietany)); return; }
     }
     selKto.addEventListener("change", function () {
       if (!selKto.value) return;
       localStorage.setItem(KLUCZ_OSOBY, selKto.value);
-      location.href = "/formularz?handlowiec=" + encodeURIComponent(selKto.value);
+      location.href = "/formularz/kroki?handlowiec=" + encodeURIComponent(selKto.value);
     });
   } else if (stan.handlowiec) {
     localStorage.setItem(KLUCZ_OSOBY, stan.handlowiec);
@@ -577,7 +577,7 @@
 
   $("fx-nowy").addEventListener("click", function () {
     localStorage.removeItem(KLUCZ_SZKICU);
-    location.href = "/formularz?handlowiec=" + encodeURIComponent(stan.handlowiec);
+    location.href = "/formularz/kroki?handlowiec=" + encodeURIComponent(stan.handlowiec);
   });
 
   /* ======================================================== SZKIC W TELEFONIE
