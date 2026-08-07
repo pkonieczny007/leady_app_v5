@@ -22,6 +22,18 @@ API i tę samą walidację; różni je wyłącznie sposób podania.
 | Walidacja | blokuje przejście dalej | zbiorczo przy zapisie |
 | Lepszy na | telefonie, przy rozmowie na stojąco | komputerze i tablecie, przy biurku |
 
+Oba zajmują **całe okno** — pasek aplikacji i stopka znikają, wyjście jest jedno
+i jawne („Zakończ”), bo na telefonie nawigacja z logo i dziesięcioma zakładkami
+zjadała pół ekranu i się zawijała.
+
+**Awaria w trakcie wypełniania** (`static/formularz_awaria.js`) — cztery przypadki:
+szkic leci do pamięci telefonu po każdej zmianie pola; przy zamknięciu karty
+z niezapisanymi danymi wyskakuje ostrzeżenie; gdy zapis nie dojdzie, treść
+formularza ląduje w kolejce „niewysłane” i wraca czerwoną ramką z przyciskiem
+**Ponów wysyłkę**; a gdy zapis dojdzie, lecz odpowiedź nie wróci — każda próba
+niesie `klucz_zapisu`, więc ponowienie **nie tworzy drugiego leada** (serwer
+zwraca poprzedni wynik z tabeli `zapisy_formularza`).
+
 Wspólne dla obu: pola ≥46 px i font 16 px (poniżej tego Safari sam przybliża widok),
 **własne szkoły na górze listy**, przy dacie DT podpowiedź **kto jest wolny i jeździ
 po tym mieście** (ranking z `przydzial.py`), szkic w telefonie (localStorage) —
@@ -198,6 +210,7 @@ Dwie decyzje warte uwagi:
 | `dostepnosc_view.py` | dostępność trenerów: stany komórki, wolne okna, ostrzeżenia (v2) |
 | `przydzial.py` | ranking kandydatów na spotkanie + rejony trenerów (v4) |
 | `zwrot.py` | auto-zwrot przeterminowanych leadów do puli: karencja, ostrzeżenia, przebieg (v5) |
+| `static/formularz_awaria.js` | co się dzieje przy awarii w trakcie wypełniania: szkic, ostrzeżenie przy wyjściu, kolejka „niewysłane” z ponowieniem (v5) |
 | `narzedzia/baza.py` | profile baz, kopie zapasowe i przywracanie (v5) |
 | `parsers.py` | parsowanie brudnych danych z arkusza (daty, godziny, „10 klas", „około 200", telefony) |
 | `importer.py` | import `PH Nowy`, RSPO i planszy STARTY, z deduplikacją placówek |
@@ -213,7 +226,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
-python test_formularz.py      # 77 sprawdzeń — oba warianty formularza i auto-zwrot (v5)
+python test_formularz.py      # 93 sprawdzenia — oba warianty, awaria przy zapisie, auto-zwrot (v5)
 ```
 
 `test_scenariusze.py` przechodzi przez to, o co klient poprosił: przypisanie,
