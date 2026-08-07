@@ -13,6 +13,24 @@
    trenera w słowniku (`--ev-color`) — to dane, nie dekoracja.
    ============================================================================= */
 
+/* -----------------------------------------------------------------------------
+   ATRYBUT `hidden` MUSI WYGRYWAĆ.
+
+   Przeglądarka ukrywa `hidden` przez `display:none` w swoim arkuszu domyślnym,
+   a ten przegrywa z KAŻDĄ naszą regułą `display`. Element z `class="uz-okno-tlo"
+   hidden` przy `.uz-okno-tlo{display:flex}` był więc widoczny cały czas: okno
+   „Nowy PIN” wyskakiwało od wejścia na ekran Kont i nie dawało się zamknąć,
+   bo „Zapisałem” przeładowywało stronę, a okno pojawiało się znowu.
+
+   Ta jedna reguła naprawia to wszędzie — w projekcie było 11 takich elementów,
+   m.in. pasek kroków i stopka formularza (po zapisie zostawały na ekranie) oraz
+   zapasowa lista prowadzących, która nigdy się nie chowała. Wcześniej łatano to
+   punktowo (`.bulkbar[hidden]`, `.nowa-placowka[hidden]`) — te łatki są już
+   niepotrzebne. `!important` jest tu na miejscu: to warunek działania atrybutu
+   HTML, nie kwestia stylu.
+   ----------------------------------------------------------------------------- */
+[hidden]{display:none !important}
+
 :root{
   /* =========================================================================
      PALETA Z LOGO SILESIA 3D (próbkowana z logo.png)
@@ -472,7 +490,6 @@ tr.flash td{animation:flash .9s ease-out}
   padding:10px 14px;margin-bottom:var(--space-3);
   box-shadow:var(--shadow-md);
 }
-.bulkbar[hidden]{display:none}
 .bulkbar .input{min-height:32px;font-size:12.5px}
 .bulk-n{font-size:13px;color:#c7d3e3}
 .bulk-n b{
@@ -806,7 +823,6 @@ tr.flash td{animation:flash .9s ease-out}
   border-left:4px solid var(--accent);
   border-radius:var(--radius-md);padding:12px 14px;margin-bottom:var(--space-4);
 }
-.nowa-placowka[hidden]{display:none}
 
 /* ------------------------------------------------------------------ grupy (plan tygodnia) */
 

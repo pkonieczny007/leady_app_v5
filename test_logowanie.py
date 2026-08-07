@@ -257,6 +257,20 @@ def main():
             uz.zahashuj("1111")[1] != uz.zahashuj("1111")[1])
     conn.close()
 
+    # Regresja: okno „Nowy PIN" wyskakiwało od wejścia na ekran Kont i nie dawało
+    # się zamknąć — atrybut `hidden` przegrywał z `.uz-okno-tlo{display:flex}`.
+    # Bez globalnej reguły ten sam błąd wróci przy każdym nowym elemencie,
+    # który dostanie `hidden` i jawny `display`.
+    import io as _io
+    css = _io.open("static/style.css", encoding="utf-8").read()
+    sprawdz("CSS wymusza działanie atrybutu `hidden`",
+            "[hidden]{display:none!important}" in css.replace(" ", ""),
+            "bez tego okna modalne pokazują się same")
+    html = kl.get("/uzytkownicy").get_data(as_text=True)
+    sprawdz("okno „Nowy PIN” startuje ukryte",
+            'id="uz-okno"' in html and 'id="uz-okno" hidden' in html.replace('"\n', '" '),
+            "atrybut hidden na kontenerze okna")
+
     r = kl.delete("/api/uzytkownik", json={"osoba": KOORD})
     sprawdz("nie da się usunąć konta, na którym się pracuje", r.status_code == 400)
     r = kl.delete("/api/uzytkownik", json={"osoba": "TEST-nowy"})

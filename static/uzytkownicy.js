@@ -43,9 +43,21 @@
     okno.hidden = false;
   }
 
-  document.getElementById("uz-okno-ok").addEventListener("click", function () {
+  function zamknijOkno() {
     okno.hidden = true;
-    location.reload();
+    location.reload();          // lista musi pokazać, że konto ma już PIN
+  }
+
+  document.getElementById("uz-okno-ok").addEventListener("click", zamknijOkno);
+
+  // Trzy drogi wyjścia zamiast jednej. Gdy okno pokazało się przez pomyłkę
+  // (a tak było — atrybut `hidden` przegrywał z `display:flex`), przycisk
+  // „Zapisałem" przeładowywał stronę i okno wracało; nie dało się go zamknąć.
+  okno.addEventListener("click", function (ev) {
+    if (ev.target === okno) zamknijOkno();          // klik w ciemne tło
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !okno.hidden) zamknijOkno();
   });
 
   document.addEventListener("click", function (ev) {
