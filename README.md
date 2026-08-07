@@ -121,7 +121,15 @@ $env:PROFIL="test";  python app.py    # http://127.0.0.1:5301/formularz
 $env:PROFIL="pusta"; python app.py
 
 python narzedzia/baza.py lista        # jakie profile istnieją i ile mają danych
+
+# karta dostępu do wydruku (PIN-y + uprawnienia) — wymaga `pip install reportlab`
+python narzedzia/karta_dostepu.py --profil test
 ```
+
+Karta ląduje w `dostepy/` — katalogu poza gitem, bo zawiera PIN-y. PIN-u nie da
+się odczytać z bazy (leży tam tylko skrót), więc narzędzie **nadaje nowe** i od
+razu wpisuje je do PDF-a; papier i baza nie mają jak się rozjechać. Wydrukuj,
+rozetnij dolne paski, rozdaj i skasuj plik.
 
 Przy pierwszym starcie tworzy się baza SQLite (`data/leady_v3.db`) i wypełniają
 słowniki. Baza jest pusta — dane wczytujesz na jeden z trzech sposobów:
@@ -228,6 +236,7 @@ Dwie decyzje warte uwagi:
 | `zwrot.py` | auto-zwrot przeterminowanych leadów do puli: karencja, ostrzeżenia, przebieg (v5) |
 | `static/formularz_awaria.js` | co się dzieje przy awarii w trakcie wypełniania: szkic, ostrzeżenie przy wyjściu, kolejka „niewysłane” z ponowieniem (v5) |
 | `narzedzia/baza.py` | profile baz, kopie zapasowe i przywracanie (v5) |
+| `narzedzia/karta_dostepu.py` | PDF do wydruku: PIN-y, tabela uprawnień i paski do rozcięcia (v5) |
 | `parsers.py` | parsowanie brudnych danych z arkusza (daty, godziny, „10 klas", „około 200", telefony) |
 | `importer.py` | import `PH Nowy`, RSPO i planszy STARTY, z deduplikacją placówek |
 | `exporter.py` | eksport XLSX w układzie kolumn klienta |

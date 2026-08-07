@@ -9,3 +9,7 @@ tmp/
 
 # kopie zapasowe baz — pilnowane cronem, nie gitem
 kopie/
+
+# karty dostepu z PIN-ami - NIGDY do repozytorium
+# (haslo do systemu z danymi osobowymi dyrektorow szkol)
+dostepy/
