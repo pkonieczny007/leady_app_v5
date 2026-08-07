@@ -125,14 +125,30 @@ Eksport do excela masz już w [exporter.py](../exporter.py) — cron będzie go 
 
 Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 
-| # | Etap | Kiedy | Efekt |
+| # | Etap | Kiedy | Stan |
 |---|---|---|---|
-| 0 | Git + profile baz + pasek profilu | pt 07.08, ~2h | trzy bazy, jeden kod, tagi i gałęzie |
-| 1 | Profile: PIN, role, „moje dane" domyślnie | sob 08.08 | handlowiec loguje się i widzi swoje |
-| 2 | **Formularz terenowy** — mobilny, jednoekranowy | sob–nd 08–09.08 | sedno całości |
-| 3 | Moje szkoły + przydział z terminem + auto-zwrot | nd–pon 09–10.08 | pkt 3 ze spotkania |
-| 4 | VPS, domena, HTTPS, backup, cron | pon 10.08 | działa pod adresem |
-| 5 | Import realnych danych + przejście na sucho | pon wieczór | gotowe do wtorku |
+| 0 | Git + profile baz + pasek profilu | pt 07.08 | **✅ zrobione** |
+| 2 | **Formularz terenowy** — dwa warianty do wyboru | pt 07.08 | **✅ zrobione** (kolejność zmieniona na życzenie) |
+| 3a | Auto-zwrot szkół po terminie | pt 07.08 | **✅ zrobione** |
+| — | Nowe repo `leady_app_v5` na GitHubie | pt 07.08 | **✅ zrobione** |
+| 1 | Profile: PIN, role, „moje dane" domyślnie | sob 08.08 | ⬜ następne |
+| 3b | „Moje szkoły" + przydział na 2 tygodnie + samodzielne wzięcie | sob–nd | ⬜ |
+| 2b | PWA — ikona na ekranie telefonu | nd | ⬜ |
+| 4 | VPS, domena, HTTPS, cron kopii | pon 10.08 | ⬜ |
+| 5 | Import realnych danych + przejście na sucho | pon wieczór | ⬜ |
+
+**Stan na piątek 07.08, wieczór.** Zrobione w jeden dzień: etap 0, cały etap 2
+i połowa etapu 3. Zostały trzy dni robocze na etapy 1, 3b, 2b, 4 i 5.
+
+### Co doszło poza planem (z uwag w trakcie)
+
+| Rzecz | Skąd |
+|---|---|
+| **Dwa warianty formularza** (v1 kroki / v2 makieta) + ekran wyboru | „zaprezentuj im co mamy i sobie wybiorą" |
+| **Pełny ekran** formularzy, wyjście tylko przez „Zakończ" | pasek aplikacji rozjeżdżał się na telefonie |
+| **Obsługa awarii przy zapisie** — kolejka „niewysłane" + ponowienie bez dubla | pytanie „co w przypadku awarii w trakcie wypełniania" |
+| Własny port 5301 zamiast 5000 | kolizja z innymi testowymi aplikacjami |
+| Ochrona przed dublem (`klucz_zapisu`, tabela `zapisy_formularza`) | wynikło z obsługi awarii |
 
 ## Etap 1 — profile (sobota)
 
