@@ -127,20 +127,21 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 
 | # | Etap | Kiedy | Stan |
 |---|---|---|---|
-| 0 | Git + profile baz + pasek profilu | pt 07.08 | **✅ zrobione** |
-| 2 | **Formularz terenowy** — dwa warianty do wyboru | pt 07.08 | **✅ zrobione** |
-| 3a | Auto-zwrot szkół po terminie | pt 07.08 | **✅ zrobione** |
-| — | Nowe repo `leady_app_v5` na GitHubie | pt 07.08 | **✅ zrobione** |
-| 1 | **PIN, role, filtr „moje szkoły"** + CSRF | pt 07.08 | **✅ zrobione** |
-| — | Karta dostępu w PDF (PIN-y + uprawnienia) | pt 07.08 | **✅ zrobione** |
+| 0 | Git + profile baz + pasek profilu | pt 07.08 | **✅** |
+| 2 | Formularz terenowy — dwa warianty + ekran wyboru | pt 07.08 | **✅** |
+| 3a | Auto-zwrot szkół po terminie | pt 07.08 | **✅** |
+| — | Nowe repo `leady_app_v5` na GitHubie | pt 07.08 | **✅** |
+| 1 | PIN, role, filtr „moje szkoły", CSRF | pt 07.08 | **✅** |
+| — | Karta dostępu w PDF + `narzedzia/konto.py` | pt 07.08 | **✅** |
+| — | Tryb serwisowy (jeden PIN, bez wyboru osoby) | pt 07.08 | **✅** |
 | 3b | „+2 tygodnie" + samodzielne wzięcie szkoły | sob 08.08, ~3h | ⬜ **następne** |
-| 2b | PWA — ikona na ekranie telefonu | nd 09.08, ~3h | ⬜ (wymaga HTTPS) |
+| 2b | PWA — ikona na ekranie telefonu | nd 09.08, ~3h | ⬜ (po HTTPS) |
 | 4 | VPS, domena, HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
 | 5 | Import realnych danych + przejście na sucho | pon wieczór, ~2h | ⬜ |
 
-**Stan na piątek 07.08, południe.** Etapy 0, 1, 2 i 3a zamknięte w jeden dzień.
-Testy: 377 sprawdzeń w 7 plikach, wszystkie przechodzą.
-Zostały trzy dni robocze na etapy 3b, 2b, 4 i 5 — łącznie ~12 godzin pracy.
+**Stan na piątek 07.08, godz. 12:40.** Pięć etapów zamkniętych w jeden dzień.
+Testy: **407 sprawdzeń w 8 plikach**, wszystkie przechodzą.
+Zostały trzy dni robocze i ~12 godzin pracy.
 
 ### Co dokładnie zostało w etapie 3b
 
@@ -162,6 +163,9 @@ Zostały trzy dni robocze na etapy 3b, 2b, 4 i 5 — łącznie ~12 godzin pracy.
 | **Karta dostępu w PDF** — PIN-y, tabela uprawnień, paski do rozcięcia | „utwórz plik pdf z informacjami o pinach i uprawnieniach" |
 | **Token CSRF** na wszystkich zapisach | wyszło przy logowaniu — `fetch` szedł bez niczego |
 | **`kto` w historii z sesji** zamiast stałego „demo" | dopiero logowanie dało czym to wypełnić |
+| **Tryb serwisowy** — jeden PIN, bez wyboru osoby | „utwórz mi konto developera 7777… bez użytkownika, tylko hasło" |
+| **`narzedzia/konto.py`** — konta z linii poleceń | wyjście awaryjne, gdy nie da się zalogować |
+| **Odmowa startu przy zajętym porcie** | trzy instancje naraz na 5301 kosztowały pół godziny szukania błędu, którego nie było |
 
 ## Etap 1 — profile (sobota)
 
