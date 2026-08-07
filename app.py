@@ -747,19 +747,14 @@ def api_kandydaci():
 
 # ------------------------------------------------ formularz terenowy (v5)
 
-@app.route("/formularz")
-def formularz():
+def _kontekst_formularza(conn, handlowiec):
     """
-    Ekran dla handlowca w terenie — telefon, tablet, jedna kolumna, cztery kroki.
+    Wspólne dane obu wariantów formularza: słowniki, szkoły handlowca
+    i ostrzeżenia o zbliżającym się zwrocie do puli.
 
-    Świadomie NIE jest to wariant `/lead/<id>`: tam jest gęsta karta do pracy
-    przy biurku, tu ma być formularz, który da się wypełnić stojąc na korytarzu
-    z dyrektorem obok. Zapis idzie jednym żądaniem na końcu, a nie polem po polu,
-    bo w terenie połączenie potrafi zniknąć w połowie.
+    Warianty różnią się WYŁĄCZNIE sposobem podania — dane, walidacja i zapis
+    są te same. Gdyby się rozjechały, porównanie na spotkaniu nic by nie znaczyło.
     """
-    conn = get_conn()
-    sl = wszystkie_slowniki(conn)
-    handlowiec = (request.args.get("handlowiec") or "").strip()
     moje = []
     if handlowiec:
         f = repo.pusty_filtr()
@@ -772,11 +767,94 @@ def formularz():
                  "mail": r["mail"] or "", "moja": True, "deadline": r["deadline"] or "",
                  "ma_dt": bool(r["dt_data"])}
                 for r in repo.filtruj_leady(conn, f, limit=300)]
-    ostrzezenia = zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else []
+    return {
+        "slowniki": wszystkie_slowniki(conn),
+        "handlowiec": handlowiec,
+        "moje": moje,
+        "ostrzezenia": zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else [],
+        "today": dzis(),
+        "dzis_iso": dzis(),
+    }
+
+
+@app.route("/formularz")
+def formularz():
+    """
+    Wybór wariantu formularza — dwa kafelki do pokazania klientowi.
+
+    Powód istnienia tego ekranu: na spotkaniu przysłali makietę jednego długiego
+    formularza, a my uważamy, że w terenie lepiej sprawdzi się podział na kroki.
+    Zamiast się o to spierać na słowa, pokazujemy OBA na ich własnych danych
+    i niech wybiorą. Oba zapisują tak samo, więc wybór jest odwracalny.
+    """
+    conn = get_conn()
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    sl = wszystkie_slowniki(conn)
     conn.close()
-    return render_template("formularz.html", slowniki=sl, handlowiec=handlowiec,
-                           moje=moje, ostrzezenia=ostrzezenia, today=dzis(),
-                           dzis_iso=dzis())
+    return render_template("formularz_wybor.html", slowniki=sl,
+                           handlowiec=handlowiec, today=dzis())
+
+
+@app.route("/formularz/kroki")
+def formularz_kroki():
+    """
+    WARIANT 1 — cztery kroki, jedna kolumna, telefon.
+
+    Świadomie NIE jest to wariant `/lead/<id>`: tam jest gęsta karta do pracy
+    przy biurku, tu ma być formularz, który da się wypełnić stojąc na korytarzu
+    z dyrektorem obok. Zapis idzie jednym żądaniem na końcu, a nie polem po polu,
+    bo w terenie połączenie potrafi zniknąć w połowie.
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, (request.args.get("handlowiec") or "").strip())
+    conn.close()
+    return render_template("formularz.html", **ctx)
+
+
+@app.route("/formularz/ciagly")
+def formularz_ciagly():
+    """
+    WARIANT 2 — jeden ciągły formularz przewijany w dół, wierny makiecie klienta
+    (`ChatGPT Image 6 sie 2026, 16_33_49.png`): te same sekcje, ta sama kolejność,
+    ikony w kółkach, para list „Miejscowość → Placówka".
+
+    Różnice wobec makiety są wyłącznie takie, bez których nie dałoby się tego
+    używać na telefonie: dwie kolumny zwijają się do jednej poniżej 700 px,
+    a lista placówek zawęża się po wyborze miejscowości (przy 551 szkołach
+    niezawężona lista to przewijanie kciukiem przez pół województwa).
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, (request.args.get("handlowiec") or "").strip())
+    conn.close()
+    return render_template("formularz2.html", **ctx)
+
+
+@app.route("/api/placowki")
+def api_placowki():
+    """
+    Placówki w danej miejscowości — do pary list „Miejscowość → Placówka"
+    z wariantu 2. Bez zawężenia lista miałaby 551 pozycji.
+    """
+    miasto = (request.args.get("miejscowosc") or "").strip()
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    if not miasto:
+        return jsonify(ok=True, pozycje=[])
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT l.id AS lead_id, l.handlowiec,
+               p.id AS placowka_id, p.nazwa, p.miejscowosc, p.typ, p.adres,
+               p.osoba_kontakt, p.telefon, p.mail
+        FROM leady l JOIN placowki p ON p.id = l.placowka_id
+        WHERE p.miejscowosc = ? ORDER BY p.nazwa
+        """, (miasto,)).fetchall()
+    conn.close()
+    poz = []
+    for r in rows:
+        d = dict(r)
+        d["moja"] = bool(handlowiec and d["handlowiec"] == handlowiec)
+        poz.append(d)
+    return jsonify(ok=True, pozycje=poz)
 
 
 @app.route("/api/placowki/szukaj")
@@ -900,7 +978,8 @@ def api_formularz():
                           (placowka_id,)).fetchone()["miejscowosc"]
 
     # --- 2. pola leada ------------------------------------------------------
-    for k in ("uwagi", "do_zrobienia", "mail_rodzice", "mail_wynajem", "status_szkoly"):
+    for k in ("uwagi", "do_zrobienia", "mail_rodzice", "mail_wynajem",
+          "status_szkoly", "cykle"):
         if k not in d:
             continue
         v, e = _walidacja(conn, k, d.get(k), LEAD_SLOWNIKI, LEAD_KEYS)

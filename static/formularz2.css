@@ -1,0 +1,211 @@
+/* =============================================================================
+   WARIANT 2 formularza — jeden ciągły, przewijany w dół.
+
+   Warstwa wizualna odtwarza makietę klienta z 06.08: białe karty sekcji na
+   jasnym tle, niebieskie nagłówki z ikoną w kółku, etykiety nad polami,
+   czerwona gwiazdka przy wymaganych, stopka z dwoma przyciskami.
+
+   Dwie rzeczy robimy inaczej niż makieta i obie z tego samego powodu — makieta
+   była rysowana pod monitor:
+     · siatki 2/3/4 kolumn zwijają się do jednej poniżej 700 px,
+     · pola mają 46 px wysokości i font 16 px (poniżej tego Safari na iPhonie
+       sam przybliża widok przy kliknięciu w pole).
+
+   Kolory biorą się ze zmiennych w style.css, więc formularz zostaje w rodzinie
+   z resztą aplikacji, mimo że sekcje wyglądają jak na makiecie.
+   ============================================================================= */
+
+.f2-strona{max-width:900px;margin:0 auto;padding:0 14px 40px}
+
+/* --- nagłówek jak w makiecie: ikona w kółku + tytuł z podkreśleniem -------- */
+.f2-head{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:22px 0 16px;margin-bottom:18px;
+}
+.f2-head h1{
+  margin:0;padding-bottom:8px;font-size:26px;line-height:1.2;font-weight:700;
+  color:var(--brand);border-bottom:3px solid var(--cyan-d);
+}
+.f2-ikona{
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--accent-l);color:var(--cyan-t);
+}
+.f2-ikona-duza{width:58px;height:58px}
+
+.f2-kto{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;
+  margin:0 0 16px;font-size:14px;color:var(--muted);
+}
+.f2-przelacz{margin-left:auto;font-size:13px}
+
+/* --- karta sekcji --------------------------------------------------------- */
+.f2-sekcja{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);padding:20px;margin-bottom:16px;
+}
+.f2-tytul{
+  display:flex;align-items:center;gap:10px;
+  margin:0 0 18px;font-size:19px;font-weight:700;color:var(--cyan-t);
+}
+
+/* --- siatki pól ----------------------------------------------------------- */
+.f2-siatka{display:grid;gap:14px;margin-bottom:16px}
+.f2-siatka-2{grid-template-columns:repeat(2,1fr)}
+.f2-siatka-3{grid-template-columns:repeat(3,1fr)}
+.f2-siatka-4{grid-template-columns:repeat(4,1fr)}
+.f2-pole-grupa{margin-bottom:16px;min-width:0}
+.f2-siatka .f2-pole-grupa{margin-bottom:0}
+
+/* Makieta ma sztywne cztery pola w rzędzie. Na telefonie dałoby to poziome
+   przewijanie, więc poniżej 700 px wszystko schodzi do jednej kolumny. */
+@media (max-width:700px){
+  .f2-siatka-2,.f2-siatka-3,.f2-siatka-4{grid-template-columns:1fr}
+  .f2-head{gap:10px;padding:16px 0 12px}
+  .f2-head h1{font-size:20px}
+  .f2-ikona-duza{width:42px;height:42px}
+  .f2-ikona-duza svg{width:22px;height:22px}
+  .f2-sekcja{padding:16px 14px}
+}
+
+/* --- pola ----------------------------------------------------------------- */
+.f2-etykieta{
+  display:block;margin-bottom:6px;font-size:14px;font-weight:600;color:var(--ink-2);
+}
+.f2-wym{color:var(--warn)}
+.f2-pole{
+  display:block;width:100%;min-height:46px;padding:10px 12px;
+  font:16px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);
+  background:var(--fill);border:2px solid var(--fill-b);border-radius:var(--radius-md);
+  -webkit-appearance:none;appearance:none;
+}
+select.f2-pole{
+  padding-right:34px;background-repeat:no-repeat;
+  background-image:linear-gradient(45deg,transparent 50%,var(--fill-t) 50%),
+                   linear-gradient(135deg,var(--fill-t) 50%,transparent 50%);
+  background-position:right 18px center,right 13px center;
+  background-size:5px 5px,5px 5px;
+}
+.f2-pole:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px var(--accent-l)}
+.f2-pole:disabled{background:var(--panel-2);border-color:var(--line);color:var(--muted-2)}
+.f2-pole-txt{min-height:96px;resize:vertical}
+.f2-pole.zly{border-color:var(--warn);background:var(--warn-l)}
+.f2-blad{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--warn-d)}
+.f2-info{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
+
+.f2-link{
+  display:inline-block;margin:0 0 16px;padding:0;background:none;border:0;
+  font:600 14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--cyan-t);
+  cursor:pointer;text-decoration:underline;
+}
+.f2-nowa{
+  padding:14px;margin-bottom:16px;border:1px dashed var(--muted-2);
+  border-radius:var(--radius-md);background:var(--panel-2);
+}
+
+/* --- podpowiedź dostępności pod listą prowadzących ------------------------ */
+.f2-dostepnosc{
+  margin:8px 0 0;padding:9px 12px;border-radius:var(--radius-sm);
+  background:var(--filtr);border:1px solid var(--filtr-b);
+  font-size:13px;line-height:1.5;color:var(--filtr-t);
+}
+.f2-dostepnosc b{color:var(--brand)}
+.f2-dost-lista{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.f2-dost-lista button{
+  padding:4px 10px;border-radius:99px;border:1px solid var(--cyan-d);
+  background:var(--panel);color:var(--cyan-t);
+  font:600 12.5px/1.4 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+}
+.f2-dost-lista button:hover{background:var(--accent-l)}
+.f2-dost-uwaga{color:var(--amber-d);border-color:var(--amber-d)}
+
+/* --- stopka akcji, jak w makiecie ---------------------------------------- */
+.f2-akcje{
+  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
+  padding:8px 0 4px;
+}
+.f2-btn{
+  min-height:52px;padding:0 26px;border-radius:var(--radius-md);
+  font:600 16px/1 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.f2-btn-wyczysc{background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}
+.f2-btn-zapisz{background:var(--grad-cyan);border:1px solid transparent;color:#fff;
+  box-shadow:var(--shadow)}
+.f2-btn-zapisz:disabled{opacity:.6;cursor:default}
+@media (max-width:520px){
+  .f2-akcje{flex-direction:column-reverse}
+  .f2-btn{width:100%;justify-content:center}
+}
+
+.f2-szkic{margin:14px 0 0;font-size:12.5px;color:var(--muted);text-align:center}
+
+/* =============================================================================
+   EKRAN WYBORU WARIANTU (formularz_wybor.html)
+   ============================================================================= */
+
+.fw-strona{max-width:940px;margin:0 auto;padding:0 14px 40px}
+.fw-head{padding:22px 2px 14px}
+.fw-head h1{margin:0 0 8px;font-size:24px;line-height:1.25;color:var(--brand);font-weight:700}
+.fw-lead{margin:0;max-width:64ch;font-size:15px;line-height:1.55;color:var(--ink-2)}
+.fw-kto{margin-bottom:20px}
+
+.fw-kafle{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media (max-width:760px){.fw-kafle{grid-template-columns:1fr}}
+
+.fw-kafel{
+  display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);padding:18px;
+}
+.fw-kafel-naglowek{margin-bottom:14px}
+.fw-odznaka{
+  display:inline-block;padding:3px 10px;margin-bottom:8px;border-radius:99px;
+  font:700 11px/1.5 "Segoe UI",system-ui,sans-serif;letter-spacing:.07em;
+  text-transform:uppercase;color:#fff;
+}
+.fw-odznaka-1{background:var(--grad-cyan)}
+.fw-odznaka-2{background:var(--grad-brand)}
+.fw-kafel h2{margin:0;font-size:20px;color:var(--brand);font-weight:700;line-height:1.25}
+.fw-podtytul{margin:3px 0 0;font-size:14px;color:var(--muted)}
+
+/* Podgląd rysowany CSS-em zamiast zrzutem ekranu: zawsze zgodny z tym, co jest
+   realnie w środku, i nie waży nic przy wczytywaniu na LTE. */
+.fw-podglad{
+  padding:12px;margin-bottom:14px;border-radius:var(--radius-md);
+  background:var(--bg);border:1px solid var(--line-2);
+}
+.fw-p-kroki{display:flex;gap:5px;margin-bottom:8px}
+.fw-p-krok{flex:1;height:6px;border-radius:99px;background:var(--line)}
+.fw-p-krok.on{background:var(--cyan-d)}
+.fw-p-karta{
+  display:flex;flex-direction:column;gap:7px;padding:10px;border-radius:var(--radius-sm);
+  background:var(--panel);border:1px solid var(--line-2);
+}
+.fw-p-karta.wysoka{gap:6px}
+.fw-p-tytul{height:8px;width:44%;border-radius:99px;background:var(--accent-b)}
+.fw-p-pole{height:20px;border-radius:4px;background:var(--fill);border:1px solid var(--fill-b)}
+.fw-p-pole.duze{height:26px}
+.fw-p-wynik{height:14px;border-radius:4px;background:var(--panel-2);border:1px solid var(--line-2)}
+.fw-p-wynik.krotki{width:70%}
+.fw-p-para{display:flex;gap:6px}
+.fw-p-para i{
+  flex:1;height:20px;border-radius:4px;background:var(--fill);border:1px solid var(--fill-b);
+}
+.fw-p-stopka{display:flex;gap:6px;margin-top:8px}
+.fw-p-btn{flex:1;height:16px;border-radius:4px;background:var(--cyan-d)}
+.fw-p-btn.puste{background:var(--panel);border:1px solid var(--line)}
+
+.fw-zalety{margin:0 0 12px;padding:0 0 0 18px;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.fw-zalety li{margin-bottom:4px}
+.fw-dla{
+  margin:0 0 14px;padding:9px 12px;border-radius:var(--radius-sm);
+  background:var(--filtr);border:1px solid var(--filtr-b);
+  font-size:13.5px;color:var(--filtr-t);
+}
+.fw-btn{margin-top:auto;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;width:100%}
+.fw-stopka{
+  margin:0;padding:14px;border-radius:var(--radius-md);background:var(--panel-2);
+  border:1px solid var(--line-2);font-size:13.5px;line-height:1.55;color:var(--muted);
+}

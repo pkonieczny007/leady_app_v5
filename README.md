@@ -10,13 +10,23 @@ trzy merge'e przy każdej poprawce). Zarządza tym `narzedzia/baza.py` — zakł
 kopiowanie między profilami, kopie zapasowe `.db` + `.xlsx` z retencją, przywracanie.
 Na profilu innym niż produkcja u góry każdego ekranu wisi kolorowy pasek.
 
-**Nowość v5: formularz terenowy** (`/formularz`) — ekran handlowca na telefon.
-Cztery kroki zamiast jednej ściany pól, jedna kolumna, pola ≥48 px, font 16 px
-(poniżej tego Safari sam przybliża widok). Szkoła przez wyszukiwarkę zamiast pary
-list „miejscowość → placówka", **własne szkoły na górze podpowiedzi**. Przy dacie DT
-pokazuje, **kto jest wolny i jeździ po tym mieście** (ranking z `przydzial.py`).
-Szkic trzyma się w telefonie (localStorage) — utrata zasięgu w połowie nie kasuje
-wpisanego tekstu. Zapis idzie JEDNYM żądaniem, więc nie powstaje lead bez DT.
+**Nowość v5: formularz terenowy w DWÓCH wariantach** (`/formularz` → wybór) —
+do pokazania klientowi na jego danych, żeby wybrał sam. Oba zapisują przez to samo
+API i tę samą walidację; różni je wyłącznie sposób podania.
+
+| | `/formularz/kroki` (typ 1) | `/formularz/ciagly` (typ 2) |
+|---|---|---|
+| Układ | cztery kroki, jedna kolumna | jeden ciągły, przewijany w dół |
+| Wzór | nasza propozycja | **makieta klienta z 06.08** |
+| Szkoła | wyszukiwarka (wpisujesz fragment) | para list miejscowość → placówka |
+| Walidacja | blokuje przejście dalej | zbiorczo przy zapisie |
+| Lepszy na | telefonie, przy rozmowie na stojąco | komputerze i tablecie, przy biurku |
+
+Wspólne dla obu: pola ≥46 px i font 16 px (poniżej tego Safari sam przybliża widok),
+**własne szkoły na górze listy**, przy dacie DT podpowiedź **kto jest wolny i jeździ
+po tym mieście** (ranking z `przydzial.py`), szkic w telefonie (localStorage) —
+utrata zasięgu w połowie nie kasuje wpisanego tekstu — i zapis JEDNYM żądaniem,
+więc nie powstaje lead bez DT.
 Projekt: `docs/11_PLAN_v5.md`, testy: `python test_formularz.py`.
 
 **Nowość v5: auto-zwrot po terminie** (`zwrot.py`) — szkoły po terminie wracają
@@ -127,7 +137,9 @@ Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `lea
 
 | Ścieżka | Odpowiada zakładce klienta | Co robi |
 |---|---|---|
-| `/formularz` | — | **NOWE v5** — formularz ustaleń dla handlowca w terenie (telefon): 4 kroki, wyszukiwarka szkół, podpowiedź wolnego trenera, szkic w telefonie |
+| `/formularz` | — | **NOWE v5** — wybór wariantu formularza: dwa kafelki do pokazania klientowi |
+| `/formularz/kroki` | — | **wariant 1** — cztery kroki, jedna kolumna, wyszukiwarka szkół; pod telefon |
+| `/formularz/ciagly` | — | **wariant 2** — jeden ciągły formularz wg makiety klienta z 06.08, para list miejscowość→placówka; pod komputer i tablet |
 | `/pulpit` | — | liczby, kolizje trenerów, **co wraca do puli (v5)**, po terminie, realizacja minimum tygodniowego, obciążenie trenerów |
 | `/baza` | `BAZA` | baza placówek do rozdania; zaznaczasz wiele wierszy, wybierasz handlowca i termin ostateczny, „Przypisz" |
 | `/leady` | zakładki handlowców | leady w pracy; edycja inline, przypięcie na tydzień, „odbierz handlowcowi" |
@@ -201,7 +213,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
-python test_formularz.py      # 61 sprawdzeń — formularz terenowy i auto-zwrot (v5)
+python test_formularz.py      # 77 sprawdzeń — oba warianty formularza i auto-zwrot (v5)
 ```
 
 `test_scenariusze.py` przechodzi przez to, o co klient poprosił: przypisanie,

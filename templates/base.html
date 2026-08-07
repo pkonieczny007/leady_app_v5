@@ -39,8 +39,8 @@
 
     {# Na ekranie formularza (telefon) nawigacja aplikacji tylko zabiera miejsce —
        handlowiec w terenie używa wyłącznie tego jednego ekranu. #}
-    <nav class="nav{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
-      <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active == 'formularz' }}">Formularz</a>
+    <nav class="nav{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
+      <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">Formularz</a>
       <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
       <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
       <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">Leady</a>
@@ -53,7 +53,7 @@
       <a href="{{ url_for('slowniki_view') }}"  class="{{ 'on' if nav_active == 'slowniki_view' }}">Słowniki</a>
     </nav>
 
-    <div class="topbar-right{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
+    <div class="topbar-right{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
       <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
          title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
       <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
@@ -76,7 +76,7 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="stopka wrap{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
+<footer class="stopka wrap{{ ' fx-ukryj-mobile' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">
   <span>Prototyp v4 · jedno źródło danych (placówka + lead + spotkania), ekrany to filtry —
     nic się nie kopiuje między zakładkami.</span>
   <span class="muted nums">{{ today|pl_data }}</span>
