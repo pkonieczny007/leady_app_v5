@@ -31,8 +31,15 @@
 
   /* ------------------------------------------------------------------ HTTP */
 
+  // Token CSRF z <meta>. Bez niego serwer odrzuca każdy zapis — obca strona
+  // z jednym skryptem mogłaby inaczej działać w imieniu zalogowanego handlowca.
+  function csrf() {
+    var m = document.querySelector('meta[name="csrf"]');
+    return m ? m.content : "";
+  }
+
   function api(metoda, url, dane) {
-    var opcje = { method: metoda, headers: {} };
+    var opcje = { method: metoda, headers: { "X-CSRF": csrf() } };
     if (dane !== undefined) {
       opcje.headers["Content-Type"] = "application/json";
       opcje.body = JSON.stringify(dane);

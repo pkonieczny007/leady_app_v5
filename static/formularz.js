@@ -17,6 +17,11 @@
 (function () {
   "use strict";
 
+  function tokenCsrf() {
+    var m = document.querySelector('meta[name="csrf"]');
+    return m ? m.content : "";
+  }
+
   var root = document.getElementById("fx");
   if (!root) return;
 
@@ -55,7 +60,7 @@
   }
 
   function api(metoda, url, dane) {
-    var o = { method: metoda, headers: {} };
+    var o = { method: metoda, headers: { "X-CSRF": tokenCsrf() } };
     if (dane !== undefined) {
       o.headers["Content-Type"] = "application/json";
       o.body = JSON.stringify(dane);
@@ -74,25 +79,9 @@
       .replace(/"/g, "&quot;");
   }
 
-  /* =============================================================== WYBÓR OSOBY
-     Do czasu logowania PIN-em handlowiec wybiera się z listy. Wybór zostaje
-     w telefonie, żeby nie klikać go co rano. */
-
-  var selKto = $("fx-kto");
-  if (selKto) {
-    var zapamietany = localStorage.getItem(KLUCZ_OSOBY);
-    if (zapamietany) {
-      selKto.value = zapamietany;
-      if (selKto.value) { location.replace("/formularz/kroki?handlowiec=" + encodeURIComponent(zapamietany)); return; }
-    }
-    selKto.addEventListener("change", function () {
-      if (!selKto.value) return;
-      localStorage.setItem(KLUCZ_OSOBY, selKto.value);
-      location.href = "/formularz/kroki?handlowiec=" + encodeURIComponent(selKto.value);
-    });
-  } else if (stan.handlowiec) {
-    localStorage.setItem(KLUCZ_OSOBY, stan.handlowiec);
-  }
+  /* Kto wypełnia — z sesji (logowanie PIN-em), nie z listy na ekranie.
+     Do etapu logowania handlowiec wybierał się sam; teraz nie da się podpisać
+     cudzym nazwiskiem, bo właściciela wpisu ustala serwer z sesji. */
 
   /* =============================================================== KROK 1 — SZKOŁA */
 

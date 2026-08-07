@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Konta{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='logowanie.css') }}">
+{% endblock %}
+
+{#
+  PANEL KONT — wyłącznie dla koordynatora.
+
+  Ma odpowiadać na trzy pytania, które padną w pierwszym tygodniu:
+    „kto ma już konto?", „jaki jest PIN Kasi?", „zablokowało mi się, co teraz?".
+
+  PIN-u nie da się podejrzeć — w bazie jest tylko hash. Da się go NADAĆ NA NOWO
+  i wtedy pokazujemy go raz, do przekazania człowiekowi. To celowe: gdyby dało
+  się odczytać cudzy PIN, „ślad kto zmienił lead" przestałby cokolwiek znaczyć.
+#}
+
+{% block content %}
+<div class="wrap-in">
+
+  <h1 class="h1">Konta i PIN-y</h1>
+  <p class="kicker">Handlowiec loguje się nazwiskiem z listy i czterocyfrowym PIN-em.
+     Sesja trzyma się 30 dni, więc w terenie loguje się raz.</p>
+
+  {% if pin_startowy %}
+  <div class="uz-ostrzezenie">
+    <b>Konto „Koordynator” ma nadal PIN startowy</b>
+    <p>Zmień go teraz — dopóki tego nie zrobisz, każdy, kto zna adres aplikacji,
+       wejdzie na uprawnienia koordynatora. Kliknij „Nadaj nowy PIN” w wierszu
+       konta Koordynator.</p>
+  </div>
+  {% endif %}
+
+  {% if bez_konta %}
+  <section class="section">
+    <h2 class="h2-inline">Bez konta
+      <span class="muted small">są w słowniku handlowców, ale nie mogą się zalogować</span>
+    </h2>
+    <div class="row-akcje">
+      {% for o in bez_konta %}
+      <button type="button" class="btn btn-secondary btn-sm uz-dodaj"
+              data-osoba="{{ o }}">+ {{ o }}</button>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="section">
+    <h2 class="h2-inline">Konta <span class="muted small">{{ konta|length }}</span></h2>
+    <div class="table-scroll">
+      <table class="table table-tight">
+        <thead><tr>
+          <th>Osoba</th><th>Rola</th><th>PIN</th><th>Ostatnie logowanie</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for k in konta %}
+          <tr data-osoba="{{ k.osoba }}">
+            <td class="strong">{{ k.osoba }}</td>
+            <td>
+              <select class="uz-rola-wybor" data-osoba="{{ k.osoba }}">
+                {% for r in role %}
+                <option value="{{ r }}" {{ 'selected' if r == k.rola }}>{{ r }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              {% if not k.ma_pin %}
+                <span class="uz-brak-pin">brak — nie zaloguje się</span>
+              {% elif not k.aktywny %}
+                <span class="uz-zablokowany">konto wyłączone</span>
+              {% elif k.nieudane >= max_prob %}
+                <span class="uz-zablokowany">zablokowany ({{ k.nieudane }} prób)</span>
+              {% else %}
+                <span class="muted small">ustawiony</span>
+                {% if k.nieudane %}<span class="uz-zablokowany"> · {{ k.nieudane }} błędnych</span>{% endif %}
+              {% endif %}
+            </td>
+            <td class="muted small nums">{{ (k.ostatnie_logowanie or '')[:16] or '—' }}</td>
+            <td class="right">
+              <button type="button" class="btn btn-secondary btn-sm uz-pin-nadaj"
+                      data-osoba="{{ k.osoba }}">Nadaj nowy PIN</button>
+              {% if k.aktywny %}
+              <button type="button" class="btn btn-secondary btn-sm uz-wylacz"
+                      data-osoba="{{ k.osoba }}" data-aktywny="0">Wyłącz</button>
+              {% else %}
+              <button type="button" class="btn btn-secondary btn-sm uz-wylacz"
+                      data-osoba="{{ k.osoba }}" data-aktywny="1">Włącz</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small" style="margin-top:10px">
+      PIN-u nie da się podejrzeć — w bazie jest tylko jego skrót. Można go nadać
+      na nowo; wtedy pokazujemy go raz, do przekazania osobie.
+      Po {{ max_prob }} błędnych próbach konto blokuje się samo — nadanie nowego
+      PIN-u je odblokowuje.
+    </p>
+  </section>
+</div>
+
+{# okno z nadanym PIN-em #}
+<div class="uz-okno-tlo" id="uz-okno" hidden>
+  <div class="uz-okno">
+    <h3>Nowy PIN</h3>
+    <p class="uz-kto" id="uz-okno-kto"></p>
+    <span class="uz-pin" id="uz-okno-pin"></span>
+    <p class="uz-uwaga">Zapisz go teraz i przekaż tej osobie — po zamknięciu
+       tego okna nie da się go już odczytać.</p>
+    <button type="button" class="btn btn-primary" id="uz-okno-ok">Zapisałem</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='uzytkownicy.js') }}"></script>
+{% endblock %}

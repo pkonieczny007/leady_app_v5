@@ -1,0 +1,143 @@
+/* =============================================================================
+   Ekran logowania PIN-em — pod kciuk, na stojąco.
+   ============================================================================= */
+
+.lg-strona{max-width:400px;margin:0 auto;padding:0 18px 40px}
+.lg{
+  display:flex;flex-direction:column;align-items:center;
+  min-height:88dvh;justify-content:center;
+}
+.lg-logo{
+  display:flex;align-items:center;justify-content:center;
+  width:88px;height:88px;margin-bottom:14px;border-radius:22px;
+  background:var(--panel);box-shadow:var(--shadow);
+}
+.lg-tytul{
+  margin:0 0 26px;font-size:22px;font-weight:700;color:var(--brand);
+  letter-spacing:-.01em;
+}
+
+.lg-pusto{
+  width:100%;padding:12px 14px;margin-bottom:20px;border-radius:var(--radius-md);
+  background:var(--amber-l);border:1px solid var(--amber);
+}
+.lg-pusto b{display:block;margin-bottom:4px;color:var(--amber-d);font-size:14px}
+.lg-pusto p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+
+.lg-etykieta{
+  align-self:flex-start;margin-bottom:6px;
+  font-size:14px;font-weight:600;color:var(--ink-2);
+}
+.lg-pole{
+  display:block;width:100%;min-height:52px;padding:12px 14px;margin-bottom:22px;
+  font:16px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);
+  background:var(--panel);border:2px solid var(--line);border-radius:var(--radius-md);
+  -webkit-appearance:none;appearance:none;
+  background-repeat:no-repeat;padding-right:38px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+                   linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:right 20px center,right 15px center;
+  background-size:5px 5px,5px 5px;
+}
+.lg-pole:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px var(--accent-l)}
+
+/* Cztery kropki zamiast pola z gwiazdkami — od razu widać, ile cyfr wpisano,
+   bez czytania czegokolwiek. */
+.lg-kropki{display:flex;gap:14px;margin:2px 0 22px}
+.lg-kropki span{
+  width:15px;height:15px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--muted-2);
+  transition:background .12s,border-color .12s,transform .12s;
+}
+.lg-kropki span.pelna{
+  background:var(--cyan-d);border-color:var(--cyan-d);transform:scale(1.12);
+}
+.lg-pin-ukryty{
+  position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;
+}
+
+.lg-klawiatura{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;
+  margin-bottom:18px;
+}
+.lg-klawisz{
+  min-height:62px;border-radius:var(--radius-md);
+  background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  font:600 24px/1 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+  box-shadow:var(--shadow-sm);
+  -webkit-tap-highlight-color:transparent;
+}
+.lg-klawisz:active{background:var(--accent-l);border-color:var(--cyan);transform:scale(.97)}
+.lg-klawisz-akcja{font-size:19px;color:var(--muted);background:var(--panel-2)}
+
+.lg-blad{
+  width:100%;margin:0 0 14px;padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--warn-l);border:1px solid var(--warn);color:var(--warn-d);
+  font-size:13.5px;line-height:1.45;text-align:center;
+}
+
+.lg-wejdz{
+  width:100%;min-height:54px;border-radius:var(--radius-md);border:1px solid transparent;
+  background:var(--grad-cyan);color:#fff;box-shadow:var(--shadow);
+  font:600 17px/1 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+}
+.lg-wejdz:disabled{opacity:.6;cursor:default}
+
+.lg-nota{margin:18px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted);text-align:center}
+
+/* Potrząśnięcie przy złym PIN-ie — czytelniejsze niż sam komunikat,
+   bo wzrok jest wtedy na klawiaturze, nie na tekście u dołu. */
+@keyframes lg-trzesienie{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.lg-trzesie{animation:lg-trzesienie .34s}
+@media (prefers-reduced-motion:reduce){
+  .lg-trzesie{animation:none}
+  .lg-kropki span{transition:none}
+}
+
+/* =============================================================================
+   PANEL KONT (koordynator)
+   ============================================================================= */
+
+.uz-ostrzezenie{
+  padding:14px 16px;margin-bottom:18px;border-radius:var(--radius-md);
+  background:var(--warn-l);border:2px solid var(--warn);
+}
+.uz-ostrzezenie b{display:block;margin-bottom:4px;color:var(--warn-d)}
+.uz-ostrzezenie p{margin:0;font-size:14px;line-height:1.55;color:var(--ink-2)}
+
+.uz-pin{
+  display:inline-block;padding:3px 12px;border-radius:var(--radius-sm);
+  background:var(--brand);color:#fff;
+  font:700 17px/1.4 ui-monospace,"Cascadia Mono",Consolas,monospace;
+  letter-spacing:.18em;
+}
+.uz-brak-pin{color:var(--warn-d);font-weight:600}
+.uz-zablokowany{color:var(--warn-d);font-weight:600}
+.uz-rola{
+  display:inline-block;padding:2px 9px;border-radius:99px;
+  font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+}
+.uz-rola-koordynator{background:var(--brand);color:#fff}
+.uz-rola-handlowiec{background:var(--accent-l);color:var(--cyan-t)}
+
+/* Okno z nadanym PIN-em: pokazujemy go RAZ, bo w bazie jest tylko hash. */
+.uz-okno-tlo{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:center;
+  justify-content:center;padding:20px;background:rgba(13,35,42,.55);
+}
+.uz-okno{
+  max-width:380px;width:100%;padding:24px;border-radius:var(--radius-lg);
+  background:var(--panel);box-shadow:var(--shadow-lg);text-align:center;
+}
+.uz-okno h3{margin:0 0 6px;font-size:18px;color:var(--brand)}
+.uz-okno .uz-kto{margin:0 0 16px;font-size:14px;color:var(--muted)}
+.uz-okno .uz-pin{font-size:30px;padding:10px 20px;display:block;margin-bottom:14px}
+.uz-okno p.uz-uwaga{
+  margin:0 0 18px;font-size:13.5px;line-height:1.55;color:var(--warn-d);
+}

@@ -6,7 +6,21 @@
 <div class="page-head">
   <div>
     <div class="kicker">{{ kicker }}{{ ' · ' ~ f.handlowiec if f.handlowiec }}</div>
-    <h1>{{ tytul }}</h1>
+    <h1>{{ 'Moje szkoły' if moj_filtr else tytul }}</h1>
+    {# Filtr własnych szkół jest DOMYŚLNY, ale nie ukryty: widać, że działa,
+       i widać, jak go zdjąć. Zdjęcie obowiązuje tylko na tym ekranie —
+       po przejściu gdzie indziej wraca sam. #}
+    {% if moj_filtr %}
+    <p class="moj-filtr">
+      Pokazuję tylko Twoje szkoły.
+      <a href="{{ url_for('leady') }}?handlowiec=&zakres={{ f.zakres }}">Pokaż wszystkie →</a>
+    </p>
+    {% elif ja and ja.rola == 'handlowiec' and not f.handlowiec %}
+    <p class="moj-filtr moj-filtr-off">
+      Pokazuję szkoły wszystkich handlowców.
+      <a href="{{ url_for('leady') }}?zakres={{ f.zakres }}">Wróć do moich →</a>
+    </p>
+    {% endif %}
   </div>
   <div class="head-actions">
     <div class="seg">

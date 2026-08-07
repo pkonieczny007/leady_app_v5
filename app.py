@@ -20,14 +20,17 @@ widzi trzy wpisy, nie jeden.
 import datetime as dt
 import os
 
+import secrets
+
 from flask import (Flask, render_template, request, jsonify, redirect,
-                   url_for, abort, send_file, flash)
+                   url_for, abort, send_file, flash, session)
 
 import calendar_view as cv
 import dostepnosc_view as dv
 import filtry as fl
 import przydzial as pz
 import repo
+import uzytkownicy as uz
 import zwrot
 from db import (get_conn, wszystkie_slowniki, slownik, slownik_values, trener_colors,
                 zapisz_log, LEAD_FIELDS, JULIA_FIELDS, EVENT_FIELDS, PLACOWKA_FIELDS,
@@ -47,6 +50,77 @@ PLACOWKA_SLOWNIKI = {f[1]: f[2].split(":", 1)[1]
                      for f in PLACOWKA_FIELDS if f[2].startswith("slownik:")}
 
 CEL_TYGODNIOWY = int(os.environ.get("CEL_TYGODNIOWY", "5"))
+
+app.permanent_session_lifetime = dt.timedelta(days=uz.DNI_SESJI)
+# Ciastko sesji: niedostępne dla JS i nieprzesyłane przy żądaniach z obcych stron.
+# Secure włączamy dopiero za HTTPS — na localhost bez tego sesja by nie działała.
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax",
+                  SESSION_COOKIE_SECURE=bool(os.environ.get("HTTPS")))
+
+# ------------------------------------------------------------------ dostęp
+#
+# Ekrany dostępne BEZ logowania — wyłącznie samo logowanie i pliki statyczne.
+# Wszystko inne wymaga konta, bo w bazie są telefony i maile dyrektorów szkół.
+JAWNE = {"logowanie", "api_logowanie", "static"}
+
+# Ekrany i akcje wyłącznie dla koordynatora. Handlowiec ma formularz i swoje
+# szkoły — reszta to praca koordynatorki, a przypadkowe kliknięcie w „Import"
+# albo w słowniki potrafi narobić bałaganu w danych wszystkich naraz.
+TYLKO_KOORDYNATOR = {
+    "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
+    "export_xlsx", "pulpit", "rejony", "uzytkownicy_view",
+    "api_przypisz", "api_odbierz", "api_slownik_add", "api_slownik_patch",
+    "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
+    "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
+    "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
+    "api_dostepnosc_demo", "api_dostepnosc_zakres",
+}
+
+
+def _po_zalogowaniu(rola):
+    """Dokąd trafia człowiek zaraz po zalogowaniu — tam, gdzie ma pracować."""
+    return url_for("formularz") if rola == "handlowiec" else url_for("pulpit")
+
+
+@app.before_request
+def _kontrola_dostepu():
+    if request.endpoint in JAWNE or request.path.startswith("/static/"):
+        return
+    u = uz.zalogowany()
+    if not u:
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False, error="Sesja wygasła — zaloguj się ponownie"), 401
+        return redirect(url_for("logowanie", dalej=request.full_path))
+    if request.endpoint in TYLKO_KOORDYNATOR and u["rola"] != "koordynator":
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False, error="Brak uprawnień"), 403
+        flash("Ten ekran prowadzi koordynator.", "err")
+        return redirect(_po_zalogowaniu(u["rola"]))
+
+
+# ------------------------------------------------------------------ CSRF
+#
+# Zapisy idą przez `fetch`, więc bez tokenu wystarczyłaby obca strona z jednym
+# skryptem, żeby zalogowanym handlowcem zmienić dane. Token siedzi w sesji,
+# szablony wstawiają go w <meta>, a app.js dokleja do każdego żądania zapisu.
+
+def token_csrf():
+    if "csrf" not in session:
+        session["csrf"] = secrets.token_urlsafe(24)
+    return session["csrf"]
+
+
+@app.before_request
+def _kontrola_csrf():
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    if request.endpoint in ("api_logowanie", "logowanie"):
+        return                     # logowanie samo ustanawia sesję
+    podany = request.headers.get("X-CSRF") or (request.form.get("csrf") or "")
+    if not podany or not secrets.compare_digest(podany, session.get("csrf", "")):
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False, error="Nieaktualna sesja — odśwież stronę"), 403
+        abort(403)
 
 
 def dzis():
@@ -80,11 +154,127 @@ def _walidacja(conn, field, value, mapa_slownikow, dozwolone_klucze):
     return value, None
 
 
+# ================================================================== LOGOWANIE
+
+@app.route("/logowanie")
+def logowanie():
+    u = uz.zalogowany()
+    if u:
+        return redirect(_po_zalogowaniu(u["rola"]))
+    conn = get_conn()
+    osoby = uz.do_logowania(conn)
+    conn.close()
+    return render_template("logowanie.html", osoby=osoby, today=dzis(),
+                           dalej=(request.args.get("dalej") or "").strip())
+
+
+@app.route("/api/logowanie", methods=["POST"])
+def api_logowanie():
+    d = request.get_json(silent=True) or {}
+    conn = get_conn()
+    u, blad = uz.zaloguj(conn, (d.get("osoba") or "").strip(),
+                         (d.get("pin") or "").strip())
+    conn.close()
+    if blad:
+        return jsonify(ok=False, error=blad), 401
+    uz.zapisz_sesje(u)
+    session.pop("csrf", None)          # nowa sesja → nowy token
+    return jsonify(ok=True, osoba=u["osoba"], rola=u["rola"],
+                   dalej=_po_zalogowaniu(u["rola"]))
+
+
+@app.route("/wyloguj")
+def wyloguj():
+    uz.wyczysc_sesje()
+    session.pop("csrf", None)
+    return redirect(url_for("logowanie"))
+
+
+@app.route("/uzytkownicy")
+def uzytkownicy_view():
+    """Panel koordynatora: kto ma konto, kto ma PIN, reset jednym kliknięciem."""
+    conn = get_conn()
+    konta = uz.lista(conn)
+    handlowcy = slownik_values(conn, "handlowiec")
+    ostrzezenie = uz.pin_startowy_niezmieniony(conn)
+    conn.close()
+    bez_konta = [h for h in handlowcy if h not in {k["osoba"] for k in konta}]
+    return render_template("uzytkownicy.html", konta=konta, bez_konta=bez_konta,
+                           role=uz.ROLE, pin_startowy=ostrzezenie,
+                           max_prob=uz.MAX_PROB, today=dzis())
+
+
+@app.route("/api/uzytkownik", methods=["POST", "PATCH", "DELETE"])
+def api_uzytkownik():
+    d = request.get_json(silent=True) or {}
+    osoba = (d.get("osoba") or "").strip()
+    if not osoba:
+        return jsonify(ok=False, error="Podaj osobę"), 400
+    conn = get_conn()
+    try:
+        if request.method == "POST":
+            if uz.znajdz(conn, osoba):
+                return jsonify(ok=False, error="Takie konto już istnieje"), 400
+            pin = uz.losowy_pin()
+            uz.utworz(conn, osoba, d.get("rola") or "handlowiec", pin)
+            return jsonify(ok=True, osoba=osoba, pin=pin)
+
+        if request.method == "DELETE":
+            if osoba == uz.zalogowany()["osoba"]:
+                return jsonify(ok=False, error="Nie usuwaj konta, na którym pracujesz"), 400
+            uz.usun(conn, osoba)
+            return jsonify(ok=True)
+
+        if "rola" in d:
+            # Ostatni koordynator nie może zejść do handlowca — zostalibyśmy
+            # bez nikogo, kto potrafi nadać PIN i odblokować konto.
+            if d["rola"] != "koordynator":
+                ilu = conn.execute("SELECT COUNT(*) c FROM uzytkownicy "
+                                   "WHERE rola='koordynator' AND aktywny=1").fetchone()["c"]
+                obecny = uz.znajdz(conn, osoba)
+                if ilu <= 1 and obecny and obecny["rola"] == "koordynator":
+                    return jsonify(ok=False,
+                                   error="To jedyny koordynator — najpierw ustanów innego"), 400
+            uz.ustaw_role(conn, osoba, d["rola"])
+        if "aktywny" in d:
+            uz.ustaw_aktywny(conn, osoba, d["aktywny"])
+        return jsonify(ok=True)
+    except ValueError as e:
+        return jsonify(ok=False, error=str(e)), 400
+    finally:
+        conn.close()
+
+
+@app.route("/api/uzytkownik/pin", methods=["POST"])
+def api_uzytkownik_pin():
+    """
+    Nadanie albo reset PIN-u. PIN generuje serwer i zwraca go RAZ, do przekazania
+    człowiekowi — nie da się go potem odczytać, w bazie jest tylko hash.
+    Koordynator może też podać własny, gdy handlowiec woli zapamiętać coś swojego.
+    """
+    d = request.get_json(silent=True) or {}
+    osoba = (d.get("osoba") or "").strip()
+    pin = (d.get("pin") or "").strip() or uz.losowy_pin()
+    conn = get_conn()
+    try:
+        if not uz.znajdz(conn, osoba):
+            return jsonify(ok=False, error="Nie ma takiego konta"), 404
+        uz.ustaw_pin(conn, osoba, pin)
+        zapisz_log(conn, kto=uz.zalogowany()["osoba"], co="nadanie PIN-u", pole=osoba)
+        conn.commit()
+        return jsonify(ok=True, osoba=osoba, pin=pin)
+    except ValueError as e:
+        return jsonify(ok=False, error=str(e)), 400
+    finally:
+        conn.close()
+
+
 # ================================================================== EKRANY
 
 @app.route("/")
 def index():
-    return redirect(url_for("pulpit"))
+    u = uz.zalogowany()
+    return redirect(_po_zalogowaniu(u["rola"]) if u else url_for("logowanie"))
 
 
 # Ile wierszy na stronę. Bez limitu `/baza` przy 550 leadach generuje ~1,4 MB HTML,
@@ -97,6 +287,21 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
     f = repo.czytaj_filtr(request.args)
     if not f["zakres"] and zakres_domyslny:
         f["zakres"] = zakres_domyslny
+
+    # FILTR PRZYPIĘTY, ALE ZMIENIALNY — wprost z ustaleń: „konkretny handlowiec
+    # żeby domyślnie miał wyfiltrowane swoje dane, przyczepione, ale z możliwością
+    # zmiany, które wracają do stanu domyślnego".
+    #
+    # Rozstrzyga OBECNOŚĆ parametru w adresie, nie jego wartość:
+    #   brak `handlowiec` w URL  → wchodzi domyślny (moje szkoły)
+    #   `handlowiec=` (puste)    → człowiek świadomie zdjął filtr, szanujemy to
+    # Dzięki temu „Wyczyść" i przejście na inny ekran same wracają do domyślnego,
+    # a podejrzenie cudzych leadów wymaga jednego kliknięcia i nie jest ukryte.
+    ja = uz.zalogowany()
+    moj_filtr = False
+    if ja and ja["rola"] == "handlowiec" and "handlowiec" not in request.args:
+        f["handlowiec"] = ja["osoba"]
+        moj_filtr = True
     try:
         strona = max(1, int(request.args.get("strona", "1")))
     except ValueError:
@@ -116,6 +321,7 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
         "tytul": tytul, "kicker": kicker,
         "zakres_domyslny": zakres_domyslny,
         "query": request.query_string.decode("utf-8"),
+        "moj_filtr": moj_filtr,
     }
     ctx.update(extra)
     conn.close()
@@ -747,6 +953,20 @@ def api_kandydaci():
 
 # ------------------------------------------------ formularz terenowy (v5)
 
+def _kto_wypelnia():
+    """
+    Czyj jest formularz. Handlowiec — zawsze swój, bez pytania i bez możliwości
+    podmiany w adresie. Koordynator może wypełnić za kogoś (zdarza się, że dzwoni
+    szkoła, a handlowiec jest w terenie), więc jemu wolno wskazać osobę w URL.
+    """
+    ja = uz.zalogowany()
+    if not ja:
+        return ""
+    if ja["rola"] == "handlowiec":
+        return ja["osoba"]
+    return (request.args.get("handlowiec") or "").strip()
+
+
 def _kontekst_formularza(conn, handlowiec):
     """
     Wspólne dane obu wariantów formularza: słowniki, szkoły handlowca
@@ -788,11 +1008,10 @@ def formularz():
     i niech wybiorą. Oba zapisują tak samo, więc wybór jest odwracalny.
     """
     conn = get_conn()
-    handlowiec = (request.args.get("handlowiec") or "").strip()
     sl = wszystkie_slowniki(conn)
     conn.close()
     return render_template("formularz_wybor.html", slowniki=sl,
-                           handlowiec=handlowiec, today=dzis())
+                           handlowiec=_kto_wypelnia(), today=dzis())
 
 
 @app.route("/formularz/kroki")
@@ -806,7 +1025,7 @@ def formularz_kroki():
     bo w terenie połączenie potrafi zniknąć w połowie.
     """
     conn = get_conn()
-    ctx = _kontekst_formularza(conn, (request.args.get("handlowiec") or "").strip())
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
     conn.close()
     return render_template("formularz.html", **ctx)
 
@@ -824,7 +1043,7 @@ def formularz_ciagly():
     niezawężona lista to przewijanie kciukiem przez pół województwa).
     """
     conn = get_conn()
-    ctx = _kontekst_formularza(conn, (request.args.get("handlowiec") or "").strip())
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
     conn.close()
     return render_template("formularz2.html", **ctx)
 
@@ -937,7 +1156,9 @@ def api_formularz():
             odp["powtorka"] = True          # dla formularza: „to już było zapisane"
             return jsonify(odp)
 
-    handlowiec = (d.get("handlowiec") or "").strip()
+    # Właściciel wpisu bierze się z SESJI. Gdyby szedł z ciała żądania, każdy
+    # zalogowany mógłby podpisać się cudzym nazwiskiem.
+    handlowiec = _kto_wypelnia() or (d.get("handlowiec") or "").strip()
     if handlowiec and handlowiec not in slownik_values(conn, "handlowiec"):
         return blad("Nieznany handlowiec: %s" % handlowiec)
 
@@ -1350,10 +1571,21 @@ def _automat_zwrotu():
 def inject_nav():
     # ZAKRESY — opisy chipów filtra (znak, nazwa, dymek); rysuje je makro `pasek_chipow`
     return {"nav_active": request.endpoint, "q_all": request.args.to_dict(),
-            "ZAKRESY": fl.ZAKRESY, "profil": opis_profilu()}
+            "ZAKRESY": fl.ZAKRESY, "profil": opis_profilu(),
+            "ja": uz.zalogowany(), "csrf": token_csrf()}
 
 
 bootstrap()
+
+# Konta: handlowcy ze słownika (bez PIN-u — nada go koordynator) plus jedno
+# konto koordynatora z PIN-em startowym, żeby dało się w ogóle wejść.
+with app.app_context():
+    _c = get_conn()
+    _info = uz.bootstrap_konta(_c, slownik_values(_c, "handlowiec"))
+    _c.close()
+    if _info["koordynator"]:
+        print("UWAGA: utworzono konto 'Koordynator' z PIN-em startowym %s — "
+              "zmień go w panelu /uzytkownicy" % _info["koordynator"])
 
 # Własny port, nie 5000. Powód praktyczny: na 5000 startuje domyślnie każda apka
 # Flaska i inne narzędzia — przy kilku uruchomionych naraz nowy proces cicho nie
