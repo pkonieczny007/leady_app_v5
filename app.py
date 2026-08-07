@@ -452,6 +452,21 @@ def _chipy_grafiku(args):
         ch = fl.czytaj({"osoby": "n:" + stary,
                         "osoby_tryb": args.get("osoby_tryb") or ""},
                        fl.ZAKRESY_GRAFIK)
+
+    # TRENER: własne nazwisko wchodzi jako chip PRZYPIĘTY (kłódka), tak samo jak
+    # handlowiec dostaje domyślnie swoje szkoły. Trener otwiera grafik po to,
+    # żeby zobaczyć SIEBIE — nie 39 osób, wśród których musi się wyszukać.
+    #
+    # Rozstrzyga OBECNOŚĆ parametru `osoby` w adresie, nie jego wartość:
+    #   brak w URL     → wchodzi domyślny, przypięty chip
+    #   `osoby=` puste → człowiek świadomie go odpiął, szanujemy to
+    # Kłódka sprawia, że chip przeżywa „Wyczyść" i zmianę miesiąca; zdjąć ją
+    # można jednym kliknięciem, a wtedy widać cały zespół.
+    u = uz.zalogowany()
+    ch["moj_filtr"] = False
+    if u and u["rola"] == "trener" and "osoby" not in args:
+        ch = fl.czytaj({"osoby": "#n:" + u["osoba"]}, fl.ZAKRESY_GRAFIK)
+        ch["moj_filtr"] = True
     return ch
 
 

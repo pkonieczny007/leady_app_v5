@@ -52,6 +52,13 @@ plus czterocyfrowy PIN na własnej klawiaturze ekranowej, sesja 30 dni. **Trzy r
 | Formularz, moje szkoły, plan tygodnia | ❌ | ✅ | ✅ |
 | Baza, zbiorczy, słowniki, import, konta | ❌ | ❌ | ✅ |
 
+Trener wchodzi na grafik **z własnym nazwiskiem już przypiętym** (kłódka na
+chipie filtra) — otwiera go po to, żeby zobaczyć siebie, a nie szukać się wśród
+39 osób. Filtr jest jawny: „Pokazuję tylko Twój grafik — Pokaż wszystkich →",
+a po odpięciu widzi cały zespół. Ta sama zasada co przy „moich szkołach"
+handlowca: rozstrzyga obecność parametru w adresie, więc zwykłe wejście na ekran
+wraca do stanu domyślnego.
+
 **Trener** edytuje wyłącznie swój wiersz grafiku — w ich zeszłorocznym pliku każdy
 mógł nadpisać każdemu deklarację i nikt potem nie wiedział, czyja wersja jest
 aktualna. **Handlowiec** grafik widzi (bez tego nie umówi DT), ale go nie zmienia.
@@ -274,7 +281,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
-python test_trener.py         # 48 sprawdzeń — rola trenera, dostępność tylko własna (v5)
+python test_trener.py         # 61 sprawdzeń — rola trenera, dostępność tylko własna (v5)
 python test_serwis.py         # 30 sprawdzeń — tryb serwisowy i jego ograniczenia (v5)
 python test_logowanie.py      # 75 sprawdzeń — logowanie, role, filtr „moje”, CSRF (v5)
 python test_formularz.py      # 93 sprawdzenia — oba warianty, awaria przy zapisie, auto-zwrot (v5)

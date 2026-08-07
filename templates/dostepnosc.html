@@ -17,7 +17,22 @@
 <div class="page-head">
   <div>
     <div class="kicker">Kiedy kto może · {{ grid.month_label }}</div>
-    <h1>Dostępność trenerów</h1>
+    <h1>{{ 'Moja dostępność' if ch.moj_filtr else 'Dostępność trenerów' }}</h1>
+    {# Trener wchodzi na swój wiersz: chip z nazwiskiem jest przypięty kłódką.
+       Jawnie mówimy, że filtr działa, i jak go zdjąć — ukryty filtr wygląda
+       jak brakujące dane. #}
+    {% if ch.moj_filtr %}
+    <p class="moj-filtr">
+      Pokazuję tylko Twój grafik.
+      <a href="?osoby=&m={{ month }}">Pokaż wszystkich →</a>
+    </p>
+    {% elif ja and ja.rola == 'trener' %}
+    <p class="moj-filtr moj-filtr-off">
+      Pokazuję cały zespół.
+      <a href="?m={{ month }}">Wróć do swojego →</a>
+    </p>
+    {% endif %}
+
   </div>
   <div class="head-actions">
     <span class="muted small nums">

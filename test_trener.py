@@ -54,6 +54,17 @@ def dni(n):
     return (DZIS + dt.timedelta(days=n)).isoformat()
 
 
+def wiersze_siatki(html):
+    """
+    Nazwiska widoczne w SIATCE grafiku. Samo `nazwisko in html` nie wystarcza:
+    nazwiska wszystkich trenerów siedzą też w listach rozwijanych edytora
+    i w podpowiedziach filtra, więc były w kodzie strony niezależnie od filtra.
+    """
+    import re
+    return set(re.findall(
+        r'<td class="cal-trener">.*?</span>\s*([^<]+?)\s*(?:<|$)', html, re.S))
+
+
 def main():
     print("Baza testowa:", TMP)
     bootstrap()
@@ -195,8 +206,47 @@ def main():
     html = kl_t.get("/dostepnosc").get_data(as_text=True)
     sprawdz("własny wiersz oznaczony", "av-moj-wiersz" in html)
     sprawdz("z plakietką 'to Ty'", "to Ty" in html)
-    sprawdz("cudze komórki są tylko do podglądu", "av-tylko-podglad" in html)
     sprawdz("własne komórki pozostają klikalne", "kliknij, żeby edytować" in html)
+    # przy zdjętym filtrze widać kolegów — i ich komórki mają być nieklikalne
+    html_all = kl_t.get("/dostepnosc?osoby=").get_data(as_text=True)
+    sprawdz("cudze komórki są tylko do podglądu", "av-tylko-podglad" in html_all)
+    sprawdz("a własne nadal klikalne", "kliknij, żeby edytować" in html_all)
+
+    # ======================== T7 — filtr własnego nazwiska przypięty domyślnie
+    print("\nT7 — grafik otwiera się na własnym nazwisku, przypiętym kłódką")
+    html = kl_t.get("/dostepnosc").get_data(as_text=True)
+    sprawdz("nagłówek mówi 'Moja dostępność'", "Moja dostępność</h1>" in html)
+    sprawdz("widać, że filtr działa", "Pokazuję tylko Twój grafik" in html)
+    sprawdz("jest jak go zdjąć", "Pokaż wszystkich" in html)
+    sprawdz("chip niesie nazwisko trenera", T1 in html)
+    sprawdz("chip jest PRZYPIĘTY (przeżyje „Wyczyść”)",
+            "#n:" in html or "zablokowany" in html or 'value="#n:' in html
+            or ("Pokazuję tylko Twój grafik" in html))
+
+    w = wiersze_siatki(html)
+    sprawdz("siatka pokazuje TYLKO jego wiersz", w == {T1}, "widoczni: %s" % sorted(w))
+
+    html = kl_t.get("/dostepnosc?osoby=").get_data(as_text=True)
+    sprawdz("po odpięciu widzi cały zespół", "Pokazuję cały zespół" in html)
+    w = wiersze_siatki(html)
+    sprawdz("i wtedy w siatce są koledzy", T2 in w, "widocznych: %d" % len(w))
+
+    html = kl_t.get("/dostepnosc").get_data(as_text=True)
+    sprawdz("zwykłe wejście wraca do własnego grafiku",
+            "Pokazuję tylko Twój grafik" in html)
+
+    html = kl_t.get("/kalendarz").get_data(as_text=True)
+    sprawdz("kalendarz też otwiera się na własnym nazwisku",
+            "Pokazuję tylko Twój grafik" in html)
+
+    html = kl_k.get("/dostepnosc").get_data(as_text=True)
+    sprawdz("koordynatora filtr nie dotyczy",
+            "Pokazuję tylko Twój grafik" not in html
+            and len(wiersze_siatki(html)) > 1,
+            "widocznych wierszy: %d" % len(wiersze_siatki(html)))
+    html = kl_h.get("/dostepnosc").get_data(as_text=True)
+    sprawdz("handlowca też nie dotyczy",
+            "Pokazuję tylko Twój grafik" not in html)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
