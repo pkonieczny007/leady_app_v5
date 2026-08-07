@@ -1020,3 +1020,10 @@ tr.flash td{animation:flash .9s ease-out}
   letter-spacing:.06em; text-transform:uppercase;
   color:#fff; text-align:center;
 }
+
+/* Pasek akcji pod tabelą sekcji (pulpit: „Zwróć teraz") */
+.row-akcje{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2);
+}
+.row-akcje .small{flex:1;min-width:220px;line-height:1.4}

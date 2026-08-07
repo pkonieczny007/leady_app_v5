@@ -1,4 +1,34 @@
-# System Leadów v4
+# System Leadów v5
+
+**Punkt startowy: `leady_app_v4`** — wersja zaprezentowana klientowi 06.08.2026
+(tag `v4.0-spotkanie`). Plan v5: `docs/11_PLAN_v5.md`.
+
+**Nowość v5: profile baz** — ten sam kod, trzy zestawy danych. Zmienna `PROFIL`
+wybiera katalog: `data/prod`, `data/test`, `data/pusta`. Bazy świadomie NIE są
+gałęziami gita (`.db` to binarium, którego git nie scali; trzy gałęzie znaczyłyby
+trzy merge'e przy każdej poprawce). Zarządza tym `narzedzia/baza.py` — zakładanie,
+kopiowanie między profilami, kopie zapasowe `.db` + `.xlsx` z retencją, przywracanie.
+Na profilu innym niż produkcja u góry każdego ekranu wisi kolorowy pasek.
+
+**Nowość v5: formularz terenowy** (`/formularz`) — ekran handlowca na telefon.
+Cztery kroki zamiast jednej ściany pól, jedna kolumna, pola ≥48 px, font 16 px
+(poniżej tego Safari sam przybliża widok). Szkoła przez wyszukiwarkę zamiast pary
+list „miejscowość → placówka", **własne szkoły na górze podpowiedzi**. Przy dacie DT
+pokazuje, **kto jest wolny i jeździ po tym mieście** (ranking z `przydzial.py`).
+Szkic trzyma się w telefonie (localStorage) — utrata zasięgu w połowie nie kasuje
+wpisanego tekstu. Zapis idzie JEDNYM żądaniem, więc nie powstaje lead bez DT.
+Projekt: `docs/11_PLAN_v5.md`, testy: `python test_formularz.py`.
+
+**Nowość v5: auto-zwrot po terminie** (`zwrot.py`) — szkoły po terminie wracają
+do puli nieprzydzielonych SAME. Z karencją (`KARENCJA_DNI`, domyślnie 2),
+z ostrzeżeniem „wraca do puli za N dni" u handlowca i na pulpicie, i **bez kasowania
+pracy** — wraca wyłącznie przypisanie, notatki i kontakty zostają przy placówce.
+Automat wisi na zwykłym ruchu w aplikacji (najwyżej raz na godzinę), nie na cronie,
+który na VPS potrafi cicho umrzeć.
+
+---
+
+## Wersja v4 (zaprezentowana 06.08)
 
 **Punkt startowy: `leady_app_v3-v2`** (v3 + ekran „Dostępność trenerów").
 
@@ -50,9 +80,14 @@ Cztery bóle wynikające wprost z ich pliku i z rozmowy:
 ## Uruchomienie
 
 ```bash
-cd leady_app_v4
+cd leady_app_v5
 pip install -r requirements.txt
-python app.py                       # http://127.0.0.1:5000
+
+# PowerShell — profil wybiera bazę, kod jest ten sam
+$env:PROFIL="test";  python app.py    # http://127.0.0.1:5000
+$env:PROFIL="pusta"; python app.py
+
+python narzedzia/baza.py lista        # jakie profile istnieją i ile mają danych
 ```
 
 Przy pierwszym starcie tworzy się baza SQLite (`data/leady_v3.db`) i wypełniają
@@ -76,12 +111,15 @@ Port 5058, żeby nie kolidować z v1 (5057). Baza w wolumenie `leady_v3_data`.
 
 | Zmienna | Domyślnie | Znaczenie |
 |---|---|---|
-| `DATA_DIR` | `./data` | katalog bazy SQLite |
+| `DATA_DIR` | `./data/<PROFIL>` | katalog bazy SQLite; ustawiony wprost ma pierwszeństwo przed `PROFIL` (tak działa docker-compose) |
 | `PORT` | `5000` | port (tylko `python app.py`) |
 | `CEL_TYGODNIOWY` | `5` | „minimum na tydzień" — ile DT ma umówić handlowiec |
 | `NA_STRONE` | `150` | ile wierszy na stronę listy |
 | `PLIK_PH_NOWY` | ścieżka do pliku klienta | źródło danych demo |
 | `SECRET_KEY` | `leady-v3-demo` | klucz sesji Flask |
+| `PROFIL` | `test` | która baza: `prod` / `test` / `pusta` (v5) |
+| `KARENCJA_DNI` | `2` | ile dni po terminie zanim lead wróci do puli (v5) |
+| `OSTRZEZENIE_DNI` | `3` | z ilodniowym wyprzedzeniem ostrzegać handlowca (v5) |
 
 ---
 
@@ -89,7 +127,8 @@ Port 5058, żeby nie kolidować z v1 (5057). Baza w wolumenie `leady_v3_data`.
 
 | Ścieżka | Odpowiada zakładce klienta | Co robi |
 |---|---|---|
-| `/pulpit` | — | liczby, kolizje trenerów, po terminie, realizacja minimum tygodniowego, obciążenie trenerów |
+| `/formularz` | — | **NOWE v5** — formularz ustaleń dla handlowca w terenie (telefon): 4 kroki, wyszukiwarka szkół, podpowiedź wolnego trenera, szkic w telefonie |
+| `/pulpit` | — | liczby, kolizje trenerów, **co wraca do puli (v5)**, po terminie, realizacja minimum tygodniowego, obciążenie trenerów |
 | `/baza` | `BAZA` | baza placówek do rozdania; zaznaczasz wiele wierszy, wybierasz handlowca i termin ostateczny, „Przypisz" |
 | `/leady` | zakładki handlowców | leady w pracy; edycja inline, przypięcie na tydzień, „odbierz handlowcowi" |
 | `/zbiorczy` | `Zbiorczy` | widok Julii — jej kolumny (umowa, standardy, niekaralność, Librus…) jako listy Tak/Nie |
@@ -146,6 +185,8 @@ Dwie decyzje warte uwagi:
 | `calendar_view.py` | trzy widoki kalendarza, rozwijanie cykli, wykrywanie kolizji |
 | `dostepnosc_view.py` | dostępność trenerów: stany komórki, wolne okna, ostrzeżenia (v2) |
 | `przydzial.py` | ranking kandydatów na spotkanie + rejony trenerów (v4) |
+| `zwrot.py` | auto-zwrot przeterminowanych leadów do puli: karencja, ostrzeżenia, przebieg (v5) |
+| `narzedzia/baza.py` | profile baz, kopie zapasowe i przywracanie (v5) |
 | `parsers.py` | parsowanie brudnych danych z arkusza (daty, godziny, „10 klas", „około 200", telefony) |
 | `importer.py` | import `PH Nowy`, RSPO i planszy STARTY, z deduplikacją placówek |
 | `exporter.py` | eksport XLSX w układzie kolumn klienta |
@@ -160,6 +201,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
+python test_formularz.py      # 61 sprawdzeń — formularz terenowy i auto-zwrot (v5)
 ```
 
 `test_scenariusze.py` przechodzi przez to, o co klient poprosił: przypisanie,
@@ -199,5 +241,8 @@ W `docs/`:
   masowa obsada spotkań bez trenera, zastępstwa (trener wypada na tydzień)
   i liczenie dojazdu między szkołami — patrz `docs/09_PRZYDZIAL_projekt.md`.
 - **RSPO przez API** — import jest z pliku.
-- **Crona pilnującego terminów** — po terminie widać na pulpicie, decyzję
-  o odebraniu leada podejmuje człowiek.
+- ~~Crona pilnującego terminów~~ — **jest w v5**: `zwrot.py` oddaje przeterminowane
+  leady do puli sam, bez crona. Ręczne „Zwróć teraz" zostaje na pulpicie.
+- **Logowania PIN-em i ról** — następny etap v5, po formularzu.
+- **Pracy offline** — formularz działa online, szkic trzyma się w telefonie.
+  Kolejka wysyłkowa po odzyskaniu zasięgu to etap po wdrożeniu.

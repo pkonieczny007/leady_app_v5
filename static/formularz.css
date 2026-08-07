@@ -1,0 +1,213 @@
+/* =============================================================================
+   FORMULARZ TERENOWY (v5) — ekran handlowca na telefonie.
+
+   Osobny plik, bo to jedyny ekran w aplikacji projektowany pod kciuk, a nie pod
+   mysz — i jedyny, który musi się ładować szybko na LTE w szkolnym korytarzu.
+   Zmienne kolorów bierze z style.css, więc język wizualny zostaje ten sam.
+
+   Odstępstwa od reszty aplikacji są celowe:
+     font-size 16px na polach — poniżej tego Safari na iPhonie SAM przybliża
+       widok przy kliknięciu w pole i użytkownik walczy z ekranem zamiast pisać;
+     min-height 48px — realna wielkość opuszki palca;
+     jedna kolumna — dwie kolumny ze wzoru wymuszają poziome przewijanie;
+     duże odstępy — pomyłka o jedno pole to błędny wpis w bazie.
+   ============================================================================= */
+
+.fx-strona{max-width:640px;margin:0 auto;padding:0 12px 120px}
+
+.fx-head{padding:18px 2px 10px}
+.fx-head h1{margin:0;font-size:22px;line-height:1.25;color:var(--brand);font-weight:700}
+.fx-kto{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.fx-brak-kto{color:var(--warn-d)}
+
+.fx-karta{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;
+}
+.fx-sekcja{
+  margin:0 0 12px;font-size:16px;font-weight:700;color:var(--cyan-t);
+  padding-bottom:8px;border-bottom:2px solid var(--accent-l);
+}
+.fx-etykieta{display:block;margin:14px 0 6px;font-size:14px;font-weight:600;color:var(--ink-2)}
+.fx-etykieta:first-of-type{margin-top:0}
+.fx-wym{color:var(--warn)}
+.fx-podpowiedz{margin:6px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
+
+/* Pola. Krem = „wypełnij, zapis do bazy" — ten sam język koloru co na listach. */
+.fx-pole{
+  display:block;width:100%;min-height:48px;padding:11px 12px;
+  font:16px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);
+  background:var(--fill);border:2px solid var(--fill-b);border-radius:var(--radius-md);
+  -webkit-appearance:none;appearance:none;
+}
+select.fx-pole{
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--fill-t) 50%),
+                   linear-gradient(135deg,var(--fill-t) 50%,transparent 50%);
+  background-position:right 20px center,right 15px center;
+  background-size:5px 5px,5px 5px;
+}
+.fx-pole:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px var(--accent-l)}
+.fx-pole-txt{min-height:84px;resize:vertical}
+.fx-pole.zly{border-color:var(--warn);background:var(--warn-l)}
+.fx-blad{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--warn-d)}
+
+.fx-para{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:360px){.fx-para{grid-template-columns:1fr}}
+
+/* --- wyszukiwarka szkół ------------------------------------------------- */
+.fx-szukaj{background:var(--filtr);border-color:var(--filtr-b)}
+.fx-wyniki{
+  margin-top:8px;border:1px solid var(--line);border-radius:var(--radius-md);
+  overflow:hidden;background:var(--panel);max-height:340px;overflow-y:auto;
+}
+.fx-wyniki-naglowek{
+  margin:0;padding:8px 12px;font-size:12px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);background:var(--panel-2);
+}
+.fx-wyniki-pusto{margin:0;padding:14px 12px;font-size:14px;color:var(--muted)}
+.fx-wynik{
+  display:block;width:100%;min-height:52px;padding:10px 12px;text-align:left;
+  background:none;border:0;border-top:1px solid var(--line-2);cursor:pointer;font:inherit;
+}
+.fx-wynik:first-child{border-top:0}
+.fx-wynik:active{background:var(--accent-l)}
+.fx-wynik-nazwa{display:block;font-size:15px;font-weight:600;color:var(--ink)}
+.fx-wynik-meta{display:block;margin-top:2px;font-size:13px;color:var(--muted)}
+.fx-znak{
+  display:inline-block;padding:1px 6px;border-radius:99px;font-size:11px;font-weight:700;
+}
+.fx-znak-moja{background:var(--accent-l);color:var(--cyan-t)}
+.fx-znak-dt{background:var(--ok-l);color:var(--ok-t)}
+
+.fx-wybrana{
+  padding:12px;border:2px solid var(--cyan);border-radius:var(--radius-md);
+  background:var(--accent-l);
+}
+.fx-wybrana-glowna{display:flex;align-items:center;gap:10px}
+.fx-wybrana-nazwa{flex:1;font-size:17px;font-weight:700;color:var(--brand);line-height:1.3}
+.fx-wybrana-meta{margin-top:4px;font-size:13px;color:var(--cyan-t)}
+.fx-zmien{
+  flex:none;min-height:40px;padding:0 14px;border:1px solid var(--cyan-d);
+  border-radius:var(--radius-sm);background:var(--panel);color:var(--cyan-t);
+  font:600 14px/1 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+}
+.fx-nowa{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+
+/* --- podpowiedź trenerów: sedno formularza ------------------------------ */
+.fx-trenerzy{display:flex;flex-direction:column;gap:8px}
+.fx-trenerzy-info{margin:0 0 2px;font-size:13px;color:var(--muted)}
+.fx-trener{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:9px 12px;
+  text-align:left;background:var(--panel);border:2px solid var(--line);
+  border-radius:var(--radius-md);cursor:pointer;font:inherit;
+}
+.fx-trener-ukryty{display:none}
+.fx-trener.on{border-color:var(--cyan);background:var(--accent-l);box-shadow:var(--shadow-sm)}
+.fx-trener-kropka{flex:none;width:12px;height:12px;border-radius:50%}
+.fx-trener-txt{flex:1;min-width:0}
+.fx-trener-nazwa{display:block;font-size:15px;font-weight:600;color:var(--ink)}
+.fx-trener-powod{display:block;margin-top:2px;font-size:12.5px;color:var(--muted);line-height:1.35}
+.fx-trener-rejon{color:var(--cyan-t)}
+/* Kategoria niesie się kolorem lewej krawędzi — czytelne kątem oka,
+   bez czytania powodu. Kolejność listy ustala serwer (przydzial.py). */
+.fx-trener-wolny{border-left:5px solid var(--ok)}
+.fx-trener-nieznany{border-left:5px solid var(--muted-2)}
+.fx-trener-zastrzezenie{border-left:5px solid var(--amber-d)}
+.fx-trener-niedostepny{border-left:5px solid var(--warn);opacity:.72}
+.fx-pole-inny{margin-top:8px}
+
+/* --- pasek kroków ------------------------------------------------------- */
+.fx-kroki{display:flex;gap:6px;margin:0 0 14px}
+.fx-krok{
+  flex:1;min-width:0;padding:8px 4px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius-sm);cursor:pointer;font:inherit;text-align:center;
+}
+.fx-krok-nr{
+  display:block;width:26px;height:26px;margin:0 auto 3px;border-radius:50%;
+  background:var(--line);color:var(--muted);font:700 13px/26px "Segoe UI",system-ui,sans-serif;
+}
+.fx-krok-txt{display:block;font-size:11px;color:var(--muted);line-height:1.2}
+.fx-krok.on{border-color:var(--cyan);background:var(--accent-l)}
+.fx-krok.on .fx-krok-nr{background:var(--grad-cyan);color:#fff}
+.fx-krok.on .fx-krok-txt{color:var(--cyan-t);font-weight:600}
+.fx-krok.zrobiony .fx-krok-nr{background:var(--ok);color:#fff}
+
+/* --- przyciski i przyklejona stopka ------------------------------------- */
+.fx-btn{
+  min-height:52px;padding:0 20px;border-radius:var(--radius-md);border:1px solid transparent;
+  font:600 16px/1 "Segoe UI",system-ui,sans-serif;cursor:pointer;
+}
+.fx-btn-dalej,.fx-btn-zapisz{flex:1;background:var(--grad-cyan);color:#fff;box-shadow:var(--shadow)}
+.fx-btn-zapisz{background:linear-gradient(135deg,#2fbf6b 0%,#1d9350 100%)}
+.fx-btn-zapisz:disabled{opacity:.6;cursor:default}
+.fx-btn-wstecz{flex:none;background:var(--panel);border-color:var(--line);color:var(--ink-2)}
+.fx-btn-lekki{
+  display:block;width:100%;margin-top:12px;background:var(--panel);
+  border:1px dashed var(--muted-2);color:var(--ink-2);font-weight:600;
+}
+.fx-btn-lekki.on{
+  border-style:solid;border-color:var(--cyan);background:var(--accent-l);color:var(--cyan-t);
+}
+
+.fx-stopka{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:10px;
+  max-width:640px;margin:0 auto;
+  padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+}
+.fx-szkic{margin:10px 2px 0;font-size:12.5px;color:var(--muted);text-align:center}
+
+/* --- ostrzeżenie „szkoła wraca do puli" --------------------------------- */
+.fx-alarm{
+  padding:12px 14px;margin-bottom:14px;border-radius:var(--radius-md);
+  background:var(--amber-l);border:1px solid var(--amber);
+}
+.fx-alarm strong{display:block;margin-bottom:6px;font-size:14px;color:var(--amber-d)}
+.fx-alarm ul{margin:0;padding:0;list-style:none}
+.fx-alarm li{padding:5px 0;font-size:14px;line-height:1.4;border-top:1px solid rgba(214,138,41,.25)}
+.fx-alarm li:first-child{border-top:0}
+.fx-alarm-szkola{font-weight:600;color:var(--ink)}
+.fx-alarm li b{display:block;font-size:13px;color:var(--amber-d)}
+.fx-alarm-dzis{color:var(--warn-d)}
+
+/* --- podsumowanie do przeczytania na głos ------------------------------- */
+.fx-podsum-tytul{
+  margin:16px 0 6px;font-size:13px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--muted);
+}
+.fx-podsum-tytul:first-child{margin-top:0}
+.fx-podsum-lista{margin:0}
+.fx-podsum-w{
+  display:flex;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line-2);
+}
+.fx-podsum-w:first-child{border-top:0}
+.fx-podsum-w dt{flex:0 0 40%;font-size:13.5px;color:var(--muted)}
+.fx-podsum-w dd{flex:1;margin:0;font-size:15.5px;font-weight:600;color:var(--ink);line-height:1.35}
+.fx-podsum-brak{margin:10px 0 0;font-size:14px;color:var(--muted);font-style:italic}
+
+/* --- ekran po zapisie --------------------------------------------------- */
+.fx-sukces{padding:32px 16px;text-align:center}
+.fx-sukces-znak{
+  width:64px;height:64px;margin:0 auto 14px;border-radius:50%;
+  background:linear-gradient(135deg,#2fbf6b 0%,#1d9350 100%);
+  color:#fff;font-size:34px;line-height:64px;
+}
+.fx-sukces h2{margin:0 0 6px;font-size:20px;color:var(--brand);line-height:1.3}
+.fx-sukces-tresc{margin:0 0 18px;font-size:15px;color:var(--ink-2)}
+.fx-sukces-kolizja{
+  padding:10px 12px;margin-bottom:18px;border-radius:var(--radius-md);
+  background:var(--warn-l);border:1px solid var(--warn);color:var(--warn-d);
+  font-size:14px;text-align:left;
+}
+.fx-sukces-akcje{display:flex;flex-direction:column;gap:10px}
+.fx-sukces-akcje .fx-btn{
+  width:100%;margin-top:0;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;
+}
+
+/* Na telefonie górna nawigacja aplikacji tylko zabiera miejsce — handlowiec
+   w terenie używa wyłącznie tego jednego ekranu. Na komputerze zostaje. */
+@media (max-width:720px){
+  .fx-ukryj-mobile{display:none}
+}

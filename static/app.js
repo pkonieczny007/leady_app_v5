@@ -368,6 +368,32 @@
       .catch(function (e) { toast("Nie usunięto: " + e.message, true); });
   });
 
+  /* ================================================== ZWROT DO PULI (v5)
+     Automat i tak przeleci sam raz na godzinę — ten przycisk służy temu, żeby
+     koordynator nie musiał czekać, gdy właśnie patrzy na listę. Potwierdzenie
+     jest obowiązkowe: to odbiera pracę konkretnym ludziom. */
+
+  document.addEventListener("click", function (ev) {
+    if (ev.target.id !== "btn-zwrot") return;
+    var btn = ev.target;
+    var ile = (btn.textContent.match(/\((\d+)\)/) || [])[1] || "0";
+    if (!confirm("Zwrócić " + ile + " szkół do puli nieprzydzielonych?\n\n" +
+                 "Handlowiec i termin zostaną wyczyszczone. Notatki, kontakty " +
+                 "i historia zostają przy placówce.")) return;
+    btn.disabled = true;
+    btn.textContent = "Zwracam…";
+    api("POST", "/api/zwrot", {})
+      .then(function (j) {
+        toast("Zwrócono do puli: " + j.n);
+        setTimeout(function () { location.reload(); }, 700);
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        btn.textContent = "Zwróć teraz (" + ile + ")";
+        toast("Nie zwrócono: " + e.message, true);
+      });
+  });
+
   /* ============================================================ DANE DEMO */
 
   document.addEventListener("click", function (ev) {

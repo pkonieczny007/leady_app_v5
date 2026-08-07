@@ -9,6 +9,7 @@
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block head %}{% endblock %}
 </head>
 <body>
 
@@ -36,7 +37,10 @@
       <span class="brand-tag">demo · zamiast arkusza</span>
     </a>
 
-    <nav class="nav">
+    {# Na ekranie formularza (telefon) nawigacja aplikacji tylko zabiera miejsce —
+       handlowiec w terenie używa wyłącznie tego jednego ekranu. #}
+    <nav class="nav{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
+      <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active == 'formularz' }}">Formularz</a>
       <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
       <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
       <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">Leady</a>
@@ -49,7 +53,7 @@
       <a href="{{ url_for('slowniki_view') }}"  class="{{ 'on' if nav_active == 'slowniki_view' }}">Słowniki</a>
     </nav>
 
-    <div class="topbar-right">
+    <div class="topbar-right{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
       <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
          title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
       <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
@@ -72,7 +76,7 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="stopka wrap">
+<footer class="stopka wrap{{ ' fx-ukryj-mobile' if nav_active == 'formularz' }}">
   <span>Prototyp v4 · jedno źródło danych (placówka + lead + spotkania), ekrany to filtry —
     nic się nie kopiuje między zakładkami.</span>
   <span class="muted nums">{{ today|pl_data }}</span>

@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}Formularz ustaleń{% endblock %}
+{% block wrap_class %}fx-strona{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz.css') }}">
+{% endblock %}
+
+{#
+  FORMULARZ USTALEŃ Z PLACÓWKĄ — ekran handlowca w terenie.
+
+  Wzór ze spotkania (ChatGPT Image 6 sie 2026) miał dobre sekcje, ale układ pod
+  monitor: dwie kolumny, cztery pola w rzędzie, wszystko naraz. Na telefonie
+  w szkolnym korytarzu to nie działa. Zostaje jego STRUKTURA i KOLEJNOŚĆ,
+  zmienia się sposób podania:
+
+    jedna kolumna · pola ≥48 px (palec, nie mysz) · font 16 px (poniżej tego
+    iPhone sam przybliża ekran przy kliknięciu w pole) · cztery kroki zamiast
+    jednej ściany · krok 4 to podsumowanie do przeczytania dyrektorowi na głos.
+#}
+
+{% block content %}
+<div class="fx" id="fx"
+     data-handlowiec="{{ handlowiec }}"
+     data-dzis="{{ dzis_iso }}">
+
+  {# ------------------------------------------------------------ nagłówek #}
+  <header class="fx-head">
+    <div class="fx-head-txt">
+      <h1>Formularz ustaleń z placówką</h1>
+      <p class="fx-kto">
+        {% if handlowiec %}
+          {{ handlowiec }}
+        {% else %}
+          <span class="fx-brak-kto">wybierz siebie z listy poniżej</span>
+        {% endif %}
+      </p>
+    </div>
+  </header>
+
+  {# Do czasu logowania (etap PIN) handlowiec wybiera się z listy. Wybór ląduje
+     w adresie, więc zakładka „dodaj do ekranu początkowego" pamięta osobę. #}
+  {% if not handlowiec %}
+  <div class="fx-karta fx-karta-wybor">
+    <label class="fx-etykieta" for="fx-kto">Kto wypełnia?</label>
+    <select id="fx-kto" class="fx-pole">
+      <option value="">— wybierz siebie —</option>
+      {% for h in slowniki.handlowiec %}<option value="{{ h }}">{{ h }}</option>{% endfor %}
+    </select>
+    <p class="fx-podpowiedz">Zapamiętamy wybór na tym telefonie.</p>
+  </div>
+  {% endif %}
+
+  {# ----------------------------------------- ostrzeżenia o zwrocie do puli #}
+  {% if ostrzezenia %}
+  <div class="fx-alarm">
+    <strong>Uwaga — kończy się termin</strong>
+    <ul>
+      {% for o in ostrzezenia[:5] %}
+      <li>
+        <span class="fx-alarm-szkola">{{ o.placowka }}</span>
+        <span class="muted">{{ o.miejscowosc }}</span>
+        {% if o.dni_do_zwrotu <= 0 %}
+          <b class="fx-alarm-dzis">wraca do puli lada moment</b>
+        {% else %}
+          <b>wraca do puli za {{ o.dni_do_zwrotu }} dni</b>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if ostrzezenia|length > 5 %}
+    <p class="muted">…i {{ ostrzezenia|length - 5 }} więcej</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ----------------------------------------------------------- pasek kroków #}
+  <nav class="fx-kroki" aria-label="Postęp">
+    {% for nr, tytul in [(1,'Placówka'), (2,'Dzień Technologii'), (3,'Cykle'), (4,'Podsumowanie')] %}
+    <button type="button" class="fx-krok" data-idz="{{ nr }}" data-nr="{{ nr }}">
+      <span class="fx-krok-nr">{{ nr }}</span>
+      <span class="fx-krok-txt">{{ tytul }}</span>
+    </button>
+    {% endfor %}
+  </nav>
+
+  <form id="fx-form" autocomplete="off" novalidate>
+
+  {# ================================================== KROK 1 — PLACÓWKA #}
+  <section class="fx-ekran" data-krok="1">
+    <div class="fx-karta">
+      <h2 class="fx-sekcja">Dane placówki</h2>
+
+      <label class="fx-etykieta" for="fx-szukaj">
+        Szkoła <span class="fx-wym">*</span>
+      </label>
+      {# Jedno pole „szukaj" zamiast pary miejscowość→szkoła ze wzoru: przy kilkuset
+         placówkach wybieranie z dwóch list to przewijanie kciukiem. Wpisanie „zabrz"
+         albo „sp 12" trafia w cel po 2–3 znakach. #}
+      <input type="search" id="fx-szukaj" class="fx-pole fx-szukaj"
+             placeholder="Wpisz nazwę szkoły lub miasto…"
+             inputmode="search" autocapitalize="off" spellcheck="false">
+      <div id="fx-wyniki" class="fx-wyniki" hidden></div>
+
+      <div id="fx-wybrana" class="fx-wybrana" hidden>
+        <div class="fx-wybrana-glowna">
+          <span class="fx-wybrana-nazwa" id="fx-wybrana-nazwa"></span>
+          <button type="button" class="fx-zmien" id="fx-zmien">Zmień</button>
+        </div>
+        <div class="fx-wybrana-meta" id="fx-wybrana-meta"></div>
+      </div>
+
+      {# Osobny przycisk, nie automatyczne „nie znalazłem → utwórz": dublet placówki
+         to dokładnie ten bałagan, od którego uciekamy. Dodanie ma być świadome. #}
+      <button type="button" class="fx-btn fx-btn-lekki" id="fx-nowa-otworz">
+        + Nie ma jej na liście — dodaj nową
+      </button>
+
+      <div id="fx-nowa" class="fx-nowa" hidden>
+        <label class="fx-etykieta" for="fx-nowa-nazwa">Nazwa placówki <span class="fx-wym">*</span></label>
+        <input type="text" id="fx-nowa-nazwa" class="fx-pole" placeholder="np. SP 12 im. Kopernika">
+
+        <label class="fx-etykieta" for="fx-nowa-miasto">Miejscowość <span class="fx-wym">*</span></label>
+        <select id="fx-nowa-miasto" class="fx-pole">
+          <option value="">— wybierz —</option>
+          {% for m in slowniki.miasto %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+
+        <label class="fx-etykieta" for="fx-nowa-typ">Typ</label>
+        <select id="fx-nowa-typ" class="fx-pole">
+          <option value="">— wybierz —</option>
+          {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+        </select>
+
+        <label class="fx-etykieta" for="fx-nowa-adres">Adres</label>
+        <input type="text" id="fx-nowa-adres" class="fx-pole" placeholder="ulica i numer">
+      </div>
+    </div>
+
+    <div class="fx-karta">
+      <h2 class="fx-sekcja">Kontakt w szkole</h2>
+      <p class="fx-podpowiedz">Uzupełnij, jeśli poznałeś kogoś nowego. Puste pola nic nie nadpisują.</p>
+
+      <label class="fx-etykieta" for="fx-osoba">Osoba decyzyjna</label>
+      <input type="text" id="fx-osoba" class="fx-pole" placeholder="imię, nazwisko, funkcja">
+
+      <label class="fx-etykieta" for="fx-telefon">Telefon</label>
+      <input type="tel" id="fx-telefon" class="fx-pole" inputmode="tel" placeholder="000 000 000">
+
+      <label class="fx-etykieta" for="fx-mail">Mail</label>
+      <input type="email" id="fx-mail" class="fx-pole" inputmode="email"
+             autocapitalize="off" spellcheck="false" placeholder="sekretariat@...">
+    </div>
+  </section>
+
+  {# ============================================ KROK 2 — DZIEŃ TECHNOLOGII #}
+  <section class="fx-ekran" data-krok="2" hidden>
+    <div class="fx-karta">
+      <h2 class="fx-sekcja">Dzień Technologii</h2>
+
+      <label class="fx-etykieta" for="fx-dt-data">Data DT <span class="fx-wym">*</span></label>
+      <input type="date" id="fx-dt-data" class="fx-pole">
+
+      <div class="fx-para">
+        <div>
+          <label class="fx-etykieta" for="fx-dt-od">Godzina od <span class="fx-wym">*</span></label>
+          <input type="time" id="fx-dt-od" class="fx-pole" step="300">
+        </div>
+        <div>
+          <label class="fx-etykieta" for="fx-dt-do">Godzina do</label>
+          <input type="time" id="fx-dt-do" class="fx-pole" step="300">
+        </div>
+      </div>
+
+      {# Serce formularza: handlowiec stoi przy dyrektorze i widzi, kogo realnie
+         może na ten termin obiecać. Logika (dostępność + kolizje + rejon +
+         obciążenie) jest już w przydzial.py — tu tylko ją pokazujemy. #}
+      <label class="fx-etykieta">Prowadzący DT <span class="fx-wym">*</span></label>
+      <div id="fx-trenerzy" class="fx-trenerzy">
+        <p class="fx-podpowiedz fx-trenerzy-pusto">Wybierz najpierw datę — podpowiemy, kto jest wolny.</p>
+      </div>
+      <select id="fx-dt-trener" class="fx-pole fx-pole-inny" hidden>
+        <option value="">— wybierz prowadzącego —</option>
+        {% for t in slowniki.trener %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+      </select>
+
+      <label class="fx-etykieta" for="fx-dt-sala">Numer sali</label>
+      <input type="text" id="fx-dt-sala" class="fx-pole" placeholder="np. 12">
+
+      <div class="fx-para">
+        <div>
+          <label class="fx-etykieta" for="fx-dt-klas">Ilość klas 1–4 <span class="fx-wym">*</span></label>
+          <input type="number" id="fx-dt-klas" class="fx-pole" inputmode="numeric" min="0" max="40">
+        </div>
+        <div>
+          <label class="fx-etykieta" for="fx-dt-dzieci">Ilość dzieci <span class="fx-wym">*</span></label>
+          <input type="number" id="fx-dt-dzieci" class="fx-pole" inputmode="numeric" min="0" max="2000">
+        </div>
+      </div>
+
+      <label class="fx-etykieta" for="fx-mail-rodzice">
+        Czy szkoła wyśle wiadomość do rodziców na dziennik? <span class="fx-wym">*</span>
+      </label>
+      <select id="fx-mail-rodzice" class="fx-pole">
+        <option value="">— wybierz —</option>
+        {% for v in slowniki.tak_nie %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+      </select>
+
+      <label class="fx-etykieta" for="fx-dt-uwagi">Ustalenia dotyczące DT</label>
+      <textarea id="fx-dt-uwagi" class="fx-pole fx-pole-txt" rows="3"
+                placeholder="co ustaliliście, o czym pamiętać"></textarea>
+    </div>
+  </section>
+
+  {# =========================================== KROK 3 — ZAJĘCIA CYKLICZNE #}
+  <section class="fx-ekran" data-krok="3" hidden>
+    <div class="fx-karta">
+      <h2 class="fx-sekcja">Zajęcia cykliczne</h2>
+      <p class="fx-podpowiedz">Nie na każdym spotkaniu się je ustala — możesz ten krok pominąć.</p>
+
+      <button type="button" class="fx-btn fx-btn-lekki" id="fx-cykl-pomin">
+        Bez zajęć cyklicznych — pomiń
+      </button>
+
+      <div id="fx-cykl" class="fx-cykl">
+        <label class="fx-etykieta" for="fx-cykl-dzien">Dzień tygodnia</label>
+        <select id="fx-cykl-dzien" class="fx-pole">
+          <option value="">— wybierz —</option>
+          {% for d in slowniki.dzien_tyg %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+        </select>
+
+        <div class="fx-para">
+          <div>
+            <label class="fx-etykieta" for="fx-cykl-od">Godzina od</label>
+            <input type="time" id="fx-cykl-od" class="fx-pole" step="300">
+          </div>
+          <div>
+            <label class="fx-etykieta" for="fx-cykl-do">Godzina do</label>
+            <input type="time" id="fx-cykl-do" class="fx-pole" step="300">
+          </div>
+        </div>
+
+        <label class="fx-etykieta" for="fx-cykl-sala">Numer sali</label>
+        <input type="text" id="fx-cykl-sala" class="fx-pole" placeholder="np. 5">
+
+        {# We wzorze tego nie było, a w planszach STARTY jest zawsze — bez tego
+           trener przyjeżdża i nie wie, na czym dzieci mają pracować. #}
+        <label class="fx-etykieta" for="fx-cykl-sprzet">Sprzęt</label>
+        <select id="fx-cykl-sprzet" class="fx-pole">
+          <option value="">— wybierz —</option>
+          {% for s in slowniki.sprzet %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+        </select>
+
+        <label class="fx-etykieta" for="fx-cykl-uwagi">Dodatkowe ustalenia i uwagi</label>
+        <textarea id="fx-cykl-uwagi" class="fx-pole fx-pole-txt" rows="3"
+                  placeholder="wynajem sali, standardy, cokolwiek do zapamiętania"></textarea>
+      </div>
+    </div>
+  </section>
+
+  {# ============================================== KROK 4 — PODSUMOWANIE #}
+  <section class="fx-ekran" data-krok="4" hidden>
+    <div class="fx-karta">
+      <h2 class="fx-sekcja">Sprawdź przed zapisem</h2>
+      <p class="fx-podpowiedz">Przeczytaj to na głos osobie, z którą ustalasz — łatwiej wyłapać pomyłkę teraz niż za miesiąc.</p>
+      <div id="fx-podsumowanie" class="fx-podsum"></div>
+    </div>
+  </section>
+
+  </form>
+
+  {# --------------------------------------------------------- stopka akcji #}
+  <div class="fx-stopka">
+    <button type="button" class="fx-btn fx-btn-wstecz" id="fx-wstecz" hidden>← Wstecz</button>
+    <button type="button" class="fx-btn fx-btn-dalej" id="fx-dalej">Dalej →</button>
+    <button type="button" class="fx-btn fx-btn-zapisz" id="fx-zapisz" hidden>Zapisz formularz</button>
+  </div>
+
+  {# Ślad, że szkic siedzi w telefonie — bez tego handlowiec nie wie, czy może
+     bezpiecznie zamknąć przeglądarkę. #}
+  <p class="fx-szkic" id="fx-szkic" hidden></p>
+
+  {# ------------------------------------------------------- ekran sukcesu #}
+  <div class="fx-sukces" id="fx-sukces" hidden>
+    <div class="fx-sukces-znak">✓</div>
+    <h2 id="fx-sukces-tytul">Zapisano</h2>
+    <p id="fx-sukces-tresc" class="fx-sukces-tresc"></p>
+    <div id="fx-sukces-kolizja" class="fx-sukces-kolizja" hidden></div>
+    <div class="fx-sukces-akcje">
+      <button type="button" class="fx-btn fx-btn-dalej" id="fx-nowy">Wypełnij kolejny</button>
+      <a class="fx-btn fx-btn-lekki" id="fx-do-leada" href="#">Otwórz kartę szkoły</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.FX_MOJE = {{ moje|tojson }};
+</script>
+<script src="{{ url_for('static', filename='formularz.js') }}"></script>
+{% endblock %}
