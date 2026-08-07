@@ -165,15 +165,34 @@ def logowanie():
     osoby = uz.do_logowania(conn)
     conn.close()
     return render_template("logowanie.html", osoby=osoby, today=dzis(),
+                           serwis=uz.serwis_wlaczony(),
                            dalej=(request.args.get("dalej") or "").strip())
 
 
 @app.route("/api/logowanie", methods=["POST"])
 def api_logowanie():
     d = request.get_json(silent=True) or {}
+    osoba = (d.get("osoba") or "").strip()
+    pin = (d.get("pin") or "").strip()
+
+    # Bez wskazanej osoby próbujemy PIN-u serwisowego — to jedyna droga wejścia
+    # „samym hasłem". Zwykłe konta zawsze wymagają wyboru nazwiska.
+    if not osoba:
+        u, blad = uz.zaloguj_serwisowo(pin)
+        if blad:
+            return jsonify(ok=False, error=blad), 401
+        conn = get_conn()
+        zapisz_log(conn, kto=u["osoba"], co="logowanie serwisowe",
+                   po=request.remote_addr or "")
+        conn.commit()
+        conn.close()
+        uz.zapisz_sesje(u)
+        session.pop("csrf", None)
+        return jsonify(ok=True, osoba=u["osoba"], rola=u["rola"], serwis=True,
+                       dalej=url_for("pulpit"))
+
     conn = get_conn()
-    u, blad = uz.zaloguj(conn, (d.get("osoba") or "").strip(),
-                         (d.get("pin") or "").strip())
+    u, blad = uz.zaloguj(conn, osoba, pin)
     conn.close()
     if blad:
         return jsonify(ok=False, error=blad), 401
@@ -1572,7 +1591,8 @@ def inject_nav():
     # ZAKRESY — opisy chipów filtra (znak, nazwa, dymek); rysuje je makro `pasek_chipow`
     return {"nav_active": request.endpoint, "q_all": request.args.to_dict(),
             "ZAKRESY": fl.ZAKRESY, "profil": opis_profilu(),
-            "ja": uz.zalogowany(), "csrf": token_csrf()}
+            "ja": uz.zalogowany(), "csrf": token_csrf(),
+            "serwis_wlaczony": uz.serwis_wlaczony()}
 
 
 bootstrap()
@@ -1586,6 +1606,12 @@ with app.app_context():
     if _info["koordynator"]:
         print("UWAGA: utworzono konto 'Koordynator' z PIN-em startowym %s — "
               "zmień go w panelu /uzytkownicy" % _info["koordynator"])
+    if uz.serwis_wlaczony():
+        print("!" * 62)
+        print("  TRYB SERWISOWY WŁĄCZONY — jeden PIN wpuszcza bez wyboru osoby,")
+        print("  na uprawnienia koordynatora. Wyłącz przed wdrożeniem: usuń")
+        print("  zmienną PIN_SERWISOWY i zrestartuj aplikację.")
+        print("!" * 62)
 
 # Własny port, nie 5000. Powód praktyczny: na 5000 startuje domyślnie każda apka
 # Flaska i inne narzędzia — przy kilku uruchomionych naraz nowy proces cicho nie
@@ -1593,8 +1619,33 @@ with app.app_context():
 # w kodzie, którego tam nie ma.
 PORT_DOMYSLNY = "5301"
 
+def _port_zajety(port):
+    """
+    Czy ktoś już nasłuchuje na tym porcie.
+
+    Windows pozwala DWÓM procesom podpiąć się pod ten sam port, bo Werkzeug
+    ustawia SO_REUSEADDR. Skutek jest paskudny: stary i nowy serwer działają
+    naraz, a to, który odpowie, jest losowe — zmiana w kodzie „raz działa,
+    raz nie". Lepiej odmówić startu z czytelnym komunikatem.
+    """
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.4)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", PORT_DOMYSLNY))
+    # Reloader Flaska uruchamia aplikację drugi raz w procesie potomnym
+    # (`WERKZEUG_RUN_MAIN`). Wtedy port trzyma już nasz własny rodzic i sprawdzanie
+    # go zakończyłoby się odmową startu przy każdym przeładowaniu kodu.
+    if not os.environ.get("WERKZEUG_RUN_MAIN") and _port_zajety(port):
+        raise SystemExit(
+            "Port %d jest już zajęty — najpewniej działa starsza kopia aplikacji.\n"
+            "Zatrzymaj ją, zanim uruchomisz nową (Windows pozwala obu nasłuchiwać\n"
+            "naraz i wtedy nie wiadomo, która odpowiada):\n"
+            "  PowerShell:  Get-Process python* | Stop-Process -Force\n"
+            "  albo uruchom na innym porcie:  $env:PORT=\"5302\"; python app.py" % port)
     p = opis_profilu()
     print("=" * 62)
     print("  System Leadów v5   ·   profil: %s" % p["etykieta"])

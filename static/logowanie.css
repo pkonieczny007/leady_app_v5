@@ -43,6 +43,13 @@
 
 /* Cztery kropki zamiast pola z gwiazdkami — od razu widać, ile cyfr wpisano,
    bez czytania czegokolwiek. */
+.lg-serwis{
+  width:100%;margin:-14px 0 20px;padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--warn-l);border:1px solid var(--warn);
+  font-size:12.5px;line-height:1.5;color:var(--warn-d);
+}
+.lg-serwis b{display:block}
+
 .lg-kropki{display:flex;gap:14px;margin:2px 0 22px}
 .lg-kropki span{
   width:15px;height:15px;border-radius:50%;

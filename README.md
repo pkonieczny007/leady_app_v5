@@ -52,6 +52,14 @@ raz, przy nadaniu. Do tego token CSRF na wszystkich zapisach i `kto` w historii
 zmian brany z sesji zamiast dotychczasowego „demo".
 Testy: `python test_logowanie.py` (75 sprawdzeń).
 
+**Tryb serwisowy** (`PIN_SERWISOWY=7777`) — jeden PIN wpuszcza **bez wyboru osoby**
+na uprawnienia koordynatora. Wygodne przy pracy nad aplikacją; to jednak klucz
+uniwersalny, więc obwarowany trzema rzeczami: żyje wyłącznie w zmiennej
+środowiskowej (restart bez niej i tryb znika, sesje przestają działać), na profilu
+`prod` wymaga dodatkowo `PIN_SERWISOWY_PROD=tak`, a gdy działa — na każdym ekranie
+wisi czerwony pasek w pasy i każde wejście ląduje w historii jako
+„logowanie serwisowe". Testy: `python test_serwis.py` (30 sprawdzeń).
+
 **Nowość v5: auto-zwrot po terminie** (`zwrot.py`) — szkoły po terminie wracają
 do puli nieprzydzielonych SAME. Z karencją (`KARENCJA_DNI`, domyślnie 2),
 z ostrzeżeniem „wraca do puli za N dni" u handlowca i na pulpicie, i **bez kasowania
@@ -159,6 +167,8 @@ Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `lea
 | `PLIK_PH_NOWY` | ścieżka do pliku klienta | źródło danych demo |
 | `SECRET_KEY` | `leady-v3-demo` | klucz sesji Flask — **na produkcji ustaw wlasny**, inaczej da się podrobić sesję |
 | `PIN_KOORDYNATORA` | `0000` | PIN startowy konta `Koordynator` przy pierwszym uruchomieniu (v5) |
+| `PIN_SERWISOWY` | — | 4 cyfry: **tryb serwisowy** — wejście bez wyboru osoby, na uprawnienia koordynatora. Do pracy nad aplikacją; **wyłącz przed wdrożeniem** (v5) |
+| `PIN_SERWISOWY_PROD` | — | `tak` — dopiero to włącza tryb serwisowy na profilu `prod`. Sam `PIN_SERWISOWY` na produkcji nie wystarcza (v5) |
 | `HTTPS` | — | ustaw cokolwiek za reverse proxy z HTTPS — włącza `Secure` na ciastku sesji (v5) |
 | `PROFIL` | `test` | która baza: `prod` / `test` / `pusta` (v5) |
 | `KARENCJA_DNI` | `2` | ile dni po terminie zanim lead wróci do puli (v5) |
@@ -236,6 +246,7 @@ Dwie decyzje warte uwagi:
 | `zwrot.py` | auto-zwrot przeterminowanych leadów do puli: karencja, ostrzeżenia, przebieg (v5) |
 | `static/formularz_awaria.js` | co się dzieje przy awarii w trakcie wypełniania: szkic, ostrzeżenie przy wyjściu, kolejka „niewysłane” z ponowieniem (v5) |
 | `narzedzia/baza.py` | profile baz, kopie zapasowe i przywracanie (v5) |
+| `narzedzia/konto.py` | konta z linii poleceń — wyjście awaryjne, gdy nie da się zalogować (v5) |
 | `narzedzia/karta_dostepu.py` | PDF do wydruku: PIN-y, tabela uprawnień i paski do rozcięcia (v5) |
 | `parsers.py` | parsowanie brudnych danych z arkusza (daty, godziny, „10 klas", „około 200", telefony) |
 | `importer.py` | import `PH Nowy`, RSPO i planszy STARTY, z deduplikacją placówek |
@@ -251,6 +262,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
+python test_serwis.py         # 30 sprawdzeń — tryb serwisowy i jego ograniczenia (v5)
 python test_logowanie.py      # 75 sprawdzeń — logowanie, role, filtr „moje”, CSRF (v5)
 python test_formularz.py      # 93 sprawdzenia — oba warianty, awaria przy zapisie, auto-zwrot (v5)
 ```

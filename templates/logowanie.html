@@ -42,9 +42,19 @@
 
   <label class="lg-etykieta" for="lg-osoba">Kto się loguje?</label>
   <select id="lg-osoba" class="lg-pole">
-    <option value="">— wybierz siebie —</option>
+    <option value="">{{ '— nikt: PIN serwisowy —' if serwis else '— wybierz siebie —' }}</option>
     {% for o in osoby %}<option value="{{ o }}">{{ o }}</option>{% endfor %}
   </select>
+
+  {# Tryb serwisowy: bez wyboru osoby wchodzi się samym PIN-em. Mówimy o tym
+     wprost — ukryte wejście, o którym trzeba wiedzieć, jest gorsze od jawnego,
+     bo nikt go nie wyłączy przed wdrożeniem. #}
+  {% if serwis %}
+  <p class="lg-serwis" data-serwis="1">
+    <b>Tryb serwisowy jest włączony.</b>
+    Zostaw pole osoby puste i wpisz PIN serwisowy, żeby wejść bez wybierania nazwiska.
+  </p>
+  {% endif %}
 
   <label class="lg-etykieta" for="lg-pin">PIN</label>
   <div class="lg-kropki" id="lg-kropki" aria-hidden="true">

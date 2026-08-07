@@ -81,9 +81,15 @@
 
   var trwa = false;
 
+  // Gdy tryb serwisowy działa, pusty wybór osoby jest poprawny — serwer
+  // potraktuje wtedy PIN jako serwisowy.
+  var serwis = !!document.querySelector("[data-serwis]");
+
   function zaloguj() {
     if (trwa) return;
-    if (!selOsoba.value) { blad("Wybierz, kto się loguje"); selOsoba.focus(); return; }
+    if (!selOsoba.value && !serwis) {
+      blad("Wybierz, kto się loguje"); selOsoba.focus(); return;
+    }
     if (polePin.value.length !== 4) { blad("PIN ma cztery cyfry"); return; }
 
     trwa = true;

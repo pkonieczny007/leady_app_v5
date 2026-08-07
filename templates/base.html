@@ -20,6 +20,15 @@
 {# Pasek profilu bazy. Na produkcji go nie ma — handlowiec ma widzieć aplikację,
    nie infrastrukturę. Za to TEST i PUSTA krzyczą, żeby nikt nie zaimportował
    czegoś w trybie „replace" do złej bazy, myśląc że siedzi w piaskownicy. #}
+{# Tryb serwisowy — klucz uniwersalny. Pasek jest krzykliwy i celowo nie da się
+   go zamknąć: dopóki wisi, każdy kto zna jeden PIN wchodzi na uprawnienia
+   koordynatora. Ma kłuć w oczy, żeby nie pojechał na produkcję niezauważony. #}
+{% if serwis_wlaczony %}
+<div class="pasek-profilu pasek-serwis">
+  TRYB SERWISOWY — jeden PIN wpuszcza bez wyboru osoby{% if ja and ja.serwis %} · pracujesz jako {{ ja.osoba }}{% endif %}
+</div>
+{% endif %}
+
 {% if profil and profil.klucz != 'prod' %}
 <div class="pasek-profilu" style="background:{{ profil.kolor }}">
   {{ profil.etykieta }} — to nie jest baza produkcyjna

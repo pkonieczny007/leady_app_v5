@@ -1044,3 +1044,8 @@ tr.flash td{animation:flash .9s ease-out}
   padding:0 10px;font-size:13px;font-weight:600;color:#fff;opacity:.9;
   white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;
 }
+
+/* Pasek trybu serwisowego (v5) — pasy ostrzegawcze, bo to klucz uniwersalny. */
+.pasek-serwis{
+  background:repeating-linear-gradient(45deg,#b3123c,#b3123c 12px,#8d0e2f 12px,#8d0e2f 24px);
+}

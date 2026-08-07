@@ -159,6 +159,56 @@ def losowy_pin():
             return p
 
 
+# ------------------------------------------------------- tryb serwisowy (dev)
+#
+# Jeden PIN, bez wybierania osoby, wpuszczający na uprawnienia koordynatora.
+# Do pracy nad aplikacją: pozwala wejść bez klikania w listę i bez pamiętania,
+# kto ma jaki PIN.
+#
+# TO JEST KLUCZ UNIWERSALNY, więc obwarowany trzema rzeczami:
+#
+#   1. Żyje TYLKO w zmiennej środowiskowej `PIN_SERWISOWY`. Nie ma go w bazie
+#      ani w repozytorium — restart bez tej zmiennej i tryb znika. Nie da się
+#      go zostawić przez zapomnienie w pliku konfiguracyjnym.
+#   2. Na profilu `prod` wymaga DODATKOWO `PIN_SERWISOWY_PROD=tak`. Sam PIN
+#      w środowisku produkcyjnym nie wystarcza — trzeba to napisać dwa razy,
+#      żeby nie stało się przypadkiem przy kopiowaniu konfiguracji.
+#   3. Kiedy działa, na każdym ekranie wisi czerwony pasek, a każde wejście
+#      ląduje w historii jako „logowanie serwisowe”.
+#
+# Czego to nie zmienia: ślad „kto zmienił lead” dla wpisów zrobionych na tym
+# koncie mówi „Serwis (developer)”, a nie nazwisko człowieka. Dlatego to konto
+# jest do zaglądania i naprawiania, a nie do codziennej pracy.
+
+OSOBA_SERWISOWA = "Serwis (developer)"
+
+
+def pin_serwisowy():
+    """Skonfigurowany PIN serwisowy albo None, gdy tryb wyłączony."""
+    pin = (os.environ.get("PIN_SERWISOWY") or "").strip()
+    if not pin or not poprawny_format(pin):
+        return None
+    profil = (os.environ.get("PROFIL") or "test").strip().lower()
+    if profil == "prod" and (os.environ.get("PIN_SERWISOWY_PROD") or "").strip().lower() \
+            not in ("tak", "1", "true"):
+        return None
+    return pin
+
+
+def serwis_wlaczony():
+    return pin_serwisowy() is not None
+
+
+def zaloguj_serwisowo(pin):
+    """(uzytkownik, blad) — logowanie samym PIN-em, bez wskazania osoby."""
+    oczekiwany = pin_serwisowy()
+    if not oczekiwany:
+        return None, "Tryb serwisowy jest wyłączony"
+    if not hmac.compare_digest(str(pin or "").strip(), oczekiwany):
+        return None, "Nieprawidłowy PIN"
+    return {"osoba": OSOBA_SERWISOWA, "rola": "koordynator", "serwis": True}, None
+
+
 # ------------------------------------------------------------------ logowanie
 
 def zaloguj(conn, osoba, pin):
@@ -196,11 +246,12 @@ def zapisz_sesje(u):
     session.permanent = True
     session["osoba"] = u["osoba"]
     session["rola"] = u["rola"]
+    session["serwis"] = bool(u.get("serwis"))
 
 
 def wyczysc_sesje():
-    session.pop("osoba", None)
-    session.pop("rola", None)
+    for k in ("osoba", "rola", "serwis"):
+        session.pop(k, None)
 
 
 def zalogowany():
@@ -208,7 +259,13 @@ def zalogowany():
     sesja jest podpisana kluczem serwera, więc nie da się jej podrobić."""
     if not session.get("osoba"):
         return None
-    return {"osoba": session["osoba"], "rola": session.get("rola", "handlowiec")}
+    # Sesja serwisowa przestaje działać w chwili, gdy tryb zostanie wyłączony.
+    # Bez tego restart bez `PIN_SERWISOWY` zostawiałby czynne ciastka na 30 dni.
+    if session.get("serwis") and not serwis_wlaczony():
+        wyczysc_sesje()
+        return None
+    return {"osoba": session["osoba"], "rola": session.get("rola", "handlowiec"),
+            "serwis": bool(session.get("serwis"))}
 
 
 def jest_koordynatorem():
