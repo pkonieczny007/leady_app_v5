@@ -28,10 +28,11 @@ import dostepnosc_view as dv
 import filtry as fl
 import przydzial as pz
 import repo
+import zwrot
 from db import (get_conn, wszystkie_slowniki, slownik, slownik_values, trener_colors,
                 zapisz_log, LEAD_FIELDS, JULIA_FIELDS, EVENT_FIELDS, PLACOWKA_FIELDS,
                 LEAD_KEYS, EVENT_KEYS, PLACOWKA_KEYS, SLOWNIK_RODZAJE, SLOWNIK_KLUCZE,
-                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy, opis_profilu)
+                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy, opis_profilu, pl_fold)
 from seed import bootstrap
 
 app = Flask(__name__)
@@ -284,6 +285,10 @@ def pulpit():
         "obciazenie": cv.obciazenie_trenerow(conn, month),
         "month": month, "month_label": cv.month_label(month), "miesiace": miesiace,
         "cel": CEL_TYGODNIOWY, "today": dzis(),
+        # automat zwrotu — koordynator ma widzieć, co WRÓCI, zanim wróci
+        "zagrozone": zwrot.zagrozone(conn, w_ciagu=7),
+        "do_zwrotu": zwrot.do_zwrotu(conn),
+        "karencja": zwrot.KARENCJA_DNI,
     }
     conn.close()
     return render_template("pulpit.html", **ctx)
@@ -740,6 +745,246 @@ def api_kandydaci():
                                                if k["kategoria"] == "wolny"))
 
 
+# ------------------------------------------------ formularz terenowy (v5)
+
+@app.route("/formularz")
+def formularz():
+    """
+    Ekran dla handlowca w terenie — telefon, tablet, jedna kolumna, cztery kroki.
+
+    Świadomie NIE jest to wariant `/lead/<id>`: tam jest gęsta karta do pracy
+    przy biurku, tu ma być formularz, który da się wypełnić stojąc na korytarzu
+    z dyrektorem obok. Zapis idzie jednym żądaniem na końcu, a nie polem po polu,
+    bo w terenie połączenie potrafi zniknąć w połowie.
+    """
+    conn = get_conn()
+    sl = wszystkie_slowniki(conn)
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    moje = []
+    if handlowiec:
+        f = repo.pusty_filtr()
+        f["handlowiec"] = handlowiec
+        f["zakres"] = "przydzielone"
+        moje = [{"lead_id": r["id"], "placowka_id": r["placowka_id"],
+                 "nazwa": r["placowka"], "miejscowosc": r["miejscowosc"] or "",
+                 "typ": r["typ_placowki"] or "", "adres": r["adres"] or "",
+                 "osoba_kontakt": r["osoba_kontakt"] or "", "telefon": r["telefon"] or "",
+                 "mail": r["mail"] or "", "moja": True, "deadline": r["deadline"] or "",
+                 "ma_dt": bool(r["dt_data"])}
+                for r in repo.filtruj_leady(conn, f, limit=300)]
+    ostrzezenia = zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else []
+    conn.close()
+    return render_template("formularz.html", slowniki=sl, handlowiec=handlowiec,
+                           moje=moje, ostrzezenia=ostrzezenia, today=dzis(),
+                           dzis_iso=dzis())
+
+
+@app.route("/api/placowki/szukaj")
+def api_placowki_szukaj():
+    """
+    Podpowiedzi do pola „szukaj szkoły". Wpisanie fragmentu nazwy ALBO miasta
+    ma wystarczyć — handlowiec nie ma przewijać listy kilkuset szkół kciukiem.
+
+    Szkoły przydzielone temu handlowcowi wychodzą PRZED pozostałymi, bo w 90%
+    przypadków wypełnia formularz właśnie dla jednej z nich.
+    """
+    q = (request.args.get("q") or "").strip()
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    if len(q) < 2:
+        return jsonify(ok=True, pozycje=[])
+    conn = get_conn()
+    like = "%" + pl_fold(q) + "%"
+    rows = conn.execute(
+        """
+        SELECT l.id AS lead_id, l.handlowiec, l.deadline,
+               p.id AS placowka_id, p.nazwa, p.miejscowosc, p.typ, p.adres,
+               p.osoba_kontakt, p.telefon, p.mail,
+               (SELECT COUNT(*) FROM eventy e WHERE e.lead_id=l.id
+                AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>'') AS n_dt
+        FROM leady l JOIN placowki p ON p.id = l.placowka_id
+        WHERE pl_fold(p.nazwa) LIKE ? OR pl_fold(p.miejscowosc) LIKE ?
+              OR pl_fold(p.adres) LIKE ?
+        ORDER BY p.nazwa LIMIT 60
+        """, (like, like, like)).fetchall()
+    conn.close()
+    poz = []
+    for r in rows:
+        d = dict(r)
+        d["moja"] = bool(handlowiec and d["handlowiec"] == handlowiec)
+        d["ma_dt"] = bool(d.pop("n_dt"))
+        poz.append(d)
+    # moje szkoły na górze, reszta alfabetycznie — sortowanie po stronie serwera,
+    # żeby kolejność była ta sama co w liście „moje szkoły" pod polem
+    poz.sort(key=lambda d: (not d["moja"], pl_fold(d["nazwa"])))
+    return jsonify(ok=True, pozycje=poz[:25])
+
+
+def _int_lub_none(v):
+    try:
+        return int(str(v).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+@app.route("/api/formularz", methods=["POST"])
+def api_formularz():
+    """
+    Zapis całego formularza terenowego JEDNYM żądaniem.
+
+    Powód, dla którego to nie jest ciąg wywołań `/api/lead` + `/api/event`:
+    w terenie połączenie zrywa się w środku. Albo zapisuje się całość, albo nic —
+    inaczej powstaje lead bez DT albo DT bez cyklu i handlowiec nie wie, co ma
+    poprawić. Wszystko idzie w jednej transakcji.
+    """
+    d = request.get_json(silent=True) or {}
+    conn = get_conn()
+
+    def blad(msg, kod=400):
+        conn.rollback()
+        conn.close()
+        return jsonify(ok=False, error=msg), kod
+
+    handlowiec = (d.get("handlowiec") or "").strip()
+    if handlowiec and handlowiec not in slownik_values(conn, "handlowiec"):
+        return blad("Nieznany handlowiec: %s" % handlowiec)
+
+    # --- 1. placówka i lead: istniejąca z listy albo zupełnie nowa -----------
+    lead_id = d.get("lead_id")
+    nowa = d.get("placowka") or {}
+    if lead_id:
+        row = conn.execute("SELECT id, placowka_id, handlowiec FROM leady WHERE id=?",
+                           (lead_id,)).fetchone()
+        if not row:
+            return blad("Nie ma takiego leada", 404)
+        placowka_id = row["placowka_id"]
+        # Formularz nie odbiera szkoły innemu handlowcowi po cichu — właściciela
+        # ustawiamy tylko wtedy, gdy szkoła jest niczyja.
+        if handlowiec and not (row["handlowiec"] or "").strip():
+            conn.execute("UPDATE leady SET handlowiec=? WHERE id=?", (handlowiec, lead_id))
+            zapisz_log(conn, lead_id=lead_id, kto=handlowiec, co="przypisanie z formularza",
+                       pole="handlowiec", przed=None, po=handlowiec)
+    else:
+        nazwa = (nowa.get("nazwa") or "").strip()
+        if not nazwa:
+            return blad("Podaj nazwę placówki")
+        pola = {}
+        for k in ("typ", "miejscowosc"):
+            v, e = _walidacja(conn, k, nowa.get(k), PLACOWKA_SLOWNIKI, PLACOWKA_KEYS)
+            if e:
+                return blad("%s: %s" % (k, e))
+            pola[k] = v
+        for k in ("adres", "osoba_kontakt", "telefon", "mail"):
+            pola[k] = (nowa.get(k) or "").strip() or None
+        cur = conn.execute(
+            "INSERT INTO placowki (nazwa, typ, miejscowosc, adres, osoba_kontakt, "
+            "telefon, mail, zrodlo) VALUES (?,?,?,?,?,?,?,?)",
+            (nazwa, pola["typ"], pola["miejscowosc"], pola["adres"],
+             pola["osoba_kontakt"], pola["telefon"], pola["mail"], "formularz"))
+        placowka_id = cur.lastrowid
+        cur = conn.execute(
+            "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) VALUES (?,?,?)",
+            (placowka_id, handlowiec or None, "01. Próba kontaktu (Brak konkretów)"))
+        lead_id = cur.lastrowid
+        zapisz_log(conn, lead_id=lead_id, kto=handlowiec or "formularz",
+                   co="nowa placówka z formularza", po=nazwa)
+
+    # dane kontaktowe da się uzupełnić także dla istniejącej szkoły — handlowiec
+    # często dopiero w terenie dowiaduje się, kto tak naprawdę decyduje
+    for k in ("osoba_kontakt", "telefon", "mail"):
+        v = (d.get("kontakt") or {}).get(k)
+        if v and str(v).strip():
+            conn.execute("UPDATE placowki SET %s=?, updated_at=datetime('now') "
+                         "WHERE id=?" % k, (str(v).strip(), placowka_id))
+
+    miasto = conn.execute("SELECT miejscowosc FROM placowki WHERE id=?",
+                          (placowka_id,)).fetchone()["miejscowosc"]
+
+    # --- 2. pola leada ------------------------------------------------------
+    for k in ("uwagi", "do_zrobienia", "mail_rodzice", "mail_wynajem", "status_szkoly"):
+        if k not in d:
+            continue
+        v, e = _walidacja(conn, k, d.get(k), LEAD_SLOWNIKI, LEAD_KEYS)
+        if e:
+            return blad("%s: %s" % (k, e))
+        if v:
+            conn.execute("UPDATE leady SET %s=?, updated_at=datetime('now') WHERE id=?"
+                         % k, (v, lead_id))
+
+    # --- 3. spotkania: DT i cykl -------------------------------------------
+    utworzone, kolizja = [], None
+    for typ, klucz in (("DT", "dt"), ("CYKLICZNE", "cykl")):
+        blok = d.get(klucz) or {}
+        if not blok:
+            continue
+        # DT bez daty nie ma sensu; cykl bez dnia tygodnia też nie
+        if typ == "DT" and not (blok.get("data") or "").strip():
+            continue
+        if typ == "CYKLICZNE" and not (blok.get("cykl_dzien") or "").strip():
+            continue
+
+        dane = {"typ": typ}
+        for k in EVENT_KEYS:
+            if k == "typ" or k not in blok:
+                continue
+            v, e = _walidacja(conn, k, blok.get(k), EVENT_SLOWNIKI, EVENT_KEYS)
+            if e:
+                return blad("%s: %s" % (k, e))
+            if k in INT_KEYS:
+                v = _int_lub_none(v)
+            if v not in (None, ""):
+                dane[k] = v
+
+        kolumny = ", ".join(["lead_id"] + list(dane.keys()))
+        znaki = ", ".join(["?"] * (len(dane) + 1))
+        cur = conn.execute("INSERT INTO eventy (%s) VALUES (%s)" % (kolumny, znaki),
+                           [lead_id] + list(dane.values()))
+        eid = cur.lastrowid
+        utworzone.append({"id": eid, "typ": typ})
+        zapisz_log(conn, lead_id=lead_id, event_id=eid, kto=handlowiec or "formularz",
+                   co="formularz terenowy", pole=typ,
+                   po="%s %s" % (dane.get("data") or dane.get("cykl_dzien") or "",
+                                 dane.get("godz_od") or ""))
+        if typ == "DT":
+            conn.execute("UPDATE leady SET status_realizacji=?, dt=?, "
+                         "updated_at=datetime('now') WHERE id=?",
+                         ("03. DT umówione", "01. Tak", lead_id))
+
+    conn.commit()
+
+    # kolizję liczymy PO commicie — to ostrzeżenie dla człowieka, nie warunek zapisu
+    for e in utworzone:
+        if e["typ"] == "DT":
+            kolizja = _ostrzezenie_kolizji(conn, e["id"])
+
+    nazwa = conn.execute("SELECT nazwa FROM placowki WHERE id=?",
+                         (placowka_id,)).fetchone()["nazwa"]
+    conn.close()
+    return jsonify(ok=True, lead_id=lead_id, placowka_id=placowka_id,
+                   placowka=nazwa, miasto=miasto, eventy=utworzone, kolizja=kolizja)
+
+
+# ------------------------------------------------ auto-zwrot po terminie (v5)
+
+@app.route("/api/zwrot", methods=["POST"])
+def api_zwrot():
+    """Ręczne uruchomienie automatu — koordynator nie musi czekać na przebieg."""
+    conn = get_conn()
+    zwrocone = zwrot.wykonaj(conn, kto="koordynator")
+    conn.close()
+    return jsonify(ok=True, n=len(zwrocone), zwrocone=zwrocone)
+
+
+@app.route("/api/zwrot/podglad")
+def api_zwrot_podglad():
+    """Co automat zwróci przy najbliższym przebiegu — do pokazania PRZED wykonaniem."""
+    conn = get_conn()
+    out = jsonify(ok=True, do_zwrotu=zwrot.do_zwrotu(conn),
+                  zagrozone=zwrot.zagrozone(conn),
+                  karencja=zwrot.KARENCJA_DNI)
+    conn.close()
+    return out
+
+
 @app.route("/api/rejon", methods=["POST"])
 def api_rejon_set():
     """Podmiana rejonu trenera: {trener, miasta:[...]}. Miasta walidowane słownikiem."""
@@ -976,6 +1221,26 @@ def f_bez_prefiksu(v):
     if len(s) > 4 and s[:2].isdigit() and s[2] == "b" and s[3] == ".":
         return s[4:].strip()
     return s
+
+
+@app.before_request
+def _automat_zwrotu():
+    """
+    Automat zwracający przeterminowane leady wisi na zwykłym ruchu w aplikacji,
+    a nie na cronie ani na wątku w tle. Powód praktyczny: cron na VPS potrafi
+    cicho przestać działać i nikt nie zauważa tego przez tydzień, a wątek ginie
+    przy restarcie gunicorna. Tutaj wystarczy, że ktokolwiek otworzy ekran.
+
+    Sam `przeglad()` pilnuje, żeby realnie przelecieć najwyżej raz na godzinę —
+    tu zostaje jedno tanie zapytanie o znacznik czasu.
+    """
+    if request.endpoint in (None, "static") or request.path.startswith("/static/"):
+        return
+    conn = get_conn()
+    try:
+        zwrot.przeglad(conn)
+    finally:
+        conn.close()
 
 
 @app.context_processor

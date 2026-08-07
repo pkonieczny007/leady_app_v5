@@ -294,6 +294,13 @@ def init_db(conn):
           UNIQUE(rodzaj, alias)
         );
 
+        -- Drobne stany samej aplikacji (nie dane klienta): np. kiedy ostatnio
+        -- przeleciał automat zwracający przeterminowane leady do puli.
+        CREATE TABLE IF NOT EXISTS meta (
+          klucz TEXT PRIMARY KEY,
+          wartosc TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS log (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           lead_id INTEGER,
@@ -391,6 +398,19 @@ def alias_map(conn, rodzaj=None):
     for r in rows:
         out.setdefault(r["rodzaj"], {})[r["alias"]] = r["wartosc"]
     return out
+
+
+# ------------------------------------------------------------------ meta
+
+def meta_get(conn, klucz, domyslnie=None):
+    r = conn.execute("SELECT wartosc FROM meta WHERE klucz=?", (klucz,)).fetchone()
+    return r["wartosc"] if r else domyslnie
+
+
+def meta_set(conn, klucz, wartosc):
+    conn.execute("INSERT INTO meta (klucz, wartosc) VALUES (?,?) "
+                 "ON CONFLICT(klucz) DO UPDATE SET wartosc=excluded.wartosc",
+                 (klucz, wartosc))
 
 
 # ------------------------------------------------------------------ log

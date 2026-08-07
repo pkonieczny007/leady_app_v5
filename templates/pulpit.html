@@ -55,6 +55,52 @@
 <div class="cols cols-2">
   {# ---------------------------------------------------------------- lewa kolumna #}
   <div>
+    {# --------------------------------------------- automat zwrotu do puli (v5)
+       Ze spotkania 06.08: szkoły po terminie mają wracać do nieprzydzielonych
+       SAME. Automat to robi, ale koordynator musi widzieć, co wróci — automat,
+       który po cichu zabiera pracę, zostanie obejściem, nie narzędziem. #}
+    <section class="section">
+      <h2 class="h2-inline">Wracają do puli
+        <span class="tag tag-outline small">automat · karencja {{ karencja }} dni</span>
+      </h2>
+      {% if zagrozone or do_zwrotu %}
+      <div class="table-scroll">
+        <table class="table table-tight">
+          <thead><tr>
+            <th>Za ile</th><th>Termin</th><th>Handlowiec</th><th>Placówka</th>
+            <th>Miejscowość</th><th></th>
+          </tr></thead>
+          <tbody>
+            {% for r in zagrozone %}
+            <tr>
+              <td class="nums {{ 'cell-overdue' if r.dni_do_zwrotu <= 0 }}">
+                {% if r.dni_do_zwrotu <= 0 %}teraz{% else %}{{ r.dni_do_zwrotu }} dni{% endif %}
+              </td>
+              <td class="nums muted small">{{ r.deadline|pl_data }}</td>
+              <td class="small">{{ r.handlowiec|bez_prefiksu or '—' }}</td>
+              <td class="strong">{{ r.placowka|krotka(30) }}</td>
+              <td class="muted small">{{ r.miejscowosc|bez_prefiksu }}</td>
+              <td class="right"><a class="small" href="{{ url_for('lead_detail', lead_id=r.id) }}">karta →</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="row-akcje">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-zwrot"
+                {{ 'disabled' if not do_zwrotu }}>
+          Zwróć teraz ({{ do_zwrotu|length }})
+        </button>
+        <span class="muted small">
+          Zwrot oddaje wyłącznie przypisanie i termin — notatki, kontakty i historia
+          zostają przy placówce.
+        </span>
+      </div>
+      {% else %}
+      <p class="empty">Nic nie wraca do puli w najbliższym tygodniu.</p>
+      {% endif %}
+    </section>
+
     <section class="section">
       <h2 class="h2-inline">Po terminie
         <span class="alert small">termin ostateczny minął, brak umówionego DT</span>
