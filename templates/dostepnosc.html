@@ -113,17 +113,22 @@
       </thead>
       <tbody>
         {% for w in t.wiersze %}
-        <tr>
-          <td class="cal-trener">{{ dot(w.kolor) }}{{ w.trener }}</td>
+        {# Edytowalny jest wiersz koordynatora (każdy) albo własny wiersz trenera.
+           Handlowiec widzi grafik, ale nie klika — zmiana cudzej deklaracji to
+           decyzja koordynatorki. Blokada jest też po stronie API, nie tylko tutaj. #}
+        {% set edytowalny = edycja_wszystkich or (moj_wiersz and w.trener == moj_wiersz) %}
+        <tr class="{{ 'av-moj-wiersz' if moj_wiersz and w.trener == moj_wiersz }}">
+          <td class="cal-trener">{{ dot(w.kolor) }}{{ w.trener }}{% if moj_wiersz and w.trener == moj_wiersz %} <span class="av-ty">to Ty</span>{% endif %}</td>
           {% for c in w.cells %}
-          <td class="cal-cell av-cell av-{{ c.status }}{{ ' cal-out' if not t.dni[loop.index0].in_month }}{{ ' cal-cell-today' if t.dni[loop.index0].dzis }}"
+          <td class="cal-cell av-cell av-{{ c.status }}{{ ' av-tylko-podglad' if not edytowalny }}{{ ' cal-out' if not t.dni[loop.index0].in_month }}{{ ' cal-cell-today' if t.dni[loop.index0].dzis }}"
               data-trener="{{ w.trener }}" data-data="{{ c.iso }}"
               data-od="{{ c.wpis.godz_od or '' if c.wpis else '' }}"
               data-do="{{ c.wpis.godz_do or '' if c.wpis else '' }}"
               data-nied="{{ 1 if c.wpis and c.wpis.niedostepny else 0 }}"
               data-uwagi="{{ c.wpis.uwagi or '' if c.wpis else '' }}"
-              tabindex="0" role="button"
-              title="{{ w.trener }} · {{ c.iso }} — kliknij, żeby edytować">
+              {% if edytowalny %}tabindex="0" role="button"
+              title="{{ w.trener }} · {{ c.iso }} — kliknij, żeby edytować"
+              {% else %}title="{{ w.trener }} · {{ c.iso }} — podgląd"{% endif %}>
             {% if c.status == 'niedostepny' %}
               <span class="av-status av-status-nie">niedostępny</span>
             {% elif c.status != 'brak' %}

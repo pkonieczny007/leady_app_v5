@@ -124,23 +124,25 @@ def _ramka(tresc, tlo, obwodka, szer=None):
     return t
 
 
+# (co można zrobić, trener, handlowiec, koordynator)
 UPRAWNIENIA = [
-    ("Formularz ustaleń (v1 i v2)", True, True),
-    ("Moje szkoły / lista leadów", "tylko swoje\n(da się zdjąć filtr)", "wszystkich"),
-    ("Karta szkoły — edycja, spotkania", True, True),
-    ("Plan tygodnia", True, True),
-    ("Kalendarz DT", True, True),
-    ("Dostępność trenerów", "podgląd", "edycja"),
-    ("Pulpit — liczby, kolizje, terminy", False, True),
-    ("Baza placówek — rozdawanie szkół", False, True),
-    ("Zbiorczy (umowy, dokumenty)", False, True),
-    ("Niewykorzystane rekordy", False, True),
-    ("Rejony trenerów", False, True),
-    ("Słowniki i aliasy", False, True),
-    ("Import z Excela", False, True),
-    ("Eksport do Excela", False, True),
-    ("Konta i PIN-y", False, True),
-    ("Ręczny zwrot szkół do puli", False, True),
+    ("Własna dostępność — podgląd i edycja", True, "podgląd", True),
+    ("Cudza dostępność — zmiana", False, False, True),
+    ("Kalendarz DT", True, True, True),
+    ("Formularz ustaleń (v1 i v2)", False, True, True),
+    ("Moje szkoły / lista leadów", False, "tylko swoje\n(da się zdjąć filtr)",
+     "wszystkich"),
+    ("Karta szkoły — edycja, spotkania", False, True, True),
+    ("Plan tygodnia", False, True, True),
+    ("Pulpit — liczby, kolizje, terminy", False, False, True),
+    ("Baza placówek — rozdawanie szkół", False, False, True),
+    ("Zbiorczy (umowy, dokumenty)", False, False, True),
+    ("Niewykorzystane rekordy", False, False, True),
+    ("Rejony trenerów", False, False, True),
+    ("Słowniki i aliasy", False, False, True),
+    ("Import / eksport Excela", False, False, True),
+    ("Konta i PIN-y", False, False, True),
+    ("Ręczny zwrot szkół do puli", False, False, True),
 ]
 
 
@@ -153,12 +155,13 @@ def _tabela_uprawnien():
         return Paragraph('<font color="#8a6516">%s</font>' % v.replace("\n", "<br/>"), S_MALY)
 
     dane = [[Paragraph("<b>Co można zrobić</b>", S_TEKST),
+             Paragraph("<b>Trener</b>", S_TEKST),
              Paragraph("<b>Handlowiec</b>", S_TEKST),
              Paragraph("<b>Koordynator</b>", S_TEKST)]]
-    for nazwa, h, k in UPRAWNIENIA:
-        dane.append([Paragraph(nazwa, S_TEKST), znak(h), znak(k)])
+    for nazwa, t_, h, k in UPRAWNIENIA:
+        dane.append([Paragraph(nazwa, S_TEKST), znak(t_), znak(h), znak(k)])
 
-    t = Table(dane, colWidths=[104 * mm, 35 * mm, 35 * mm], repeatRows=1)
+    t = Table(dane, colWidths=[84 * mm, 30 * mm, 30 * mm, 30 * mm], repeatRows=1)
     styl_t = [
         ("BACKGROUND", (0, 0), (-1, 0), GRANAT),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -185,7 +188,7 @@ def _tabela_kont(konta):
         pin = k.get("pin")
         dane.append([
             Paragraph(k["osoba"], S_TEKST),
-            Paragraph("koordynator" if k["rola"] == "koordynator" else "handlowiec", S_TEKST),
+            Paragraph(k["rola"], S_TEKST),
             Paragraph('<font face="%s" size="14">%s</font>' % (MONO, pin) if pin
                       else '<font color="#667085">bez zmian</font>', S_TEKST),
         ])
@@ -283,11 +286,18 @@ def buduj(sciezka, konta, profil, adres, ile_zmienionych):
     el.append(PageBreak())
 
     el.append(Paragraph("Co może kto", S_TYTUL))
-    el.append(Paragraph("Dwie role — reszta wynika z nich automatycznie.", S_PODTYTUL))
+    el.append(Paragraph("Trzy role — reszta wynika z nich automatycznie.", S_PODTYTUL))
     el.append(_tabela_uprawnien())
 
     el.append(Paragraph("Dlaczego handlowiec nie widzi wszystkiego", S_NAGL))
     el.append(Paragraph(
+        "<b>Trener</b> widzi swoją dostępność i kalendarz — leadów ani telefonów "
+        "do dyrektorów nie potrzebuje do swojej pracy, więc ich nie dostaje. "
+        "Edytuje wyłącznie swój wiersz grafiku; w zeszłorocznym pliku każdy mógł "
+        "nadpisać każdemu deklarację i nikt potem nie wiedział, czyja wersja jest "
+        "aktualna.<br/><br/>"
+        "<b>Handlowiec</b> grafik trenerów WIDZI — bez tego nie umówiłby DT — ale "
+        "go nie zmienia. Zmiana cudzej dostępności to decyzja koordynatorki.<br/><br/>"
         "Nie chodzi o zaufanie, tylko o to, żeby jednym kliknięciem nie dało się "
         "naruszyć pracy całego zespołu. Import z Excela w trybie „zastąp” potrafi "
         "wyczyścić bazę, a zmiana słownika przestawia listy na wszystkich ekranach "

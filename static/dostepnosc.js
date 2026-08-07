@@ -75,14 +75,18 @@
   document.addEventListener("click", function (ev) {
     if (editor && editor.contains(ev.target)) return;   // klik w sam edytor
     var td = ev.target.closest("td.av-cell");
-    if (td) { otworz(td); return; }
+    // Komórka oznaczona jako podgląd należy do kogoś innego (trener) albo do
+    // roli bez prawa zmiany (handlowiec). Serwer i tak by odmówił — nie
+    // otwieramy edytora, żeby nie obiecywać czegoś, co się nie uda.
+    if (td && !td.classList.contains("av-tylko-podglad")) { otworz(td); return; }
     zamknij();                                          // klik gdziekolwiek indziej
   });
 
   document.addEventListener("keydown", function (ev) {
     if (ev.key === "Escape") zamknij();
     if (ev.key === "Enter" && ev.target.classList
-        && ev.target.classList.contains("av-cell")) otworz(ev.target);
+        && ev.target.classList.contains("av-cell")
+        && !ev.target.classList.contains("av-tylko-podglad")) otworz(ev.target);
   });
 
   document.addEventListener("change", function (ev) {

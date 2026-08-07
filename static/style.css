@@ -1049,3 +1049,14 @@ tr.flash td{animation:flash .9s ease-out}
 .pasek-serwis{
   background:repeating-linear-gradient(45deg,#b3123c,#b3123c 12px,#8d0e2f 12px,#8d0e2f 24px);
 }
+
+/* Dostępność: komórki bez prawa edycji (v5). Kursor i brak podświetlenia mówią
+   „popatrz, nie klikaj" — zanim ktoś kliknie i dostanie odmowę z serwera. */
+.av-tylko-podglad{cursor:default}
+.av-tylko-podglad:hover{background:inherit}
+.av-moj-wiersz .cal-trener{background:var(--accent-l);font-weight:700}
+.av-ty{
+  display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;
+  background:var(--cyan-d);color:#fff;font-size:10.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+}

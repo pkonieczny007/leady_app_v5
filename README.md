@@ -42,9 +42,21 @@ więc nie powstaje lead bez DT.
 Projekt: `docs/11_PLAN_v5.md`, testy: `python test_formularz.py`.
 
 **Nowość v5: logowanie PIN-em i role** (`uzytkownicy.py`) — wybór osoby z listy
-plus czterocyfrowy PIN na własnej klawiaturze ekranowej, sesja 30 dni. Dwie role:
-**koordynator** (rozdaje szkoły, słowniki, import, konta) i **handlowiec**
-(formularz i swoje szkoły). Handlowiec ma **filtr własnych szkół przypięty
+plus czterocyfrowy PIN na własnej klawiaturze ekranowej, sesja 30 dni. **Trzy role:**
+
+| | trener | handlowiec | koordynator |
+|---|---|---|---|
+| Własna dostępność — podgląd i edycja | ✅ | podgląd | ✅ |
+| Cudza dostępność — zmiana | ❌ | ❌ | ✅ |
+| Kalendarz DT | ✅ | ✅ | ✅ |
+| Formularz, moje szkoły, plan tygodnia | ❌ | ✅ | ✅ |
+| Baza, zbiorczy, słowniki, import, konta | ❌ | ❌ | ✅ |
+
+**Trener** edytuje wyłącznie swój wiersz grafiku — w ich zeszłorocznym pliku każdy
+mógł nadpisać każdemu deklarację i nikt potem nie wiedział, czyja wersja jest
+aktualna. **Handlowiec** grafik widzi (bez tego nie umówi DT), ale go nie zmienia.
+Konta zakładają się same ze słowników `handlowiec` i `trener`; osoba figurująca
+w obu zachowuje szerszą rolę. Handlowiec ma **filtr własnych szkół przypięty
 domyślnie, ale jawny i zdejmowalny** — po przejściu na inny ekran wraca sam.
 PIN-y trzymane jako PBKDF2 z solą per konto; po 5 błędnych próbach konto blokuje
 się, a nadanie nowego PIN-u je odblokowuje. Panel `/uzytkownicy` pokazuje PIN
@@ -262,6 +274,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
+python test_trener.py         # 48 sprawdzeń — rola trenera, dostępność tylko własna (v5)
 python test_serwis.py         # 30 sprawdzeń — tryb serwisowy i jego ograniczenia (v5)
 python test_logowanie.py      # 75 sprawdzeń — logowanie, role, filtr „moje”, CSRF (v5)
 python test_formularz.py      # 93 sprawdzenia — oba warianty, awaria przy zapisie, auto-zwrot (v5)
