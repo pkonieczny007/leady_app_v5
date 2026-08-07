@@ -171,9 +171,11 @@ def main():
     r = KL.get("/formularz")
     sprawdz("/formularz zwraca 200", r.status_code == 200)
     html = r.get_data(as_text=True)
-    sprawdz("pokazuje DWA kafelki wariantów", html.count("fw-kafel-naglowek") == 2)
-    sprawdz("kafelki prowadzą do obu wariantów",
+    sprawdz("pokazuje DWA linki, nie kafelki", html.count('class="fw-link"') == 2)
+    sprawdz("linki prowadzą do obu wariantów",
             "/formularz/kroki" in html and "/formularz/ciagly" in html)
+    sprawdz("nazwy wariantów jak ustalone",
+            "FORMULARZ v1" in html and "Formularz v2" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -226,6 +228,59 @@ def main():
     sprawdz("oznacza szkoły handlowca", any(p["moja"] for p in poz))
     sprawdz("bez miasta zwraca pustą listę",
             KL.get("/api/placowki").get_json()["pozycje"] == [])
+
+    # ================================================ A1 — awaria przy zapisie
+    print("\nA1 — awaria w trakcie wysyłki: ponowienie nie tworzy dubla")
+
+    # Scenariusz: zapis DOSZEDŁ, ale odpowiedź nie wróciła (zerwane LTE).
+    # Formularz uzna to za błąd i zaproponuje „Ponów wysyłkę". Bez ochrony
+    # druga próba stworzyłaby drugą szkołę i drugie DT.
+    payload = {
+        "handlowiec": H,
+        "klucz_zapisu": "test-klucz-abc123",
+        "placowka": {"nazwa": "SP 7 Zerwane Polaczenie", "miejscowosc": M},
+        "mail_rodzice": "01. Tak",
+        "dt": {"data": dni(18), "godz_od": "11:00", "trener": T,
+               "ilosc_klas": "2", "ilosc_dzieci": "40"},
+    }
+    kod1, o1 = post("/api/formularz", payload)
+    kod2, o2 = post("/api/formularz", payload)          # to samo, drugi raz
+    sprawdz("pierwsza wysyłka przechodzi", kod1 == 200)
+    sprawdz("ponowienie też odpowiada 200", kod2 == 200)
+    sprawdz("ponowienie zwraca TEN SAM lead",
+            (o1 or {}).get("lead_id") == (o2 or {}).get("lead_id"))
+    sprawdz("ponowienie oznaczone jako powtórka", (o2 or {}).get("powtorka") is True)
+
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM placowki WHERE nazwa=?",
+                       ("SP 7 Zerwane Polaczenie",)).fetchone()["c"]
+    sprawdz("powstała DOKŁADNIE JEDNA placówka, nie dwie", ile == 1, "jest %d" % ile)
+    ile_dt = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=? AND typ='DT'",
+                          ((o1 or {}).get("lead_id"),)).fetchone()["c"]
+    sprawdz("powstało DOKŁADNIE JEDNO DT, nie dwa", ile_dt == 1, "jest %d" % ile_dt)
+    conn.close()
+
+    # bez klucza (stary klient / ponowne kliknięcie) dubel powstaje — to celowe,
+    # bo nie mamy jak odróżnić powtórki od świadomego drugiego wpisu
+    bez = dict(payload); bez.pop("klucz_zapisu")
+    bez["placowka"] = {"nazwa": "SP 8 Bez Klucza", "miejscowosc": M}
+    kod3, o3 = post("/api/formularz", bez)
+    kod4, o4 = post("/api/formularz", bez)
+    sprawdz("bez klucza zapisu obie próby tworzą osobne leady",
+            kod3 == 200 and kod4 == 200
+            and (o3 or {}).get("lead_id") != (o4 or {}).get("lead_id"))
+
+    print("\nA2 — pełny ekran i wyjście przez „Zakończ”")
+    for adres, znacznik in (("/formularz/kroki", "v1"), ("/formularz/ciagly", "v2")):
+        html = KL.get(adres + "?handlowiec=" + H).get_data(as_text=True)
+        sprawdz("%s: brak nawigacji aplikacji" % znacznik,
+                'class="nav' not in html and "Kalendarz DT</a>" not in html)
+        sprawdz("%s: własny pasek z przyciskiem Zakończ" % znacznik,
+                'class="f-pasek"' in html and "Zakończ</a>" in html)
+        sprawdz("%s: body oznaczone jako pełny ekran" % znacznik,
+                "f-pelny-ekran" in html)
+        sprawdz("%s: dołączony moduł obsługi awarii" % znacznik,
+                "formularz_awaria.js" in html)
 
     print("\nF6 — wyszukiwarka szkół (wariant 1)")
     r = KL.get("/api/placowki/szukaj?q=" + "sp 1")

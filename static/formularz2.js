@@ -34,6 +34,11 @@
 
   var moje = window.FX_MOJE || [];
 
+  // Obsługa awarii (szkic, ostrzeżenie przy wyjściu, kolejka „niewysłane")
+  // siedzi w formularz_awaria.js — jest wspólna dla obu wariantów.
+  var awaria = null;
+  var zapisano = false;
+
   /* ------------------------------------------------------------ pomocnicze */
 
   var toastEl = null, toastTimer = null;
@@ -347,14 +352,22 @@
     btnZapisz.disabled = true;
     var stary = btnZapisz.innerHTML;
     btnZapisz.textContent = "Zapisuję…";
-    api("POST", "/api/formularz", zbierz())
+    var payload = zbierz();
+    // Klucz próby — chroni przed dublem, gdy zapis dojdzie, a odpowiedź nie wróci.
+    payload.klucz_zapisu = FxAwaria.losowyKlucz();
+    api("POST", "/api/formularz", payload)
       .then(function (j) {
         localStorage.removeItem(KLUCZ_SZKICU);
+        if (awaria) awaria.wyczysc();
+        zapisano = true;
         pokazSukces(j);
       })
       .catch(function (e) {
         btnZapisz.disabled = false;
         btnZapisz.innerHTML = stary;
+        // Treść formularza zostaje w kolejce „niewysłane" — do ponowienia
+        // jednym kliknięciem, gdy wróci zasięg.
+        if (awaria) awaria.zapamietaj(payload, e.message);
         toast("Nie zapisano: " + e.message, true);
       });
   });
@@ -469,6 +482,26 @@
   });
 
   /* =================================================================== START */
+
+  function czyCosWpisane() {
+    if (zapisano) return false;
+    if (stan.wybrana || stan.nowa) return true;
+    return POLA.some(function (id) {
+      var el = $(id);
+      return el && String(el.value || "").trim();
+    });
+  }
+
+  awaria = FxAwaria.utworz({
+    klucz: "f2-niewyslany-v1",
+    kontener: root,
+    handlowiec: stan.handlowiec,
+    toast: toast,
+    naSukces: function (j) { zapisano = true; pokazSukces(j); }
+  });
+
+  FxAwaria.pilnujWyjscia(czyCosWpisane);
+  FxAwaria.pilnujZakonczenia($("f2-zakoncz"), czyCosWpisane);
 
   if (stan.handlowiec) wczytajSzkic();
 })();

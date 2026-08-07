@@ -1,9 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Formularz ustaleń (typ 2){% endblock %}
 {% block wrap_class %}f2-strona{% endblock %}
+{% block body_class %}f-pelny-ekran{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='formularz2.css') }}">
 {% endblock %}
+
+{# Pełne okno — jak w wariancie 1. Wyjście jedno i jawne: „Zakończ”. #}
+{% block topbar %}
+<header class="f-pasek">
+  <span class="f-pasek-tytul">Formularz ustaleń <span class="f-pasek-wariant">v2</span></span>
+  <a class="f-pasek-wyjscie" href="{{ url_for('formularz') }}" id="f2-zakoncz">Zakończ</a>
+</header>
+{% endblock %}
+
+{% block stopka %}{% endblock %}
 
 {#
   WARIANT 2 — jeden ciągły formularz, przewijany w dół.
@@ -45,7 +56,6 @@
     {% else %}
       <a href="{{ url_for('formularz') }}">Wybierz, kto wypełnia →</a>
     {% endif %}
-    <a class="f2-przelacz" href="{{ url_for('formularz') }}">zmień wariant</a>
   </p>
 
   {% if ostrzezenia %}
@@ -299,5 +309,6 @@
 <script>
   window.FX_MOJE = {{ moje|tojson }};
 </script>
+<script src="{{ url_for('static', filename='formularz_awaria.js') }}"></script>
 <script src="{{ url_for('static', filename='formularz2.js') }}"></script>
 {% endblock %}

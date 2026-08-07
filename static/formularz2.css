@@ -141,71 +141,37 @@ select.f2-pole{
 .f2-szkic{margin:14px 0 0;font-size:12.5px;color:var(--muted);text-align:center}
 
 /* =============================================================================
-   EKRAN WYBORU WARIANTU (formularz_wybor.html)
+   EKRAN WYBORU WARIANTU — dwa linki na środku.
+
+   Poprzednia wersja miała kafelki z podglądem i listą zalet; na telefonie się
+   rozjeżdżała, a przy drugim wejściu nikt ich nie czyta. Zostaje to, co jest
+   potrzebne za każdym razem: kto wypełnia i którym formularzem.
    ============================================================================= */
 
-.fw-strona{max-width:940px;margin:0 auto;padding:0 14px 40px}
-.fw-head{padding:22px 2px 14px}
-.fw-head h1{margin:0 0 8px;font-size:24px;line-height:1.25;color:var(--brand);font-weight:700}
-.fw-lead{margin:0;max-width:64ch;font-size:15px;line-height:1.55;color:var(--ink-2)}
-.fw-kto{margin-bottom:20px}
+.fw-strona{max-width:460px;margin:0 auto;padding:0 16px 40px}
+.fw{
+  display:flex;flex-direction:column;align-items:center;
+  min-height:70dvh;justify-content:center;text-align:center;
+}
+.fw-tytul{
+  margin:0 0 26px;font-size:22px;line-height:1.3;font-weight:700;color:var(--brand);
+}
+.fw-etykieta{
+  align-self:flex-start;margin-bottom:6px;
+  font-size:14px;font-weight:600;color:var(--ink-2);
+}
+.fw-kto-pole{margin-bottom:26px}
 
-.fw-kafle{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-@media (max-width:760px){.fw-kafle{grid-template-columns:1fr}}
+.fw-linki{display:flex;flex-direction:column;gap:12px;width:100%}
+.fw-link{
+  display:block;width:100%;min-height:56px;padding:16px;
+  border-radius:var(--radius-md);border:2px solid var(--cyan-d);
+  background:var(--panel);color:var(--cyan-t);text-decoration:none;
+  /* ta sama czcionka i wielkość dla obu — żaden wariant nie jest podpowiadany */
+  font:600 17px/1.4 "Segoe UI",system-ui,sans-serif;
+}
+.fw-link:hover{background:var(--accent-l)}
 
-.fw-kafel{
-  display:flex;flex-direction:column;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
-  box-shadow:var(--shadow);padding:18px;
-}
-.fw-kafel-naglowek{margin-bottom:14px}
-.fw-odznaka{
-  display:inline-block;padding:3px 10px;margin-bottom:8px;border-radius:99px;
-  font:700 11px/1.5 "Segoe UI",system-ui,sans-serif;letter-spacing:.07em;
-  text-transform:uppercase;color:#fff;
-}
-.fw-odznaka-1{background:var(--grad-cyan)}
-.fw-odznaka-2{background:var(--grad-brand)}
-.fw-kafel h2{margin:0;font-size:20px;color:var(--brand);font-weight:700;line-height:1.25}
-.fw-podtytul{margin:3px 0 0;font-size:14px;color:var(--muted)}
-
-/* Podgląd rysowany CSS-em zamiast zrzutem ekranu: zawsze zgodny z tym, co jest
-   realnie w środku, i nie waży nic przy wczytywaniu na LTE. */
-.fw-podglad{
-  padding:12px;margin-bottom:14px;border-radius:var(--radius-md);
-  background:var(--bg);border:1px solid var(--line-2);
-}
-.fw-p-kroki{display:flex;gap:5px;margin-bottom:8px}
-.fw-p-krok{flex:1;height:6px;border-radius:99px;background:var(--line)}
-.fw-p-krok.on{background:var(--cyan-d)}
-.fw-p-karta{
-  display:flex;flex-direction:column;gap:7px;padding:10px;border-radius:var(--radius-sm);
-  background:var(--panel);border:1px solid var(--line-2);
-}
-.fw-p-karta.wysoka{gap:6px}
-.fw-p-tytul{height:8px;width:44%;border-radius:99px;background:var(--accent-b)}
-.fw-p-pole{height:20px;border-radius:4px;background:var(--fill);border:1px solid var(--fill-b)}
-.fw-p-pole.duze{height:26px}
-.fw-p-wynik{height:14px;border-radius:4px;background:var(--panel-2);border:1px solid var(--line-2)}
-.fw-p-wynik.krotki{width:70%}
-.fw-p-para{display:flex;gap:6px}
-.fw-p-para i{
-  flex:1;height:20px;border-radius:4px;background:var(--fill);border:1px solid var(--fill-b);
-}
-.fw-p-stopka{display:flex;gap:6px;margin-top:8px}
-.fw-p-btn{flex:1;height:16px;border-radius:4px;background:var(--cyan-d)}
-.fw-p-btn.puste{background:var(--panel);border:1px solid var(--line)}
-
-.fw-zalety{margin:0 0 12px;padding:0 0 0 18px;font-size:14px;line-height:1.6;color:var(--ink-2)}
-.fw-zalety li{margin-bottom:4px}
-.fw-dla{
-  margin:0 0 14px;padding:9px 12px;border-radius:var(--radius-sm);
-  background:var(--filtr);border:1px solid var(--filtr-b);
-  font-size:13.5px;color:var(--filtr-t);
-}
-.fw-btn{margin-top:auto;display:flex;align-items:center;justify-content:center;
-  text-decoration:none;width:100%}
-.fw-stopka{
-  margin:0;padding:14px;border-radius:var(--radius-md);background:var(--panel-2);
-  border:1px solid var(--line-2);font-size:13.5px;line-height:1.55;color:var(--muted);
+.fw-nota{
+  margin:24px 0 0;font-size:13px;line-height:1.6;color:var(--muted);
 }

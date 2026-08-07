@@ -301,6 +301,18 @@ def init_db(conn):
           wartosc TEXT
         );
 
+        -- Ślad wysłanych formularzy terenowych — po to, żeby „Ponów wysyłkę"
+        -- było bezpieczne. Scenariusz: handlowiec naciska Zapisz, serwer
+        -- zapisuje, ale odpowiedź nie wraca (zerwane LTE). Formularz uznaje to
+        -- za błąd i proponuje ponowienie. Bez tej tabeli druga próba stworzyłaby
+        -- DRUGĄ szkołę i DRUGIE DT. Klucz nadaje przeglądarka, jeden na próbę.
+        CREATE TABLE IF NOT EXISTS zapisy_formularza (
+          klucz TEXT PRIMARY KEY,
+          lead_id INTEGER,
+          odpowiedz TEXT,
+          kiedy TEXT DEFAULT (datetime('now'))
+        );
+
         CREATE TABLE IF NOT EXISTS log (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           lead_id INTEGER,
