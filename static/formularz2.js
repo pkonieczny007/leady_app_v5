@@ -20,6 +20,11 @@
 (function () {
   "use strict";
 
+  function tokenCsrf() {
+    var m = document.querySelector('meta[name="csrf"]');
+    return m ? m.content : "";
+  }
+
   var root = document.getElementById("f2");
   if (!root) return;
 
@@ -54,7 +59,7 @@
   }
 
   function api(metoda, url, dane) {
-    var o = { method: metoda, headers: {} };
+    var o = { method: metoda, headers: { "X-CSRF": tokenCsrf() } };
     if (dane !== undefined) {
       o.headers["Content-Type"] = "application/json";
       o.body = JSON.stringify(dane);

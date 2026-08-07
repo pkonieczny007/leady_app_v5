@@ -6,6 +6,8 @@
 <title>{% block title %}System Leadów{% endblock %} · System Leadów</title>
 {# Czcionka systemowa (Segoe UI) — jak w pierwszej wersji i jak w generatorze raportów.
    Żadnego pobierania z zewnątrz: na VPS bez internetu strona wygląda tak samo. #}
+{# Token CSRF — app.js dokleja go do każdego żądania zapisu. #}
+<meta name="csrf" content="{{ csrf }}">
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -40,25 +42,39 @@
 
     {# Na ekranie formularza (telefon) nawigacja aplikacji tylko zabiera miejsce —
        handlowiec w terenie używa wyłącznie tego jednego ekranu. #}
-    <nav class="nav{{ '' if false }}">
+    {# Nawigacja wg roli. Handlowiec dostaje trzy pozycje, których realnie
+       używa — baza do rozdania, słowniki i import to praca koordynatorki,
+       a przypadkowe kliknięcie w import potrafi naruszyć dane wszystkich. #}
+    <nav class="nav">
       <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">Formularz</a>
-      <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
-      <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
-      <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">Leady</a>
+      <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">{{ 'Moje szkoły' if ja and ja.rola == 'handlowiec' else 'Leady' }}</a>
       <a href="{{ url_for('tydzien') }}"        class="{{ 'on' if nav_active == 'tydzien' }}">Tydzień</a>
-      <a href="{{ url_for('zbiorczy') }}"       class="{{ 'on' if nav_active == 'zbiorczy' }}">Zbiorczy</a>
-      <a href="{{ url_for('niewykorzystane') }}" class="{{ 'on' if nav_active == 'niewykorzystane' }}">Niewykorzystane</a>
       <a href="{{ url_for('kalendarz') }}"      class="{{ 'on' if nav_active == 'kalendarz' }}">Kalendarz DT</a>
       <a href="{{ url_for('dostepnosc') }}"     class="{{ 'on' if nav_active == 'dostepnosc' }}">Dostępność</a>
+      {% if ja and ja.rola == 'koordynator' %}
+      <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
+      <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
+      <a href="{{ url_for('zbiorczy') }}"       class="{{ 'on' if nav_active == 'zbiorczy' }}">Zbiorczy</a>
+      <a href="{{ url_for('niewykorzystane') }}" class="{{ 'on' if nav_active == 'niewykorzystane' }}">Niewykorzystane</a>
       <a href="{{ url_for('rejony') }}"         class="{{ 'on' if nav_active == 'rejony' }}">Rejony</a>
       <a href="{{ url_for('slowniki_view') }}"  class="{{ 'on' if nav_active == 'slowniki_view' }}">Słowniki</a>
+      <a href="{{ url_for('uzytkownicy_view') }}" class="{{ 'on' if nav_active == 'uzytkownicy_view' }}">Konta</a>
+      {% endif %}
     </nav>
 
-    <div class="topbar-right{{ '' if false }}">
+    <div class="topbar-right">
+      {% if ja and ja.rola == 'koordynator' %}
       <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
          title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
       <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
          href="{{ url_for('import_view') }}">↑ Import</a>
+      {% endif %}
+      {% if ja %}
+      <span class="kto-zalogowany" title="Zalogowano jako {{ ja.osoba }} ({{ ja.rola }})">
+        {{ ja.osoba|bez_prefiksu }}
+      </span>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('wyloguj') }}">Wyloguj</a>
+      {% endif %}
     </div>
   </div>
 </header>

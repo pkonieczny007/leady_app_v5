@@ -41,6 +41,17 @@ utrata zasięgu w połowie nie kasuje wpisanego tekstu — i zapis JEDNYM żąda
 więc nie powstaje lead bez DT.
 Projekt: `docs/11_PLAN_v5.md`, testy: `python test_formularz.py`.
 
+**Nowość v5: logowanie PIN-em i role** (`uzytkownicy.py`) — wybór osoby z listy
+plus czterocyfrowy PIN na własnej klawiaturze ekranowej, sesja 30 dni. Dwie role:
+**koordynator** (rozdaje szkoły, słowniki, import, konta) i **handlowiec**
+(formularz i swoje szkoły). Handlowiec ma **filtr własnych szkół przypięty
+domyślnie, ale jawny i zdejmowalny** — po przejściu na inny ekran wraca sam.
+PIN-y trzymane jako PBKDF2 z solą per konto; po 5 błędnych próbach konto blokuje
+się, a nadanie nowego PIN-u je odblokowuje. Panel `/uzytkownicy` pokazuje PIN
+raz, przy nadaniu. Do tego token CSRF na wszystkich zapisach i `kto` w historii
+zmian brany z sesji zamiast dotychczasowego „demo".
+Testy: `python test_logowanie.py` (75 sprawdzeń).
+
 **Nowość v5: auto-zwrot po terminie** (`zwrot.py`) — szkoły po terminie wracają
 do puli nieprzydzielonych SAME. Z karencją (`KARENCJA_DNI`, domyślnie 2),
 z ostrzeżeniem „wraca do puli za N dni" u handlowca i na pulpicie, i **bez kasowania
@@ -138,7 +149,9 @@ Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `lea
 | `CEL_TYGODNIOWY` | `5` | „minimum na tydzień" — ile DT ma umówić handlowiec |
 | `NA_STRONE` | `150` | ile wierszy na stronę listy |
 | `PLIK_PH_NOWY` | ścieżka do pliku klienta | źródło danych demo |
-| `SECRET_KEY` | `leady-v3-demo` | klucz sesji Flask |
+| `SECRET_KEY` | `leady-v3-demo` | klucz sesji Flask — **na produkcji ustaw wlasny**, inaczej da się podrobić sesję |
+| `PIN_KOORDYNATORA` | `0000` | PIN startowy konta `Koordynator` przy pierwszym uruchomieniu (v5) |
+| `HTTPS` | — | ustaw cokolwiek za reverse proxy z HTTPS — włącza `Secure` na ciastku sesji (v5) |
 | `PROFIL` | `test` | która baza: `prod` / `test` / `pusta` (v5) |
 | `KARENCJA_DNI` | `2` | ile dni po terminie zanim lead wróci do puli (v5) |
 | `OSTRZEZENIE_DNI` | `3` | z ilodniowym wyprzedzeniem ostrzegać handlowca (v5) |
@@ -149,7 +162,9 @@ Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `lea
 
 | Ścieżka | Odpowiada zakładce klienta | Co robi |
 |---|---|---|
-| `/formularz` | — | **NOWE v5** — wybór wariantu formularza: dwa kafelki do pokazania klientowi |
+| `/logowanie` | — | **NOWE v5** — wybór osoby + PIN na klawiaturze ekranowej |
+| `/uzytkownicy` | — | **NOWE v5** — panel koordynatora: konta, role, nadawanie i reset PIN-ów |
+| `/formularz` | — | **NOWE v5** — wybór wariantu formularza: dwa linki |
 | `/formularz/kroki` | — | **wariant 1** — cztery kroki, jedna kolumna, wyszukiwarka szkół; pod telefon |
 | `/formularz/ciagly` | — | **wariant 2** — jeden ciągły formularz wg makiety klienta z 06.08, para list miejscowość→placówka; pod komputer i tablet |
 | `/pulpit` | — | liczby, kolizje trenerów, **co wraca do puli (v5)**, po terminie, realizacja minimum tygodniowego, obciążenie trenerów |
@@ -209,6 +224,7 @@ Dwie decyzje warte uwagi:
 | `calendar_view.py` | trzy widoki kalendarza, rozwijanie cykli, wykrywanie kolizji |
 | `dostepnosc_view.py` | dostępność trenerów: stany komórki, wolne okna, ostrzeżenia (v2) |
 | `przydzial.py` | ranking kandydatów na spotkanie + rejony trenerów (v4) |
+| `uzytkownicy.py` | konta, PIN-y (PBKDF2), role, sesja, blokada po błędnych próbach (v5) |
 | `zwrot.py` | auto-zwrot przeterminowanych leadów do puli: karencja, ostrzeżenia, przebieg (v5) |
 | `static/formularz_awaria.js` | co się dzieje przy awarii w trakcie wypełniania: szkic, ostrzeżenie przy wyjściu, kolejka „niewysłane” z ponowieniem (v5) |
 | `narzedzia/baza.py` | profile baz, kopie zapasowe i przywracanie (v5) |
@@ -226,6 +242,7 @@ python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
 python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
+python test_logowanie.py      # 75 sprawdzeń — logowanie, role, filtr „moje”, CSRF (v5)
 python test_formularz.py      # 93 sprawdzenia — oba warianty, awaria przy zapisie, auto-zwrot (v5)
 ```
 
@@ -268,6 +285,8 @@ W `docs/`:
 - **RSPO przez API** — import jest z pliku.
 - ~~Crona pilnującego terminów~~ — **jest w v5**: `zwrot.py` oddaje przeterminowane
   leady do puli sam, bez crona. Ręczne „Zwróć teraz" zostaje na pulpicie.
-- **Logowania PIN-em i ról** — następny etap v5, po formularzu.
+- ~~Logowania i ról~~ — **jest w v5**: PIN, dwie role, filtr własnych szkół.
+  Poza zakresem zostało logowanie trenerów (oni nie mają jeszcze kont) i pełny
+  dziennik audytu — historia notuje autora, ale nie każdy odczyt.
 - **Pracy offline** — formularz działa online, szkic trzyma się w telefonie.
   Kolejka wysyłkowa po odzyskaniu zasięgu to etap po wdrożeniu.

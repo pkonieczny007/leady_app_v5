@@ -37,6 +37,11 @@
 (function () {
   "use strict";
 
+  function tokenCsrf() {
+    var m = document.querySelector('meta[name="csrf"]');
+    return m ? m.content : "";
+  }
+
   function losowyKlucz() {
     // Wystarczy unikalność w obrębie jednego handlowca i jednego dnia —
     // nie jest to identyfikator kryptograficzny.
@@ -46,7 +51,7 @@
   function api(url, dane) {
     return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRF": tokenCsrf() },
       body: JSON.stringify(dane)
     }).then(function (r) {
       return r.json().catch(function () { return { ok: r.ok }; }).then(function (j) {

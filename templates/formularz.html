@@ -43,22 +43,11 @@
     {% if handlowiec %}
       Wypełnia: <b>{{ handlowiec }}</b>
     {% else %}
-      <span class="fx-brak-kto">wybierz siebie z listy poniżej</span>
+      <span class="fx-brak-kto">wypełniasz bez wskazanej osoby</span>
     {% endif %}
   </p>
 
-  {# Do czasu logowania (etap PIN) handlowiec wybiera się z listy. Wybór ląduje
-     w adresie, więc zakładka „dodaj do ekranu początkowego" pamięta osobę. #}
-  {% if not handlowiec %}
-  <div class="fx-karta fx-karta-wybor">
-    <label class="fx-etykieta" for="fx-kto">Kto wypełnia?</label>
-    <select id="fx-kto" class="fx-pole">
-      <option value="">— wybierz siebie —</option>
-      {% for h in slowniki.handlowiec %}<option value="{{ h }}">{{ h }}</option>{% endfor %}
-    </select>
-    <p class="fx-podpowiedz">Zapamiętamy wybór na tym telefonie.</p>
-  </div>
-  {% endif %}
+
 
   {# ----------------------------------------- ostrzeżenia o zwrocie do puli #}
   {% if ostrzezenia %}

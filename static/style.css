@@ -1027,3 +1027,20 @@ tr.flash td{animation:flash .9s ease-out}
   margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2);
 }
 .row-akcje .small{flex:1;min-width:220px;line-height:1.4}
+
+/* Wskaźnik domyślnego filtra „moje szkoły" (v5). Filtr jest przypięty, ale
+   jawny — widać, że działa, i widać jak go zdjąć jednym kliknięciem. */
+.moj-filtr{
+  display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin:6px 0 0;padding:4px 12px;border-radius:99px;
+  background:var(--accent-l);border:1px solid var(--accent-b);
+  font-size:13px;color:var(--cyan-t);
+}
+.moj-filtr a{font-weight:600}
+.moj-filtr-off{background:var(--amber-l);border-color:var(--amber);color:var(--amber-d)}
+
+/* Kto jest zalogowany — w pasku górnym, obok „Wyloguj" */
+.kto-zalogowany{
+  padding:0 10px;font-size:13px;font-weight:600;color:#fff;opacity:.9;
+  white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;
+}

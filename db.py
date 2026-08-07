@@ -427,8 +427,20 @@ def meta_set(conn, klucz, wartosc):
 
 # ------------------------------------------------------------------ log
 
-def zapisz_log(conn, *, lead_id=None, event_id=None, kto="demo", co="", pole=None,
+def zapisz_log(conn, *, lead_id=None, event_id=None, kto=None, co="", pole=None,
                przed=None, po=None):
+    """
+    Ślad zmiany. `kto` domyślnie bierze się z zalogowanej sesji — do v4 wpisywało
+    się tu „demo", bo logowania nie było i nie dało się ustalić autora. Teraz da
+    się, a to jest podstawa kontroli „czy handlowiec ruszył lead przed terminem".
+    """
+    if kto is None:
+        try:
+            from uzytkownicy import zalogowany
+            u = zalogowany()
+            kto = u["osoba"] if u else "system"
+        except Exception:
+            kto = "system"      # poza kontekstem żądania (CLI, cron, testy)
     conn.execute(
         "INSERT INTO log (lead_id, event_id, kto, co, pole, przed, po) "
         "VALUES (?,?,?,?,?,?,?)",

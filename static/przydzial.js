@@ -11,6 +11,11 @@
 (function () {
   "use strict";
 
+  function tokenCsrf() {
+    var m = document.querySelector('meta[name="csrf"]');
+    return m ? m.content : "";
+  }
+
   function toast(tekst, blad) {
     var el = document.getElementById("toast");
     if (!el) { if (blad) alert(tekst); return; }
@@ -21,7 +26,8 @@
   }
 
   function api(metoda, url, dane) {
-    var opts = { method: metoda, headers: { "Content-Type": "application/json" } };
+    var opts = { method: metoda,
+                 headers: { "Content-Type": "application/json", "X-CSRF": tokenCsrf() } };
     if (dane) opts.body = JSON.stringify(dane);
     return fetch(url, opts).then(function (r) {
       return r.json().catch(function () { return { ok: r.ok }; })

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Logowanie{% endblock %}
+{% block wrap_class %}lg-strona{% endblock %}
+{% block body_class %}f-pelny-ekran{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='logowanie.css') }}">
+{% endblock %}
+
+{# Ekran logowania nie ma nawigacji ani stopki — nie ma dokąd z niego iść. #}
+{% block topbar %}{% endblock %}
+{% block stopka %}{% endblock %}
+
+{#
+  LOGOWANIE PIN-em.
+
+  Handlowiec loguje się na telefonie, na stojąco, w szkolnym korytarzu. Dlatego:
+    · osoba wybierana z listy, nie wpisywana (zero literówek w nazwisku),
+    · PIN wystukiwany na WŁASNEJ klawiaturze cyfrowej z dużymi klawiszami —
+      klawiatura systemowa na telefonie zasłania pół ekranu i trzeba ją zamykać,
+    · sesja na 30 dni, żeby nie logować się co rano.
+#}
+
+{% block content %}
+<div class="lg" id="lg" data-dalej="{{ dalej }}">
+
+  <div class="lg-logo">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="SILESIA 3D"
+         width="68" height="56">
+  </div>
+  <h1 class="lg-tytul">System Leadów</h1>
+
+  {% if not osoby %}
+  {# Świeża baza: konta są, ale żadne nie ma jeszcze PIN-u. Bez tej informacji
+     ekran wyglądałby na zepsuty. #}
+  <div class="lg-pusto">
+    <b>Nikt nie ma jeszcze nadanego PIN-u.</b>
+    <p>Zaloguj się na konto <b>Koordynator</b> PIN-em startowym, a potem nadaj
+       PIN-y handlowcom w panelu „Konta”.</p>
+  </div>
+  {% endif %}
+
+  <label class="lg-etykieta" for="lg-osoba">Kto się loguje?</label>
+  <select id="lg-osoba" class="lg-pole">
+    <option value="">— wybierz siebie —</option>
+    {% for o in osoby %}<option value="{{ o }}">{{ o }}</option>{% endfor %}
+  </select>
+
+  <label class="lg-etykieta" for="lg-pin">PIN</label>
+  <div class="lg-kropki" id="lg-kropki" aria-hidden="true">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  {# Prawdziwe pole jest ukryte — trzyma wartość i pozwala wkleić PIN
+     menedżerowi haseł, ale na telefonie nie wywołuje klawiatury systemowej. #}
+  <input type="password" id="lg-pin" inputmode="none" autocomplete="off"
+         maxlength="4" class="lg-pin-ukryty" aria-label="PIN">
+
+  <div class="lg-klawiatura" id="lg-klawiatura">
+    {% for c in ['1','2','3','4','5','6','7','8','9'] %}
+    <button type="button" class="lg-klawisz" data-cyfra="{{ c }}">{{ c }}</button>
+    {% endfor %}
+    <button type="button" class="lg-klawisz lg-klawisz-akcja" data-akcja="czysc">C</button>
+    <button type="button" class="lg-klawisz" data-cyfra="0">0</button>
+    <button type="button" class="lg-klawisz lg-klawisz-akcja" data-akcja="kasuj">←</button>
+  </div>
+
+  <p class="lg-blad" id="lg-blad" hidden></p>
+
+  <button type="button" class="lg-wejdz" id="lg-wejdz">Zaloguj</button>
+
+  <p class="lg-nota">
+    Zapamiętamy Cię na tym urządzeniu przez 30 dni.<br>
+    PIN zapomniany albo konto zablokowane? Poproś koordynatora o reset.
+  </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='logowanie.js') }}"></script>
+{% endblock %}

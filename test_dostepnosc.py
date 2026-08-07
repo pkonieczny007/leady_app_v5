@@ -25,6 +25,24 @@ import dostepnosc_view as dv         # noqa: E402
 from seed import bootstrap           # noqa: E402
 
 KL = A.app.test_client()
+
+# --- logowanie w testach ---------------------------------------------------
+# Od v5 aplikacja wymaga konta i tokenu CSRF. Testy sprawdzają logikę biznesową,
+# nie ekran logowania (ten ma własny plik), więc zakładamy konto koordynatora
+# i logujemy klienta raz, na starcie.
+def _zaloguj_testowo():
+    import db as _db, uzytkownicy as _uz
+    c = _db.get_conn()
+    _uz.init(c)
+    if not _uz.znajdz(c, "TEST-koordynator"):
+        _uz.utworz(c, "TEST-koordynator", "koordynator", "1379")
+    c.close()
+    r = KL.post("/api/logowanie", json={"osoba": "TEST-koordynator", "pin": "1379"})
+    assert r.status_code == 200, "logowanie testowe nie przeszło: %s" % r.get_data()
+    with KL.session_transaction() as s:
+        s["csrf"] = "test-csrf"
+    KL.environ_base["HTTP_X_CSRF"] = "test-csrf"
+
 WYNIKI = []
 
 
@@ -48,6 +66,7 @@ def delete(url, payload):
 def main():
     print("Baza testowa:", TMP)
     bootstrap()
+    _zaloguj_testowo()
     conn = db.get_conn()
     trenerzy = db.slownik_values(conn, "trener")
     conn.close()

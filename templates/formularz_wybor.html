@@ -19,16 +19,20 @@
 
   <h1 class="fw-tytul">Formularz ustaleń z placówką</h1>
 
-  {# Wybór osoby zostaje tutaj, żeby oba warianty dostały go w adresie
-     i podpowiedziały „twoje szkoły" bez pytania po raz drugi.
-     Docelowo zastąpi to logowanie PIN-em. #}
-  <label class="fw-etykieta" for="fw-kto">Kto wypełnia?</label>
+  {# Handlowiec nie wybiera, czyj to formularz — wynika to z logowania i nie da
+     się tego podmienić w adresie. Wybór zostaje tylko koordynatorowi, bo zdarza
+     się, że dzwoni szkoła, a handlowiec jest w terenie. #}
+  {% if ja and ja.rola == 'koordynator' %}
+  <label class="fw-etykieta" for="fw-kto">Za kogo wypełniasz?</label>
   <select id="fw-kto" class="f2-pole fw-kto-pole">
-    <option value="">— wybierz siebie —</option>
+    <option value="">— nikt konkretny —</option>
     {% for h in slowniki.handlowiec %}
     <option value="{{ h }}" {{ 'selected' if h == handlowiec }}>{{ h }}</option>
     {% endfor %}
   </select>
+  {% else %}
+  <p class="fw-kto-stale">Wypełnia: <b>{{ handlowiec }}</b></p>
+  {% endif %}
 
   <nav class="fw-linki">
     <a class="fw-link" href="{{ url_for('formularz_kroki') }}"
