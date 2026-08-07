@@ -167,6 +167,7 @@ def main():
     # nazwisko bez prefiksu „01. " to już FRAGMENT wartości trzymanej w bazie —
     # dokładnie ten przypadek, którego lista rozwijana nie obsługiwała
     frag_h1 = A.f_bez_prefiksu(H1)
+    frag_t1 = A.f_bez_prefiksu(T1)
     frag_t2 = A.f_bez_prefiksu(T2)
     frag_t3 = A.f_bez_prefiksu(T3)
 
@@ -300,6 +301,53 @@ def main():
             all(w["ma"] for t in waski["tygodnie"] for w in t["wiersze"]))
     sprawdz("bez filtra wiersze wszystkich trenerów zostają",
             len(peln["trenerzy"]) >= len(trenerzy))
+
+    # Zgłoszenie: „filtrując po 02. Olszewska w kalendarzu pokazuje mi też inne
+    # pozycje trenerów". Przyczyna: ta sama osoba jest u nich handlowcem I trenerką,
+    # a zakres „nazwisko" przeszukiwał także `handlowiec`. Na realnych danych
+    # 117 ze 152 trafień brało się ze sprzedanych leadów, na które jeździł kto inny.
+    print("\nG2b — „nazwisko” na grafiku to KTO TAM BĘDZIE, nie kto sprzedał")
+    sprawdz("handlowiec NIE wpada w zakres „nazwisko” na kalendarzu",
+            kal("n:" + frag_h1) == (0, 0, 0), str(kal("n:" + frag_h1)))
+    sprawdz("ale „wszystko” dalej go znajduje — bo to znaczy wszystko",
+            kal("w:" + frag_h1) == (2, 2, 2), str(kal("w:" + frag_h1)))
+    sprawdz("handlowiec nie siedzi w polach osób na miejscu",
+            "handlowiec" not in fl.POLA_OSOBY and "handlowiec" in fl.POLA_WSZYSTKO)
+
+    # ta sama osoba jako handlowiec i jako prowadząca — dokładnie przypadek Olszewskiej.
+    # T4 jedzie tu jako DRUKARZ na zajęcia T1 — to druga połowa zgłoszenia:
+    # wpis ląduje w wierszu T1 i bez podpisu wygląda na pomyłkę filtra.
+    T4 = rozlaczne(trenerzy, [H1, H2, T1, T2, T3], 1)[0]
+    frag_drukarz = A.f_bez_prefiksu(T4)
+    kod, d = post("/api/lead", {"nazwa": "SP Delta", "miejscowosc": M1,
+                                "typ": None, "handlowiec": H1})
+    post("/api/event", {"lead_id": d["id"], "typ": "DT", "data": DATA,
+                        "godz_od": "13:00", "godz_do": "15:00",
+                        "trener": T1, "drukarz": T4})
+    sprawdz("dwie role tej samej osoby się nie mieszają: „nazwisko” daje tylko zajęcia",
+            kal("n:" + frag_t1) == (2, 2, 2), str(kal("n:" + frag_t1)))
+    sprawdz("…a „wszystko” daje też szkoły, które sprzedała",
+            kal("w:" + frag_h1) == (3, 3, 3), str(kal("w:" + frag_h1)))
+
+    def role(osoby):
+        conn = db.get_conn()
+        evs = cv.build_agenda(conn, MIES,
+                              chipy=fl.parsuj(osoby, fl.ZAKRESY_GRAFIK))["dni"]
+        conn.close()
+        return sorted(e.get("_rola") or "" for d in evs for e in d["eventy"])
+
+    sprawdz("trafienie przez prowadzącego NIE dostaje etykiety roli",
+            role("n:" + frag_t1) == ["", ""], str(role("n:" + frag_t1)))
+    sprawdz("trafienie przez zastępstwo dostaje etykietę „zastępstwo”",
+            role("n:" + frag_t3) == ["zastępstwo"], str(role("n:" + frag_t3)))
+    # Agenda, nie macierz: wpis z samym zastępstwem nie ma `trener`, więc w siatce
+    # trener × dzień nie ma dla niego wiersza (tak działa od początku).
+    sprawdz("etykieta roli dojeżdża do szablonu",
+            KL.get("/kalendarz?m=%s&widok=agenda&osoby=n%%3A%s" % (MIES, frag_t3))
+            .get_data(as_text=True).count("tag-rola") == 1)
+    sprawdz("w macierzy etykieta wisi na spotkaniu prowadzonym przez kogo innego",
+            KL.get("/kalendarz?m=%s&osoby=n%%3A%s" % (MIES, frag_drukarz))
+            .get_data(as_text=True).count("tag-rola") == 1)
 
     print("\nG3 — dostępność")
 

@@ -139,8 +139,8 @@ brzmi inaczej i klient nazwał to sam:
 
 | Zakres | Znak | Gdzie szuka |
 |---|---|---|
-| **wszystko** (domyślny) | `∗` | szkoła, miejscowość, adres, osoba, sala, grupa, sprzęt, uwagi, kod Tinkercad, godziny |
-| **nazwisko** | `N` | tylko ludzie: prowadzący, drugi prowadzący, zastępstwo, drukarz, handlowiec |
+| **wszystko** (domyślny) | `∗` | wszystkie pola wpisu: szkoła, miejscowość, adres, **handlowiec**, prowadzący, sala, grupa, sprzęt, uwagi, kod Tinkercad, godziny |
+| **nazwisko** | `N` | tylko ci, którzy TAM BĘDĄ: prowadzący, drugi prowadzący, zastępstwo, drukarz |
 
 Chip przełącza się między nimi jednym kliknięciem w kwadracik z lewej — dokładnie
 to „dodatkowo można zmienić na nazwisko". Przypinanie, wyłączanie i LUB / ORAZ
@@ -156,6 +156,42 @@ działają tak samo jak na listach leadów, bo to ten sam kod (`filtry.py`).
   w kawałkach byłoby kłamstwem. W zakresie „wszystko" wiersz zostaje, gdy pasuje
   nazwisko trenera, jego uwagi z deklaracji **albo** szkoła/miasto, do których
   w tym miesiącu jeździ. Dzięki temu „Knurów" pokazuje 4 z 40 trenerów.
+
+### Poprawka: „nazwisko" to kto tam BĘDZIE, nie kto sprzedał
+
+Zgłoszenie z pierwszego użycia:
+
+> „zauważyłem że filtrując po 02. Olszewska w kalendarzu pokazuje mi też inne
+> pozycje trenerów, ponieważ w tej samej szkole pojawia się ten trener"
+
+Przyczyna była w danych i była realna: **`02. Olszewska` figuruje u nich
+jednocześnie jako handlowiec i jako trenerka** (podobnie Olszewska, Małolepsza,
+Młynarczyk — nazwiska powtarzają się między słownikiem handlowców i trenerów).
+Zakres „nazwisko" przeszukiwał również pole `handlowiec`, więc łapał każde
+zajęcia z leada, który ona sprzedała — a jeździł na nie kto inny:
+
+| Trafia przez | Spotkań w czerwcu |
+|---|---|
+| `trener` — jej własne zajęcia | 46 |
+| `drukarz` — jest na miejscu, ale w cudzym wierszu | 5 |
+| ~~`handlowiec` — sprzedała lead, nie jedzie tam~~ | ~~117~~ |
+
+**Handlowiec wypadł z zakresu „nazwisko" na grafiku.** Kalendarz i dostępność
+odpowiadają na pytanie „kto tam będzie", a handlowiec nie jedzie na zajęcia.
+Zostaje wyszukiwalny w zakresie „wszystko" — bo „wszystko" znaczy wszystko.
+Na realnych danych: `N Olszewska` → 51 spotkań zamiast 152.
+
+Zostawało jeszcze 5 wpisów, gdzie jest **drukarzem** na cudzych zajęciach — one
+lądują w wierszu tamtego trenera i bez wyjaśnienia dalej wyglądają jak pomyłka
+filtra. Dlatego taki kafelek dostaje bursztynową etykietę **roli** („drukarz",
+„zastępstwo", „2. prowadzący"). Gdy szukana osoba jest prowadzącą, etykiety nie
+ma — wpis siedzi w jej własnym wierszu i nie ma czego tłumaczyć.
+
+**Podpowiedź niesie swój zakres.** Zostaje trzecia droga do tego samego błędu:
+wpisanie nazwiska przy domyślnym `∗ wszystko`. Dlatego wybranie pozycji z listy
+podpowiedzi ustawia zakres tej pozycji — prowadzący daje chip `N`, miejscowość
+daje `∗`. Ręczna zmiana listy zakresu ma pierwszeństwo, a nadany zakres widać
+od razu na chipie, więc nie jest to ukryta magia — da się go kliknąć i zmienić.
 
 ### Dwie rzeczy, które trzeba było zrobić przy okazji
 
@@ -210,12 +246,12 @@ się w SQL, tutaj nie występuje.
 | `dostepnosc_view.py` | `_widoczni_trenerzy`, liczniki liczone po widocznych |
 | `app.py` | `_chipy_grafiku` (+ zgodność ze starym `?trener=`), `ZAKRESY` w kontekście szablonów |
 | `templates/_makra.html` | makra `pasek_chipow`, `pasek_osob`, `href_zakres`; legenda |
-| `templates/kalendarz.html`, `dostepnosc.html` | pasek chipów, „Wyczyść", zdjęta lista trenerów |
+| `templates/kalendarz.html`, `dostepnosc.html` | pasek chipów, „Wyczyść", zdjęta lista trenerów, etykieta roli na kafelku |
 | `templates/baza.html`, `leady.html`, `zbiorczy.html` | zakładki niosą filtr |
 | `static/filtr_osob.js` | **nowy** — dodawanie/wyłączanie/przypinanie chipów; zakresy z `data-*` |
 | `static/style.css` | zmienne `--filtr` / `--fill`, pasek filtrów, chipy, komórki „wypełnij" |
 | `templates/base.html` | podpięcie `filtr_osob.js` |
-| `test_filtr_osob.py` | **nowy** — 79 sprawdzeń (O1–O7 listy leadów, G1–G4 grafik) |
+| `test_filtr_osob.py` | **nowy** — 88 sprawdzeń (O1–O7 listy leadów, G1–G4 grafik) |
 
 Testy: `python test_filtr_osob.py`. Pozostałe cztery zestawy (93 + 67 + 24 + 30)
 przechodzą bez zmian.

@@ -11,12 +11,14 @@ Projekt: `docs/09_PRZYDZIAL_projekt.md`, testy: `python test_przydzial.py` (30 s
 fragment tekstu zamiast wybierać z listy. Wpisów może być kilka (LUB / ORAZ), każdy
 da się wyłączyć bez kasowania i przypiąć kłódką (przeżywa „Wyczyść", zmianę zakładki,
 miesiąca i widoku). Na listach leadów zakresy to `◇` dowolna osoba / `H` handlowiec /
-`T` prowadzący; na **kalendarzu i dostępności** — `∗` wszystko / `N` nazwisko.
+`T` prowadzący; na **kalendarzu i dostępności** — `∗` wszystko / `N` nazwisko
+(„nazwisko" na grafiku to kto TAM BĘDZIE — bez handlowca, bo on nie jedzie
+na zajęcia; kilka osób figuruje u nich i jako handlowiec, i jako trener).
 Po prowadzących nie dało się wcześniej filtrować w ogóle, a lista „— wszyscy
 trenerzy —" na kalendarzu działała tylko w widoku Agenda (zdjęta, stare linki
 `?trener=` dalej działają). Przy okazji rozdzielone dwa języki pola:
 **zimny błękit = filtr**, **ciepły krem = wypełnij (zapis do bazy)**.
-Projekt: `docs/10_FILTR_OSOB_projekt.md`, testy: `python test_filtr_osob.py` (79 sprawdzeń).
+Projekt: `docs/10_FILTR_OSOB_projekt.md`, testy: `python test_filtr_osob.py` (88 sprawdzeń).
 
 Odziedziczone z v2: ekran `/dostepnosc` — deklaracje dostępności per dzień
 i wyliczone wolne okna (deklaracja minus kalendarz). Projekt:
@@ -157,7 +159,7 @@ python test_parsers.py        # 93 przypadki — parsowanie realnych, brudnych w
 python test_scenariusze.py    # 67 sprawdzeń — przejście scenariuszy klienta przez API
 python test_dostepnosc.py     # 24 sprawdzenia — dostępność i wolne okna (v2)
 python test_przydzial.py      # 30 sprawdzeń — ranking kandydatów, rejony (v4)
-python test_filtr_osob.py     # 79 sprawdzeń — filtr wpisywany, listy + grafik (v4)
+python test_filtr_osob.py     # 88 sprawdzeń — filtr wpisywany, listy + grafik (v4)
 ```
 
 `test_scenariusze.py` przechodzi przez to, o co klient poprosił: przypisanie,

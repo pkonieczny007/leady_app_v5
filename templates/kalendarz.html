@@ -7,8 +7,8 @@
    i miejscowości (drugie najczęstsze „co się dzieje w Y"). Podpowiedź niczego
    nie ogranicza — wpisać można dowolny fragment. #}
 {% set podpowiedzi = [] %}
-{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'prowadzący')) %}{% endfor %}
-{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość')) %}{% endfor %}
+{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'prowadzący', 'n')) %}{% endfor %}
+{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość', 'w')) %}{% endfor %}
 
 {#
   Trzy widoki JEDNYCH danych (tabela `eventy`). W arkuszu komórka kalendarza była
@@ -31,6 +31,10 @@
   {% endif %}
   {% if e.typ == 'CYKLICZNE' and e['_cykl_nr'] %}<span class="ev-nr">cykl #{{ e['_cykl_nr'] }}</span>{% endif %}
   {% if e.kolizja %}<span class="tag tag-solid-2 ev-kol">kolizja</span>{% endif %}
+  {# Szukana osoba jest tu, ale NIE jako prowadząca — czyli wpis siedzi w cudzym
+     wierszu. Bez tego podpisu wygląda na pomyłkę filtra („czemu Olszewska
+     wyświetla mi Gawrona"), a to jest prawdziwa informacja. #}
+  {% if e['_rola'] %}<span class="tag tag-rola" title="Szukana osoba jest na tym spotkaniu jako: {{ e['_rola'] }}">{{ e['_rola'] }}</span>{% endif %}
 </div>
 {% endmacro %}
 
@@ -185,6 +189,7 @@
             {%- if e.ilosc_klas %} · {{ e.ilosc_klas }} klas{% endif %}</span>
           {% if e.typ == 'CYKLICZNE' %}<span class="tag tag-accent">cykl{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>{% endif %}
           {% if e.kolizja %}<span class="tag tag-solid-2">kolizja</span>{% endif %}
+          {% if e['_rola'] %}<span class="tag tag-rola">{{ e['_rola'] }}</span>{% endif %}
           <span class="agenda-trener">{{ e.trener|bez_prefiksu or '— brak trenera —' }}</span>
         </div>
         {% endfor %}
@@ -229,6 +234,7 @@
               {% else %}
                 <span class="tag tag-accent">CYKLICZNE{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>
               {% endif %}
+              {% if e['_rola'] %}<span class="tag tag-rola">{{ e['_rola'] }}</span>{% endif %}
               <span class="start-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
             </div>
             <a class="start-szkola" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka }}</a>

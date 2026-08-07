@@ -264,6 +264,9 @@ main{padding-bottom:var(--space-8)}
 .tag-outline{background:var(--panel);border:1px solid var(--line);color:var(--ink-2)}
 .tag-solid-2{background:var(--warn);color:#fff;font-weight:600}
 .tag-neutral{background:var(--color-neutral-200);color:var(--muted)}
+/* „szukana osoba jest tu, ale nie jako prowadząca" — podpis roli na kafelku,
+   żeby wpis w cudzym wierszu nie wyglądał na pomyłkę filtra */
+.tag-rola{background:var(--amber-l);color:var(--fill-t);border:1px solid var(--amber-d);font-weight:600}
 
 /* ------------------------------------------------------------------ formularze */
 

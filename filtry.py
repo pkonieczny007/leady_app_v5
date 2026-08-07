@@ -134,13 +134,25 @@ def pasuje(chipy, tryb, pobierz_pole):
     return all(trafienia) if tryb == "oraz" else any(trafienia)
 
 
-# Pola eventu składane w jeden tekst do przeszukania. „Nazwisko" to nie tylko
-# `trener`: zastępstwo i drukarz też pojechały, a `trener_planowany` pamięta,
-# kto miał jechać, zanim wyjątek cyklu go podmienił.
-POLA_OSOBY = ("trener", "trener2", "zastepstwo", "drukarz", "handlowiec",
-              "trener_planowany")
+# Kto JEST na spotkaniu — (kolumna, jak to nazwać na kafelku).
+#
+# HANDLOWCA TU NIE MA i to jest sedno poprawki. Zgłoszenie: „filtrując po
+# 02. Olszewska w kalendarzu pokazuje mi też inne pozycje trenerów, ponieważ
+# w tej samej szkole pojawia się ten trener". Przyczyna: `02. Olszewska` jest
+# w ich danych JEDNOCZEŚNIE handlowcem i trenerką, a zakres „nazwisko"
+# przeszukiwał również pole `handlowiec`. Na 152 trafienia w czerwcu 117 brało
+# się z tego, że sprzedała lead — a na te zajęcia jeździł kto inny.
+# Kalendarz odpowiada na pytanie „kto tam BĘDZIE", nie „kto to sprzedał".
+# Handlowiec zostaje wyszukiwalny w zakresie „wszystko" — bo to znaczy wszystko.
+POLA_NA_MIEJSCU = (("trener", "prowadzący"),
+                   ("trener2", "2. prowadzący"),
+                   ("zastepstwo", "zastępstwo"),
+                   ("drukarz", "drukarz"),
+                   ("trener_planowany", "planowany prowadzący"))
+
+POLA_OSOBY = tuple(k for k, _ in POLA_NA_MIEJSCU)
 POLA_WSZYSTKO = POLA_OSOBY + (
-    "placowka", "miejscowosc", "adres", "typ_placowki", "typ",
+    "handlowiec", "placowka", "miejscowosc", "adres", "typ_placowki", "typ",
     "numer_sali", "grupa", "sprzet", "uwagi", "kod_tinkercad",
     "data", "godz_od", "godz_do", "status_realizacji", "wyjatek")
 
@@ -150,19 +162,52 @@ def _sklej(rekord, pola):
 
 
 def pola_eventu(e):
-    """`pobierz_pole` dla jednego spotkania — z pamięcią, bo chipów bywa kilka."""
+    """
+    `pobierz_pole` dla jednego spotkania — z pamięcią, bo chipów bywa kilka.
+    Wołane tylko z zakresami grafiku: „n" (kto tam będzie) i „w" (wszystko).
+    """
     pamiec = {}
 
     def pobierz(zakres):
         if zakres not in pamiec:
-            pamiec[zakres] = _sklej(e, POLA_OSOBY if zakres in ("n", "o", "h", "t")
-                                    else POLA_WSZYSTKO)
+            pamiec[zakres] = _sklej(e, POLA_OSOBY if zakres == "n" else POLA_WSZYSTKO)
         return pamiec[zakres]
     return pobierz
 
 
+def rola_trafienia(e, chipy):
+    """
+    W JAKIEJ ROLI szukana osoba jest na tym spotkaniu — pusty tekst, gdy jest
+    prowadzącą (czyli gdy wpis siedzi w jej własnym wierszu macierzy).
+
+    Bez tego zostaje druga połowa tego samego zgłoszenia: Olszewska bywa
+    DRUKARZEM na zajęciach Gawrona, więc jej spotkanie ląduje w wierszu Gawrona.
+    To prawda — ona tam jest — ale bez podpisu wygląda na pomyłkę filtra.
+    Dlatego kafelek dostaje etykietę „drukarz" zamiast milczeć.
+    """
+    role = []
+    for c in chipy:
+        if c.get("wylaczony") or c.get("zakres") != "n":
+            continue
+        igla = pl_fold(c["tekst"])
+        for klucz, etykieta in POLA_NA_MIEJSCU:
+            if igla and igla in pl_fold(e.get(klucz) or "") and etykieta not in role:
+                role.append(etykieta)
+    if not role or "prowadzący" in role:
+        return ""                     # to jej wiersz — nie ma czego tłumaczyć
+    return ", ".join(role)
+
+
 def filtruj_eventy(evs, chipy, tryb):
-    """Spotkania przechodzące przez filtr. Pusta lista chipów → lista bez zmian."""
+    """
+    Spotkania przechodzące przez filtr. Pusta lista chipów → lista bez zmian.
+    Przy okazji dopisuje `_rola` — dlaczego wpis przeszedł, gdy to nie jego wiersz.
+    """
     if not [c for c in chipy if not c.get("wylaczony")]:
         return evs
-    return [e for e in evs if pasuje(chipy, tryb, pola_eventu(e))]
+    out = []
+    for e in evs:
+        if pasuje(chipy, tryb, pola_eventu(e)):
+            e["_rola"] = rola_trafienia(e, chipy)
+            out.append(e)
+    return out

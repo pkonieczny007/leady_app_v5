@@ -3,8 +3,8 @@
 {% block title %}Dostępność trenerów{% endblock %}
 
 {% set podpowiedzi = [] %}
-{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'trener')) %}{% endfor %}
-{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość')) %}{% endfor %}
+{% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'trener', 'n')) %}{% endfor %}
+{% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość', 'w')) %}{% endfor %}
 
 {#
   W zeszłorocznym pliku dostępność była POŁOWĄ treści kalendarza DT

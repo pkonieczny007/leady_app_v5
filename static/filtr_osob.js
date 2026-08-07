@@ -79,11 +79,31 @@
 
   function stan() { return parsuj(pole.value); }
 
+  /* Czy człowiek sam ruszył listę zakresu. Jeśli tak — jego wybór wygrywa
+     z zakresem podpowiedzi. Jeśli nie, wybranie „02. Olszewska" z listy
+     prowadzących ma dać chip „nazwisko", a nie „wszystko". */
+  var zakresRuszony = false;
+  nowyZakres.addEventListener('change', function () { zakresRuszony = true; });
+
+  function zakresPodpowiedzi(tekst) {
+    var opcje = document.querySelectorAll('#lista-osob option');
+    for (var i = 0; i < opcje.length; i++) {
+      if (fold(opcje[i].value) === fold(tekst)) return opcje[i].dataset.zakres || '';
+    }
+    return '';
+  }
+
   function dodaj() {
     /* „|" jest separatorem zapisu, a nazwisko go nie potrzebuje */
     var tekst = (wpis.value || '').replace(/\|/g, ' ').trim();
     if (!tekst) { wpis.focus(); return; }
     var zakres = nowyZakres.value || DOMYSLNY;
+    if (!zakresRuszony) {
+      /* wpisane DOKŁADNIE tak, jak brzmi pozycja z podpowiedzi = wybór osoby
+         (albo miasta), a nie szukanie tego ciągu we wszystkim po kolei */
+      var zp = zakresPodpowiedzi(tekst);
+      if (zp && ZAKRESY.indexOf(zp) >= 0) zakres = zp;
+    }
     var chipy = stan();
     var juz = null;
     chipy.forEach(function (c) {

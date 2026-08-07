@@ -364,10 +364,16 @@
     <option value="{{ z }}" title="{{ zak[2] }}">{{ zak[0] }} {{ zak[1] }}</option>{% endfor %}
   </select>
 
+  {# Podpowiedź niesie SWÓJ zakres: wybranie „02. Olszewska" z listy prowadzących
+     ma dać chip „nazwisko", a nie „wszystko". Bez tego wpisanie nazwiska osoby,
+     która jest u nich JEDNOCZEŚNIE handlowcem i trenerką, wyciąga też wszystkie
+     szkoły, które sprzedała — a na te zajęcia jeździ kto inny.
+     Ręczna zmiana listy zakresu obok ma pierwszeństwo (patrz filtr_osob.js). #}
   <input type="text" class="input osoby-wpis" id="osoby-wpis" list="lista-osob"
          autocomplete="off" placeholder="{{ placeholder }}" title="{{ dymek }}">
   <datalist id="lista-osob">
-    {%- for wartosc, opis in podpowiedzi %}<option value="{{ wartosc }}">{{ opis }}</option>{% endfor -%}
+    {%- for wartosc, opis, zakres in podpowiedzi %}
+    <option value="{{ wartosc }}" data-zakres="{{ zakres }}">{{ opis }}</option>{% endfor -%}
   </datalist>
   <button type="button" class="btn btn-secondary btn-sm" id="osoby-dodaj" title="Dodaj wpis do filtra">+ Dodaj</button>
 
@@ -399,8 +405,8 @@
 {# Skrót dla list leadów: chipy + podpowiedzi z handlowców i trenerów. #}
 {% macro pasek_osob(f, slowniki) %}
 {%- set lista = [] -%}
-{%- for v in slowniki.get('handlowiec', []) %}{% set _ = lista.append((v, 'handlowiec')) %}{% endfor -%}
-{%- for v in slowniki.get('trener', []) %}{% set _ = lista.append((v, 'prowadzący')) %}{% endfor -%}
+{%- for v in slowniki.get('handlowiec', []) %}{% set _ = lista.append((v, 'handlowiec', 'h')) %}{% endfor -%}
+{%- for v in slowniki.get('trener', []) %}{% set _ = lista.append((v, 'prowadzący', 't')) %}{% endfor -%}
 {{ pasek_chipow(f.ch, 'Osoby', lista) }}
 {% endmacro %}
 
