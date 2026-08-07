@@ -31,7 +31,7 @@ import repo
 from db import (get_conn, wszystkie_slowniki, slownik, slownik_values, trener_colors,
                 zapisz_log, LEAD_FIELDS, JULIA_FIELDS, EVENT_FIELDS, PLACOWKA_FIELDS,
                 LEAD_KEYS, EVENT_KEYS, PLACOWKA_KEYS, SLOWNIK_RODZAJE, SLOWNIK_KLUCZE,
-                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy)
+                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy, opis_profilu)
 from seed import bootstrap
 
 app = Flask(__name__)
@@ -982,7 +982,7 @@ def f_bez_prefiksu(v):
 def inject_nav():
     # ZAKRESY — opisy chipów filtra (znak, nazwa, dymek); rysuje je makro `pasek_chipow`
     return {"nav_active": request.endpoint, "q_all": request.args.to_dict(),
-            "ZAKRESY": fl.ZAKRESY}
+            "ZAKRESY": fl.ZAKRESY, "profil": opis_profilu()}
 
 
 bootstrap()
