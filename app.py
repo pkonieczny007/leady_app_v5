@@ -73,13 +73,41 @@ TYLKO_KOORDYNATOR = {
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
-    "api_dostepnosc_demo", "api_dostepnosc_zakres",
+    "api_dostepnosc_demo",
 }
+
+# Zmiana dostępności. Handlowiec jej NIE robi — widzi grafik (bez tego nie umówi
+# DT), ale zmiana cudzego wpisu to decyzja koordynatorki. Trener wolno mu zmieniać
+# WYŁĄCZNIE własny wiersz; pilnuje tego `_wolno_edytowac_dostepnosc`.
+EDYCJA_DOSTEPNOSCI = {"api_dostepnosc_set", "api_dostepnosc_del",
+                      "api_dostepnosc_zakres"}
+
+# Trener ma najwęższy dostęp: swoja dostępność i kalendarz. Leadów i danych
+# kontaktowych szkół nie widzi wcale — do swojej pracy ich nie potrzebuje,
+# a im mniej osób ma wgląd w telefony dyrektorów, tym lepiej.
+DOZWOLONE_TRENER = {"index", "logowanie", "api_logowanie", "wyloguj",
+                    "dostepnosc", "kalendarz"} | EDYCJA_DOSTEPNOSCI
+
+
+def _wolno_edytowac_dostepnosc(trener):
+    """Czy zalogowany może ruszyć wiersz tego trenera."""
+    u = uz.zalogowany()
+    if not u:
+        return False
+    if u["rola"] == "koordynator":
+        return True
+    if u["rola"] == "trener":
+        return (trener or "").strip() == u["osoba"]
+    return False                       # handlowiec: tylko podgląd
 
 
 def _po_zalogowaniu(rola):
     """Dokąd trafia człowiek zaraz po zalogowaniu — tam, gdzie ma pracować."""
-    return url_for("formularz") if rola == "handlowiec" else url_for("pulpit")
+    if rola == "handlowiec":
+        return url_for("formularz")
+    if rola == "trener":
+        return url_for("dostepnosc")
+    return url_for("pulpit")
 
 
 @app.before_request
@@ -96,6 +124,14 @@ def _kontrola_dostepu():
             return jsonify(ok=False, error="Brak uprawnień"), 403
         flash("Ten ekran prowadzi koordynator.", "err")
         return redirect(_po_zalogowaniu(u["rola"]))
+    if u["rola"] == "trener" and request.endpoint not in DOZWOLONE_TRENER:
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False, error="Brak uprawnień"), 403
+        flash("Konto trenera obejmuje dostępność i kalendarz.", "err")
+        return redirect(url_for("dostepnosc"))
+    if request.endpoint in EDYCJA_DOSTEPNOSCI and u["rola"] == "handlowiec":
+        return jsonify(ok=False,
+                       error="Dostępność trenerów zmienia koordynator"), 403
 
 
 # ------------------------------------------------------------------ CSRF
@@ -469,9 +505,14 @@ def dostepnosc():
     ch = _chipy_grafiku(request.args)
     grid = dv.build_dostepnosc(conn, month, weekend=weekend,
                                chipy=ch["lista"], tryb=ch["tryb"])
+    # Kto może co ruszyć: koordynator wszystko, trener wyłącznie swój wiersz,
+    # handlowiec nic (widzi grafik, bo bez tego nie umówi DT).
+    ja = uz.zalogowany() or {}
     ctx = {
         "grid": grid, "month": month, "miesiace": miesiace, "weekend": weekend,
         "ch": ch, "slowniki": wszystkie_slowniki(conn), "today": dzis(),
+        "edycja_wszystkich": ja.get("rola") == "koordynator",
+        "moj_wiersz": ja["osoba"] if ja.get("rola") == "trener" else None,
     }
     conn.close()
     return render_template("dostepnosc.html", **ctx)
@@ -820,6 +861,10 @@ def api_dostepnosc_set():
     blad = _waliduj_trenera(conn, trener) or _waliduj_date(data)
     if blad:
         conn.close(); return jsonify(ok=False, error=blad), 400
+    if not _wolno_edytowac_dostepnosc(trener):
+        conn.close()
+        return jsonify(ok=False, error="Trener zmienia wyłącznie swoją dostępność"), 403
+
     niedostepny = 1 if d.get("niedostepny") else 0
     godz_od = (d.get("godz_od") or "").strip() or None
     godz_do = (d.get("godz_do") or "").strip() or None
@@ -844,9 +889,13 @@ def api_dostepnosc_set():
 @app.route("/api/dostepnosc", methods=["DELETE"])
 def api_dostepnosc_del():
     d = request.get_json(force=True)
+    trener = d.get("trener")
     conn = get_conn()
+    if not _wolno_edytowac_dostepnosc(trener):
+        conn.close()
+        return jsonify(ok=False, error="Trener zmienia wyłącznie swoją dostępność"), 403
     conn.execute("DELETE FROM dostepnosc WHERE trener=? AND data=?",
-                 (d.get("trener"), d.get("data")))
+                 (trener, d.get("data")))
     conn.commit()
     conn.close()
     return jsonify(ok=True)
@@ -862,6 +911,10 @@ def api_dostepnosc_zakres():
     d = request.get_json(force=True)
     trener = d.get("trener")
     conn = get_conn()
+    if not _wolno_edytowac_dostepnosc(trener):
+        conn.close()
+        return jsonify(ok=False, error="Trener zmienia wyłącznie swoją dostępność"), 403
+
     blad = (_waliduj_trenera(conn, trener) or _waliduj_date(d.get("od"))
             or _waliduj_date(d.get("do")))
     if blad:
@@ -1601,7 +1654,8 @@ bootstrap()
 # konto koordynatora z PIN-em startowym, żeby dało się w ogóle wejść.
 with app.app_context():
     _c = get_conn()
-    _info = uz.bootstrap_konta(_c, slownik_values(_c, "handlowiec"))
+    _info = uz.bootstrap_konta(_c, slownik_values(_c, "handlowiec"),
+                               slownik_values(_c, "trener"))
     _c.close()
     if _info["koordynator"]:
         print("UWAGA: utworzono konto 'Koordynator' z PIN-em startowym %s — "

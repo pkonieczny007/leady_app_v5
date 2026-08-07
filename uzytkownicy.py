@@ -19,9 +19,20 @@ telefonu handlowca. Chroni przed przypadkowym wejściem z linku i rozdziela
 role — i tyle ma robić. Właściwą granicą jest HTTPS i to, że adres nie krąży
 po internecie.
 
-DWIE ROLE, bo tyle wynika z ich pracy:
-  koordynator  rozdaje szkoły, pilnuje terminów, prowadzi słowniki i import
-  handlowiec   wypełnia formularz i pracuje na swoich szkołach
+TRZY ROLE, bo tyle wynika z ich pracy:
+
+  koordynator  pełny dostęp — rozdaje szkoły, pilnuje terminów, prowadzi
+               słowniki, import i konta; jako jedyny edytuje CUDZĄ dostępność
+  handlowiec   wypełnia formularz i pracuje na swoich szkołach; dostępność
+               trenerów WIDZI (bez tego nie umówi DT), ale jej NIE zmienia —
+               zmiana cudzego grafiku to decyzja koordynatorki
+  trener       najwęższa rola: swoja dostępność (podgląd i edycja) oraz
+               kalendarz. Nie widzi leadów ani danych kontaktowych szkół,
+               bo do swojej pracy ich nie potrzebuje
+
+Trener edytuje WYŁĄCZNIE własny wiersz. To nie jest kwestia zaufania, tylko
+tego, że w ich zeszłorocznym pliku każdy mógł nadpisać każdemu deklarację
+i nikt potem nie wiedział, czyja wersja jest aktualna.
 """
 import hashlib
 import hmac
@@ -30,7 +41,7 @@ import secrets
 
 from flask import session
 
-ROLE = ("koordynator", "handlowiec")
+ROLE = ("koordynator", "handlowiec", "trener")
 
 # Iteracje PBKDF2. 200k to sensowny kompromis dla czterocyfrowego PIN-u:
 # przy takiej przestrzeni (10 000 kombinacji) i tak jedyną realną obroną jest
@@ -275,7 +286,7 @@ def jest_koordynatorem():
 
 # ------------------------------------------------------------------ pierwszy start
 
-def bootstrap_konta(conn, slownik_handlowcow):
+def bootstrap_konta(conn, slownik_handlowcow, slownik_trenerow=()):
     """
     Pierwsze uruchomienie: zakłada konta dla wszystkich handlowców ze słownika
     (bez PIN-u — nadaje go koordynator) i JEDNO konto koordynatora z PIN-em
@@ -286,7 +297,7 @@ def bootstrap_konta(conn, slownik_handlowcow):
     aplikacja z PIN-em „0000" w internecie to zaproszenie.
     """
     init(conn)
-    utworzone = {"koordynator": None, "handlowcy": 0}
+    utworzone = {"koordynator": None, "handlowcy": 0, "trenerzy": 0}
 
     if not conn.execute("SELECT 1 FROM uzytkownicy WHERE rola='koordynator'").fetchone():
         pin = os.environ.get("PIN_KOORDYNATORA", "0000")
@@ -299,6 +310,14 @@ def bootstrap_konta(conn, slownik_handlowcow):
         if not znajdz(conn, osoba):
             utworz(conn, osoba, "handlowiec", None)     # PIN nada koordynator
             utworzone["handlowcy"] += 1
+
+    # Kilka osób figuruje u nich JEDNOCZEŚNIE jako handlowiec i jako trener.
+    # Konto jest jedno (nazwisko jest kluczem), więc istniejącego nie ruszamy —
+    # handlowiec ma szerszy dostęp, a rolę zawsze da się zmienić w panelu.
+    for osoba in slownik_trenerow:
+        if not znajdz(conn, osoba):
+            utworz(conn, osoba, "trener", None)
+            utworzone["trenerzy"] += 1
 
     return utworzone
 

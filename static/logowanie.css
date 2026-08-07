@@ -132,6 +132,7 @@
 }
 .uz-rola-koordynator{background:var(--brand);color:#fff}
 .uz-rola-handlowiec{background:var(--accent-l);color:var(--cyan-t)}
+.uz-rola-trener{background:var(--amber-l);color:var(--amber-d)}
 
 /* Okno z nadanym PIN-em: pokazujemy go RAZ, bo w bazie jest tylko hash. */
 .uz-okno-tlo{

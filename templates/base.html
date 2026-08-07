@@ -51,15 +51,22 @@
 
     {# Na ekranie formularza (telefon) nawigacja aplikacji tylko zabiera miejsce —
        handlowiec w terenie używa wyłącznie tego jednego ekranu. #}
-    {# Nawigacja wg roli. Handlowiec dostaje trzy pozycje, których realnie
-       używa — baza do rozdania, słowniki i import to praca koordynatorki,
-       a przypadkowe kliknięcie w import potrafi naruszyć dane wszystkich. #}
+    {# Nawigacja wg roli. Każdy widzi tylko to, na czym pracuje — mniej pozycji
+       to mniej okazji, żeby kliknąć coś, czego się nie chciało.
+         trener      dostępność (swoja) + kalendarz
+         handlowiec  formularz, swoje szkoły, grafik do podglądu
+         koordynator wszystko #}
     <nav class="nav">
+      {% if ja and ja.rola == 'trener' %}
+      <a href="{{ url_for('dostepnosc') }}"     class="{{ 'on' if nav_active == 'dostepnosc' }}">Moja dostępność</a>
+      <a href="{{ url_for('kalendarz') }}"      class="{{ 'on' if nav_active == 'kalendarz' }}">Kalendarz</a>
+      {% else %}
       <a href="{{ url_for('formularz') }}"      class="{{ 'on' if nav_active in ('formularz','formularz_kroki','formularz_ciagly') }}">Formularz</a>
       <a href="{{ url_for('leady') }}"          class="{{ 'on' if nav_active in ('leady','lead_detail') }}">{{ 'Moje szkoły' if ja and ja.rola == 'handlowiec' else 'Leady' }}</a>
       <a href="{{ url_for('tydzien') }}"        class="{{ 'on' if nav_active == 'tydzien' }}">Tydzień</a>
       <a href="{{ url_for('kalendarz') }}"      class="{{ 'on' if nav_active == 'kalendarz' }}">Kalendarz DT</a>
       <a href="{{ url_for('dostepnosc') }}"     class="{{ 'on' if nav_active == 'dostepnosc' }}">Dostępność</a>
+      {% endif %}
       {% if ja and ja.rola == 'koordynator' %}
       <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
       <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
