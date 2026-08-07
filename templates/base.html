@@ -14,6 +14,15 @@
 
 {% set _q = query|default('', true) %}
 
+{# Pasek profilu bazy. Na produkcji go nie ma — handlowiec ma widzieć aplikację,
+   nie infrastrukturę. Za to TEST i PUSTA krzyczą, żeby nikt nie zaimportował
+   czegoś w trybie „replace" do złej bazy, myśląc że siedzi w piaskownicy. #}
+{% if profil and profil.klucz != 'prod' %}
+<div class="pasek-profilu" style="background:{{ profil.kolor }}">
+  {{ profil.etykieta }} — to nie jest baza produkcyjna
+</div>
+{% endif %}
+
 <header class="topbar">
   <div class="topbar-in">
     {# logo na białym kafelku — tukan jest czarny z przezroczystym tłem,

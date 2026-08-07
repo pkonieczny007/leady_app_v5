@@ -6,3 +6,6 @@ venv/
 *.log
 _upload.xlsx
 tmp/
+
+# kopie zapasowe baz — pilnowane cronem, nie gitem
+kopie/

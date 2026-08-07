@@ -1009,3 +1009,14 @@ tr.flash td{animation:flash .9s ease-out}
 }
 .rj-editor-akcje{display:flex;gap:8px;align-items:center;margin-top:8px}
 .rj-editor-akcje .muted{margin-left:auto}
+
+/* --- pasek profilu bazy (test / pusta) ----------------------------------
+   Świadomie krzykliwy i przyklejony do góry: jedyna rola tego elementu to
+   zatrzymać rękę przed importem w trybie „replace" do niewłaściwej bazy. */
+.pasek-profilu{
+  position:sticky; top:0; z-index:60;
+  padding:5px 12px;
+  font:600 12px/1.4 "Segoe UI",system-ui,sans-serif;
+  letter-spacing:.06em; text-transform:uppercase;
+  color:#fff; text-align:center;
+}

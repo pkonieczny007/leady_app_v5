@@ -25,8 +25,42 @@ MODEL DANYCH — trzy tabele operacyjne, każda odpowiada na konkretny ból klie
 import os
 import sqlite3
 
-DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
+# --------------------------------------------------------------------------
+# PROFILE BAZ — ten sam kod, różne dane.
+#
+# Bazy NIE są gałęziami gita: gałąź trzyma kod, a `.db` to binarium, którego git
+# nie umie scalić. Trzy równoległe gałęzie „per baza" znaczyłyby trzy merge'e
+# przy każdej poprawce i gwarantowane rozjechanie się wersji. Zamiast tego
+# jeden kod czyta zmienną PROFIL i siada na innym katalogu:
+#
+#   PROFIL=prod   → data/prod    produkcja (na VPS w wolumenie dockera)
+#   PROFIL=test   → data/test    kopia realnych danych, do prób i szkoleń
+#   PROFIL=pusta  → data/pusta   same słowniki, zero leadów
+#
+# DATA_DIR ustawione wprost ma pierwszeństwo (tak działa docker-compose).
+# --------------------------------------------------------------------------
+
+PROFILE = {
+    "prod":  ("PRODUKCJA", "#b3123c"),   # czerwony — tu są realne dane
+    "test":  ("TEST",      "#c76a00"),   # pomarańczowy
+    "pusta": ("PUSTA BAZA", "#5b6470"),  # szary
+}
+PROFIL_DOMYSLNY = "test"
+
+PROFIL = (os.environ.get("PROFIL") or PROFIL_DOMYSLNY).strip().lower()
+if PROFIL not in PROFILE:
+    raise SystemExit(
+        "Nieznany PROFIL=%r. Dozwolone: %s" % (PROFIL, ", ".join(sorted(PROFILE))))
+
+_BAZA = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.environ.get("DATA_DIR") or os.path.join(_BAZA, PROFIL)
 DB_PATH = os.path.join(DATA_DIR, "leady_v3.db")
+
+
+def opis_profilu():
+    """(klucz, etykieta, kolor, ścieżka bazy) — do paska u góry ekranu i do CLI."""
+    etykieta, kolor = PROFILE[PROFIL]
+    return {"klucz": PROFIL, "etykieta": etykieta, "kolor": kolor, "sciezka": DB_PATH}
 
 # --------------------------------------------------------------------------
 # Definicje pól — JEDNO źródło prawdy dla: schematu, UI, importu i eksportu.
@@ -144,6 +178,11 @@ def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL: czytanie nie blokuje pisania. Bez tego kilku handlowców zapisujących
+    # równocześnie dostaje „database is locked". Ustawienie zapisuje się w pliku
+    # bazy na stałe, ale kosztuje tyle co nic, więc wołamy je przy każdym połączeniu.
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 5000")
     # `pl_fold` w SQL — używa go filtr osób w repo.py
     conn.create_function("pl_fold", 1, pl_fold)
     return conn
