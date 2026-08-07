@@ -128,17 +128,27 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | # | Etap | Kiedy | Stan |
 |---|---|---|---|
 | 0 | Git + profile baz + pasek profilu | pt 07.08 | **✅ zrobione** |
-| 2 | **Formularz terenowy** — dwa warianty do wyboru | pt 07.08 | **✅ zrobione** (kolejność zmieniona na życzenie) |
+| 2 | **Formularz terenowy** — dwa warianty do wyboru | pt 07.08 | **✅ zrobione** |
 | 3a | Auto-zwrot szkół po terminie | pt 07.08 | **✅ zrobione** |
 | — | Nowe repo `leady_app_v5` na GitHubie | pt 07.08 | **✅ zrobione** |
-| 1 | Profile: PIN, role, „moje dane" domyślnie | sob 08.08 | ⬜ następne |
-| 3b | „Moje szkoły" + przydział na 2 tygodnie + samodzielne wzięcie | sob–nd | ⬜ |
-| 2b | PWA — ikona na ekranie telefonu | nd | ⬜ |
-| 4 | VPS, domena, HTTPS, cron kopii | pon 10.08 | ⬜ |
-| 5 | Import realnych danych + przejście na sucho | pon wieczór | ⬜ |
+| 1 | **PIN, role, filtr „moje szkoły"** + CSRF | pt 07.08 | **✅ zrobione** |
+| — | Karta dostępu w PDF (PIN-y + uprawnienia) | pt 07.08 | **✅ zrobione** |
+| 3b | „+2 tygodnie" + samodzielne wzięcie szkoły | sob 08.08, ~3h | ⬜ **następne** |
+| 2b | PWA — ikona na ekranie telefonu | nd 09.08, ~3h | ⬜ (wymaga HTTPS) |
+| 4 | VPS, domena, HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
+| 5 | Import realnych danych + przejście na sucho | pon wieczór, ~2h | ⬜ |
 
-**Stan na piątek 07.08, wieczór.** Zrobione w jeden dzień: etap 0, cały etap 2
-i połowa etapu 3. Zostały trzy dni robocze na etapy 1, 3b, 2b, 4 i 5.
+**Stan na piątek 07.08, południe.** Etapy 0, 1, 2 i 3a zamknięte w jeden dzień.
+Testy: 377 sprawdzeń w 7 plikach, wszystkie przechodzą.
+Zostały trzy dni robocze na etapy 3b, 2b, 4 i 5 — łącznie ~12 godzin pracy.
+
+### Co dokładnie zostało w etapie 3b
+
+| Rzecz | Dlaczego |
+|---|---|
+| Przycisk **„termin +2 tygodnie"** na `/baza` | ze spotkania: „10 szkół z terminem do 2 tygodni". Dziś termin wpisuje się z kalendarza — działa, ale przy 10 szkołach to 10 kliknięć w datę |
+| **„Chcę wziąć tę szkołę"** dla handlowca | ze spotkania: samodzielne przypisanie ma być możliwe, ale trudniejsze niż wybór z listy, z komunikatem o kontakcie z koordynatorem |
+| Ślad w historii + widok dla koordynatora | żeby koordynator wiedział, kto sam sobie coś wziął i dlaczego |
 
 ### Co doszło poza planem (z uwag w trakcie)
 
@@ -149,6 +159,9 @@ i połowa etapu 3. Zostały trzy dni robocze na etapy 1, 3b, 2b, 4 i 5.
 | **Obsługa awarii przy zapisie** — kolejka „niewysłane" + ponowienie bez dubla | pytanie „co w przypadku awarii w trakcie wypełniania" |
 | Własny port 5301 zamiast 5000 | kolizja z innymi testowymi aplikacjami |
 | Ochrona przed dublem (`klucz_zapisu`, tabela `zapisy_formularza`) | wynikło z obsługi awarii |
+| **Karta dostępu w PDF** — PIN-y, tabela uprawnień, paski do rozcięcia | „utwórz plik pdf z informacjami o pinach i uprawnieniach" |
+| **Token CSRF** na wszystkich zapisach | wyszło przy logowaniu — `fetch` szedł bez niczego |
+| **`kto` w historii z sesji** zamiast stałego „demo" | dopiero logowanie dało czym to wypełnić |
 
 ## Etap 1 — profile (sobota)
 
