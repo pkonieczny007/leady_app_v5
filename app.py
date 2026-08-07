@@ -1252,5 +1252,19 @@ def inject_nav():
 
 bootstrap()
 
+# Własny port, nie 5000. Powód praktyczny: na 5000 startuje domyślnie każda apka
+# Flaska i inne narzędzia — przy kilku uruchomionych naraz nowy proces cicho nie
+# zajmuje portu, a przeglądarka pokazuje STARĄ aplikację. Godzina szukania błędu
+# w kodzie, którego tam nie ma.
+PORT_DOMYSLNY = "5301"
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=True)
+    port = int(os.environ.get("PORT", PORT_DOMYSLNY))
+    p = opis_profilu()
+    print("=" * 62)
+    print("  System Leadów v5   ·   profil: %s" % p["etykieta"])
+    print("  baza:   %s" % p["sciezka"])
+    print("  lokalnie:  http://127.0.0.1:%d/formularz" % port)
+    print("  z telefonu w tej samej sieci: http://<IP-komputera>:%d/formularz" % port)
+    print("=" * 62)
+    app.run(host="0.0.0.0", port=port, debug=True)

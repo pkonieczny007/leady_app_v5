@@ -1,15 +1,18 @@
 services:
-  leady_v3:
+  leady_v5:
     build: .
-    container_name: leady_app_v3
+    container_name: leady_app_v5
     restart: unless-stopped
     ports:
-      # host:kontener — 5058, żeby nie kolidowało z v1 (5057)
-      - "5058:5000"
+      # host:kontener — 5301, żeby nie kolidowało z v1 (5057) ani v4 (5058)
+      - "5301:5000"
     volumes:
-      - leady_v3_data:/data
+      - leady_v5_data:/data
     environment:
       - DATA_DIR=/data
+      - PROFIL=prod
+      # ile dni po terminie lead wraca do puli nieprzydzielonych
+      - KARENCJA_DNI=2
 
 volumes:
-  leady_v3_data:
+  leady_v5_data:

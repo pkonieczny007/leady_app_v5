@@ -84,7 +84,7 @@ cd leady_app_v5
 pip install -r requirements.txt
 
 # PowerShell — profil wybiera bazę, kod jest ten sam
-$env:PROFIL="test";  python app.py    # http://127.0.0.1:5000
+$env:PROFIL="test";  python app.py    # http://127.0.0.1:5301/formularz
 $env:PROFIL="pusta"; python app.py
 
 python narzedzia/baza.py lista        # jakie profile istnieją i ile mają danych
@@ -102,17 +102,17 @@ słowniki. Baza jest pusta — dane wczytujesz na jeden z trzech sposobów:
 ### Docker
 
 ```bash
-docker compose up -d --build         # http://<host>:5058
+docker compose up -d --build         # http://<host>:5301
 ```
 
-Port 5058, żeby nie kolidować z v1 (5057). Baza w wolumenie `leady_v3_data`.
+Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `leady_v5_data`, kontener `leady_app_v5` — v4 na tym samym serwerze działa dalej nietknięta.
 
 ### Zmienne środowiskowe
 
 | Zmienna | Domyślnie | Znaczenie |
 |---|---|---|
 | `DATA_DIR` | `./data/<PROFIL>` | katalog bazy SQLite; ustawiony wprost ma pierwszeństwo przed `PROFIL` (tak działa docker-compose) |
-| `PORT` | `5000` | port (tylko `python app.py`) |
+| `PORT` | `5301` | port (tylko `python app.py`); własny, bo na 5000 startuje domyślnie każda apka Flaska i nowy proces cicho nie zajmuje portu |
 | `CEL_TYGODNIOWY` | `5` | „minimum na tydzień" — ile DT ma umówić handlowiec |
 | `NA_STRONE` | `150` | ile wierszy na stronę listy |
 | `PLIK_PH_NOWY` | ścieżka do pliku klienta | źródło danych demo |
