@@ -34,12 +34,15 @@
   {% if bez_konta %}
   <section class="section">
     <h2 class="h2-inline">Bez konta
-      <span class="muted small">są w słowniku handlowców, ale nie mogą się zalogować</span>
+      <span class="muted small">są w słownikach (handlowcy i trenerzy), ale nie mogą się zalogować</span>
     </h2>
     <div class="row-akcje">
+      {# Rola idzie z rodzaju słownika — osoba ze słownika trenerów dostaje
+         konto trenera, nie handlowca. Zawsze można ją potem zmienić w tabeli. #}
       {% for o in bez_konta %}
       <button type="button" class="btn btn-secondary btn-sm uz-dodaj"
-              data-osoba="{{ o }}">+ {{ o }}</button>
+              data-osoba="{{ o.osoba }}" data-rola="{{ o.rola }}">+ {{ o.osoba }}
+        <span class="muted small">({{ o.rola }})</span></button>
       {% endfor %}
     </div>
   </section>

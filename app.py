@@ -69,7 +69,7 @@ JAWNE = {"logowanie", "api_logowanie", "static"}
 TYLKO_KOORDYNATOR = {
     "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
     "export_xlsx", "pulpit", "rejony", "uzytkownicy_view",
-    "api_przypisz", "api_odbierz", "api_slownik_add", "api_slownik_patch",
+    "api_przypisz", "api_odbierz", "api_przedluz", "api_slownik_add", "api_slownik_patch",
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
@@ -251,9 +251,15 @@ def uzytkownicy_view():
     conn = get_conn()
     konta = uz.lista(conn)
     handlowcy = slownik_values(conn, "handlowiec")
+    trenerzy = slownik_values(conn, "trener")
     ostrzezenie = uz.pin_startowy_niezmieniony(conn)
     conn.close()
-    bez_konta = [h for h in handlowcy if h not in {k["osoba"] for k in konta}]
+    # „Bez konta" z OBU słowników osób, z rolą wg słownika. Do 08.08 lista czytała
+    # tylko handlowców — trener dopisany w Słownikach nie pojawiał się tu wcale
+    # i wyglądało to na zgubiony rekord (zgłoszenie użytkownika).
+    maja = {k["osoba"] for k in konta}
+    bez_konta = ([{"osoba": o, "rola": "handlowiec"} for o in handlowcy if o not in maja]
+                 + [{"osoba": o, "rola": "trener"} for o in trenerzy if o not in maja])
     return render_template("uzytkownicy.html", konta=konta, bez_konta=bez_konta,
                            role=uz.ROLE, pin_startowy=ostrzezenie,
                            max_prob=uz.MAX_PROB, today=dzis())
@@ -386,8 +392,21 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
 @app.route("/baza")
 def baza():
     """Baza główna — to, co koordynator ma do rozdania. Domyślnie nieprzydzielone."""
+    # „Może się świecić, że wróciło" (Kasia, 08.08): szkoła zwrócona przez automat
+    # ma być widoczna na tle reszty puli. Świeci, dopóki OSTATNI wpis w historii
+    # leada to auto-zwrot — pierwszy ruch człowieka (przypisanie, notatka) staje
+    # się nowszym wpisem i plakietka gaśnie sama, bez sprzątania.
+    conn = get_conn()
+    zwroty = {r["lead_id"]: (r["kiedy"] or "")[:10] for r in conn.execute(
+        """SELECT l1.lead_id, l1.kiedy FROM log l1
+           JOIN (SELECT lead_id, MAX(id) mid FROM log
+                 WHERE lead_id IS NOT NULL GROUP BY lead_id) ost
+             ON ost.lead_id = l1.lead_id AND ost.mid = l1.id
+           WHERE l1.co = 'auto-zwrot po terminie'""")}
+    conn.close()
     return _ekran_leadow("baza.html", zakres_domyslny="nieprzydzielone",
-                         tytul="Baza placówek", kicker="Koordynator · rozdawanie leadów")
+                         tytul="Baza placówek", kicker="Koordynator · rozdawanie leadów",
+                         zwroty=zwroty)
 
 
 @app.route("/leady")
@@ -474,7 +493,18 @@ def _chipy_grafiku(args):
 def kalendarz():
     conn = get_conn()
     miesiace = cv.available_months(conn)
-    month = request.args.get("m") or (miesiace[-1] if miesiace else dzis()[:7])
+    # Skok do konkretnej daty (prośba z 08.08): handlowiec przy dyrektorze
+    # wpisuje datę i ma widok tygodnia, w którym ona leży. Data wygrywa
+    # z wyborem miesiąca — formularz wysyła oba pola, ale to data jest gestem
+    # „zawieź mnie tam", a select miesiąca tylko stał obok.
+    dzien = (request.args.get("d") or "").strip()
+    if dzien:
+        try:
+            dt.date.fromisoformat(dzien)
+        except ValueError:
+            dzien = ""
+    month = dzien[:7] if dzien else (request.args.get("m")
+                                     or (miesiace[-1] if miesiace else dzis()[:7]))
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
@@ -499,7 +529,7 @@ def kalendarz():
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
-        "today": dzis(),
+        "today": dzis(), "dzien": dzien,
     }
     conn.close()
     return render_template("kalendarz.html", **ctx)
@@ -667,6 +697,53 @@ def api_przypisz():
     conn.commit()
     conn.close()
     return jsonify(ok=True, n=n)
+
+
+@app.route("/api/przedluz", methods=["POST"])
+def api_przedluz():
+    """
+    Masowe przedłużenie terminu ostatecznego o N dni (domyślnie 14 — Kasia
+    rozdaje szkoły „na 2 tygodnie", ale liczbę dni można zmienić w pasku).
+
+    Liczymy od terminu, który jeszcze biegnie; dla leada już po terminie —
+    od dziś. Inaczej „przedłuż o 14" na szkole przeterminowanej od miesiąca
+    dawałoby datę nadal w przeszłości i automat zabrałby ją przy najbliższym
+    przebiegu, czyli przycisk wyglądałby na zepsuty.
+    """
+    d = request.get_json(force=True)
+    ids = d.get("ids") or []
+    if not ids:
+        return jsonify(ok=False, error="Nie wybrano rekordów"), 400
+    try:
+        dni = int(d.get("dni", 14))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="Podaj liczbę dni"), 400
+    if not 1 <= dni <= 365:
+        return jsonify(ok=False, error="Liczba dni musi być między 1 a 365"), 400
+    conn = get_conn()
+    n = 0
+    for lead_id in ids:
+        stary = conn.execute("SELECT deadline FROM leady WHERE id=?",
+                             (lead_id,)).fetchone()
+        if not stary:
+            continue
+        start = stary["deadline"] or ""
+        if not start or start < dzis():
+            start = dzis()
+        try:
+            nowy = (dt.date.fromisoformat(start) + dt.timedelta(days=dni)).isoformat()
+        except ValueError:
+            # termin wpisany ręcznie w nieczytelnym formacie — liczymy od dziś,
+            # zamiast wysypać całą paczkę zaznaczonych rekordów
+            nowy = (dt.date.today() + dt.timedelta(days=dni)).isoformat()
+        conn.execute("UPDATE leady SET deadline=?, updated_at=datetime('now') "
+                     "WHERE id=?", (nowy, lead_id))
+        zapisz_log(conn, lead_id=lead_id, co="przedłużenie terminu", pole="deadline",
+                   przed=stary["deadline"], po=nowy)
+        n += 1
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True, n=n, dni=dni)
 
 
 @app.route("/api/odbierz", methods=["POST"])
@@ -1449,6 +1526,12 @@ def api_slownik_add():
     conn.execute("INSERT OR IGNORE INTO slowniki (rodzaj, wartosc, kolor, sort_order) "
                  "VALUES (?,?,?,?)", (rodzaj, wartosc, kolor, nast))
     conn.commit()
+    # Osoba dopisana do słownika dostaje konto OD RAZU — bez PIN-u, więc jeszcze
+    # się nie zaloguje (PIN nadaje koordynator w Kontach, jak przy bootstrapie).
+    # Do 08.08 konta powstawały tylko przy pierwszym starcie profilu i trener
+    # dodany później w Słownikach nie istniał w Kontach — nikt nie wiedział czemu.
+    if rodzaj in ("handlowiec", "trener") and not uz.znajdz(conn, wartosc):
+        uz.utworz(conn, wartosc, rodzaj)
     conn.close()
     return jsonify(ok=True)
 

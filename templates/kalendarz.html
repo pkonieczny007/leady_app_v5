@@ -70,7 +70,7 @@
       {# przełączenie widoku NIE gubi filtra — inaczej „gdzie jest Zemela" trzeba
          by wpisywać od nowa po każdym kliknięciu Macierz/Agenda/Starty #}
       <a class="seg-opt {{ 'on' if widok == k }}"
-         href="{{ url_for('kalendarz', widok=k, m=month, typ=typ or none,
+         href="{{ url_for('kalendarz', widok=k, m=month, d=dzien or none, typ=typ or none,
                           osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
                           weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0') }}">{{ ikona }} {{ nazwa }}</a>
       {% endfor %}
@@ -80,11 +80,19 @@
 
 <form class="filters" method="get" action="{{ url_for('kalendarz') }}">
   <input type="hidden" name="widok" value="{{ widok }}">
-  <select class="input input-auto" name="m" onchange="this.form.submit()">
+  {# Ręczna zmiana miesiąca czyści wybraną datę — inaczej data (która wygrywa
+     po stronie serwera) cofałaby każdy wybór z tej listy. #}
+  <select class="input input-auto" name="m"
+          onchange="if(this.form.d)this.form.d.value='';this.form.submit()">
     {% for mm in miesiace %}
     <option value="{{ mm }}"{{ ' selected' if mm == month else '' }}>{{ mm }}</option>{% endfor %}
     {% if not miesiace %}<option value="{{ month }}" selected>{{ month }}</option>{% endif %}
   </select>
+
+  {# Skok do daty (08.08): handlowiec wpisuje datę i ląduje w tygodniu, w którym
+     ona leży — trafiony tydzień jest podświetlony i przewinięty na ekran. #}
+  <input type="date" class="input input-auto" name="d" value="{{ dzien }}"
+         title="Skocz do tygodnia z tą datą" onchange="this.form.submit()">
 
   <select class="input input-auto" name="typ" onchange="this.form.submit()">
     <option value="">— DT i cykliczne —</option>
@@ -128,9 +136,11 @@
 
   {% for t in cal.tygodnie %}
   {% if t.wiersze %}
-  <section class="section cal-week">
+  {% set trafiony = dzien and dzien in (t.dni | map(attribute='iso') | list) %}
+  <section class="section cal-week{{ ' tydzien-wybrany' if trafiony }}">
     <div class="cal-week-head">
       <span class="cal-week-label">Tydzień {{ t.label }}</span>
+      {% if trafiony %}<span class="tag tag-accent">tydzień z {{ dzien }}</span>{% endif %}
       <span class="muted small nums">{{ t.n }} spotkań</span>
     </div>
     <div class="table-scroll">
@@ -187,7 +197,7 @@
   {% endif %}
   <div class="agenda">
     {% for d in cal.dni %}
-    <div class="agenda-day{{ ' agenda-today' if d.dzis }}">
+    <div class="agenda-day{{ ' agenda-today' if d.dzis }}{{ ' tydzien-wybrany' if dzien and d.iso == dzien }}">
       <div class="agenda-date">
         <div class="dow">{{ d.dow }}</div>
         <div class="num">{{ d.day }}</div>
@@ -225,8 +235,11 @@
     <p class="empty">Brak zajęć w {{ cal.month_label }}.</p>
   {% endif %}
   {% for t in cal.tygodnie %}
-  <section class="starty-week">
-    <div class="starty-week-label">Tydzień {{ t.label }} · <span class="nums">{{ t.n }}</span> zajęć</div>
+  {% set trafiony = dzien and dzien in (t.kolumny | map(attribute='iso') | list) %}
+  <section class="starty-week{{ ' tydzien-wybrany' if trafiony }}">
+    <div class="starty-week-label">Tydzień {{ t.label }}
+      {% if trafiony %}<span class="tag tag-accent">tydzień z {{ dzien }}</span>{% endif %}
+      · <span class="nums">{{ t.n }}</span> zajęć</div>
     <div class="starty-grid">
       {% for k in t.kolumny %}
       <div class="starty-col">
@@ -295,6 +308,17 @@
 
 
 {# ══════════════════════════════════════════════════════════ obciążenie #}
+{% if dzien %}
+<script>
+  // Przewinięcie do trafionego tygodnia — przy kilku tygodniach na stronie
+  // sam „skok do daty" bez przewinięcia wygląda, jakby nic nie zrobił.
+  (function () {
+    var el = document.querySelector(".tydzien-wybrany");
+    if (el) el.scrollIntoView({ block: "start" });
+  })();
+</script>
+{% endif %}
+
 {% if obciazenie %}
 <section class="section">
   <div class="section-title">Obciążenie trenerów · {{ cal.month_label }}</div>

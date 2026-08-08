@@ -276,6 +276,54 @@ def main():
     r = kl.delete("/api/uzytkownik", json={"osoba": "TEST-nowy"})
     sprawdz("obce konto da się usunąć", r.status_code == 200)
 
+    # ================================ L8 — Słowniki tworzą konta (zgłoszenie 08.08)
+    # Objaw: trener dodany w Słownikach nie istniał w Kontach i nie dało się go
+    # zalogować; lista „bez konta" czytała wyłącznie słownik handlowców.
+    print("\nL8 — dodanie osoby do słownika tworzy konto")
+    r = kl.post("/api/slownik", json={"rodzaj": "trener", "wartosc": "99. Testowy Trener"})
+    sprawdz("nowy trener dopisany do słownika", r.status_code == 200)
+    conn = db.get_conn()
+    konto = uz.znajdz(conn, "99. Testowy Trener")
+    conn.close()
+    sprawdz("trener ze słownika ma od razu konto", bool(konto))
+    sprawdz("konto ma rolę trenera, nie handlowca",
+            (konto or {}).get("rola") == "trener")
+    sprawdz("konto bez PIN-u — nie zaloguje się, dopóki koordynator nie nada",
+            konto is not None and not konto.get("pin_hash"))
+
+    kl.post("/api/slownik", json={"rodzaj": "handlowiec",
+                                  "wartosc": "99. Testowy Handlowiec"})
+    conn = db.get_conn()
+    k2 = uz.znajdz(conn, "99. Testowy Handlowiec")
+    conn.close()
+    sprawdz("handlowiec ze słownika też dostaje konto",
+            bool(k2) and k2["rola"] == "handlowiec")
+
+    kl.post("/api/slownik", json={"rodzaj": "miasto", "wartosc": "99. Testowo"})
+    conn = db.get_conn()
+    k3 = uz.znajdz(conn, "99. Testowo")
+    conn.close()
+    sprawdz("wartość słownika miast NIE dostaje konta", not k3)
+
+    # osoba ze słownika bez konta ma się pokazać w „Bez konta" z właściwą rolą
+    conn = db.get_conn()
+    uz.usun(conn, "99. Testowy Trener")
+    conn.close()
+    html = kl.get("/uzytkownicy").get_data(as_text=True)
+    sprawdz("panel kont pokazuje trenera bez konta", "99. Testowy Trener" in html)
+    sprawdz("przycisk dodania niesie rolę trenera", 'data-rola="trener"' in html)
+
+    # ================================ L9 — przedłużenie terminu (tylko koordynator)
+    print("\nL9 — masowe przedłużenie terminu")
+    r = kh.post("/api/przedluz", json={"ids": [1], "dni": 14})
+    sprawdz("handlowiec nie przedłuży terminu", r.status_code == 403)
+    r = kl.post("/api/przedluz", json={"ids": [], "dni": 14})
+    sprawdz("bez zaznaczenia jest błąd, nie cicha zgoda", r.status_code == 400)
+    r = kl.post("/api/przedluz", json={"ids": [1], "dni": 0})
+    sprawdz("0 dni odrzucone", r.status_code == 400)
+    r = kl.post("/api/przedluz", json={"ids": [1], "dni": "czternaście"})
+    sprawdz("tekst zamiast liczby odrzucony", r.status_code == 400)
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

@@ -223,20 +223,42 @@ w `requirements.txt`** — obraz dockera ma zostać lekki.
 
 ---
 
-## 8. Stan na 07.08.2026 (piątek)
+## 8. Stan na 08.08.2026 (sobota wieczór)
 
 ### Zrobione
 Profile baz · formularz terenowy w dwóch wariantach + obsługa awarii · auto-zwrot
 szkół po terminie · logowanie PIN-em, trzy role, CSRF · karta dostępu w PDF ·
 tryb serwisowy · nowe repo.
 
-### Zostało do wtorku (~12 h)
-- **3b** — przycisk „termin +2 tygodnie" na `/baza`; ścieżka „chcę wziąć tę
-  szkołę" dla handlowca (możliwa, ale trudniejsza niż wybór z listy, z komunikatem
-  o kontakcie z koordynatorem i śladem w historii)
+### Odpowiedzi Kasi z 08.08 (szczegóły i skutki: `docs/11_PLAN_v5.md`)
+- świeży plik JEST: `C:\XEN\AI-szkolenie\SIERPIEN2026\8.08.2026-home\PH PRÓBA
+  Nowy dla handlowców.xlsx` — blokada etapu 5 zdjęta
+- przypisuje **wyłącznie koordynator** → ścieżka „chcę wziąć tę szkołę" WYPADA z 3b
+- auto-zwrot automatyczny; zwrócona szkoła ma się „świecić, że wróciła"
+- trener może mieć 4–5 zajęć dziennie (nie zakładać limitu 2)
+- konta: koordynatorki Kasia + Weronika Małolepsza, admini Julia Młynarczyk
+  + Przemek (admin = uprawnienia koordynatora, osobnej roli nie robimy)
+- RSPO (pełna baza szkół, rejony wg listy Kasi) — etap po wtorku, projekt
+  w sekcji F planu; klucz = numer RSPO, żeby zmiana nazwy nie rozwalała bazy
+
+### Zrobione dodatkowo 08.08 wieczorem (testy: 585 sprawdzeń, komplet OK)
+- **6** — Konta ↔ Słowniki: dodanie do słownika handlowiec/trener tworzy konto
+  (bez PIN-u), „bez konta" w `/uzytkownicy` czyta oba słowniki i niesie rolę
+- **3b** — „Przedłuż termin" masowo: licznik dni (domyślnie 14, ±, wpisanie),
+  po terminie liczy od dziś; termin przy „Przypisz" z góry dziś+14
+- **7** — plakietka „wróciła do puli" na `/baza` (gaśnie przy pierwszym ruchu
+  na leadzie) + skok do daty w kalendarzu (podświetlony tydzień, 3 widoki)
+
+### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
+- **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
+  formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
 - **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)
-- **4** — VPS, subdomena, `certbot`, cron kopii o 6:00
+- **4** — VPS: najpierw **demo** na subdomenie (profile pusta/test), potem prod;
+  `certbot`, cron kopii o 6:00, skrypt wdrożenia (git pull + compose build)
+- **9** — próba pełnej ścieżki backup → przywracanie zanim ruszy prod
 - **5** — import realnych danych do profilu `prod`, próba na sucho z telefonu po LTE
+- RSPO: wniosek o API w poniedziałek + CSV z wyszukiwarki (eksport potwierdzony);
+  propozycja w `docs/12_RSPO.md`, szczegóły z klientem we wtorek
 
 ### ⚠️ Bez tego NIE wolno wystawiać na VPS
 1. `SECRET_KEY` — domyślny `leady-v3-demo` leży w repozytorium, więc każdy mógłby
@@ -245,11 +267,9 @@ tryb serwisowy · nowe repo.
 3. **`PIN_SERWISOWY` musi zniknąć ze środowiska** — to klucz uniwersalny
 
 ### Czeka na odpowiedź klienta
-- świeży plik `PH Nowy … .xlsx` (blokada nr 1 dla etapu 5)
-- ile dni karencji przed auto-zwrotem; czy szkoła z umówionym DT ma nigdy nie wracać
-- czy handlowiec może sam wziąć szkołę, czy tylko prosić koordynatora
-- pełna lista kont i kto ma być koordynatorem (dziś: 5 handlowców + 39 trenerów
-  ze słowników)
+- podpowiedź trenera w formularzu: czy handlowiec może obiecać termin, czy
+  wiążąco potwierdza koordynator
+- czy w formularzu czegoś brakuje (osoba kontaktowa, zgoda na salę, sprzęt)
 - osoba figurująca i jako handlowiec, i jako trener ma dziś **dwa konta** (różne
   prefiksy w słownikach) — czy to ma być jedno
 

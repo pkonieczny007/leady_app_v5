@@ -119,6 +119,33 @@ def main():
             u_chytrego[0]["deadline"] == "2026-09-30")
 
     # -----------------------------------------------------------------
+    print("\nS1b — „Przedłuż termin”: +N dni od terminu, po terminie od dziś")
+    kod, j = post("/api/przedluz", {"ids": [lead_id], "dni": 14})
+    sprawdz("przedłużenie przechodzi", kod == 200 and (j or {}).get("n") == 1)
+    row = [r for r in leady() if r["id"] == lead_id][0]
+    sprawdz("termin przesunięty o 14 dni od poprzedniego",
+            row["deadline"] == "2026-10-14", str(row["deadline"]))
+
+    # Lead dawno po terminie: liczymy od DZIŚ — licząc od starej daty przycisk
+    # dawałby datę nadal w przeszłości i automat zabrałby szkołę mimo przedłużenia.
+    conn = db.get_conn()
+    conn.execute("UPDATE leady SET deadline='2026-01-01' WHERE id=?", (lead_id,))
+    conn.commit(); conn.close()
+    post("/api/przedluz", {"ids": [lead_id], "dni": 7})
+    oczekiwany = (dt.date.today() + dt.timedelta(days=7)).isoformat()
+    row = [r for r in leady() if r["id"] == lead_id][0]
+    sprawdz("po terminie liczy od dziś — data nie ląduje w przeszłości",
+            row["deadline"] == oczekiwany, str(row["deadline"]))
+    conn = db.get_conn()
+    ost = conn.execute("SELECT co FROM log WHERE lead_id=? ORDER BY id DESC LIMIT 1",
+                       (lead_id,)).fetchone()
+    # dalsze scenariusze liczą na termin z S1 — przywracamy go
+    conn.execute("UPDATE leady SET deadline='2026-09-30' WHERE id=?", (lead_id,))
+    conn.commit(); conn.close()
+    sprawdz("przedłużenie zostawia ślad w historii",
+            ost is not None and ost["co"] == "przedłużenie terminu")
+
+    # -----------------------------------------------------------------
     print("\nS2 — Handlowiec umawia DT: trafia do Zbiorczego i do kalendarza")
     kod, dane = post("/api/event", {
         "lead_id": lead_id, "typ": "DT", "data": "2026-09-16",
@@ -137,6 +164,15 @@ def main():
     komorki = [c for t in mx["tygodnie"] for w in t["wiersze"]
                if w["trener"] == "01. Małolepsza" for c in w["cells"] if c]
     sprawdz("widać wpis w kalendarzu wrześniowym", len(komorki) == 1)
+
+    # skok do daty (08.08): data w adresie wygrywa z miesiącem i podświetla tydzień
+    r = KL.get("/kalendarz?d=2026-09-16&m=2026-08")
+    html_kal = r.get_data(as_text=True)
+    sprawdz("skok do daty otwiera właściwy miesiąc mimo innego `m`",
+            r.status_code == 200 and "2026-09" in html_kal)
+    sprawdz("tydzień z wybraną datą jest podświetlony", "tydzien-wybrany" in html_kal)
+    sprawdz("zła data nie wysypuje kalendarza",
+            KL.get("/kalendarz?d=krzak").status_code == 200)
 
     # -----------------------------------------------------------------
     print("\nS3 — DWA DT jednego trenera w jednym dniu (ZGLOSZONY BUG)")

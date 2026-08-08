@@ -468,6 +468,15 @@ input.lead-cell[type=date],input.lead-cell[type=time]{max-width:150px}
 .cell-overdue{
   background:var(--overdue)!important;color:var(--warn-d);font-weight:600;
 }
+/* Szkoła zwrócona przez automat „świeci" w puli, dopóki nikt jej nie ruszy —
+   Kasia (08.08): „najlepiej jak automatycznie wróci … i może się świecić,
+   że wróciło". Gaśnie samo: pierwszy ruch człowieka to nowszy wpis w historii. */
+tr.wrocila>td{background:var(--warn-l)}
+.tag-zwrot{background:var(--warn);color:#fff;font-weight:600;margin-left:6px}
+
+/* Tydzień trafiony „skokiem do daty" w kalendarzu — obwódka zamiast tła,
+   żeby nie przekłamywać kolorów kafli (kolor kafla niesie trenera). */
+.tydzien-wybrany{outline:2px solid var(--accent);outline-offset:2px}
 tr.flash td{animation:flash .9s ease-out}
 @keyframes flash{from{background:#dcfce7}to{background:transparent}}
 
@@ -497,6 +506,9 @@ tr.flash td{animation:flash .9s ease-out}
   background:rgba(255,255,255,.18);padding:1px 9px;border-radius:20px;
 }
 .bulk-lab{font-size:12px;color:#c7d3e3}
+/* licznik dni przedłużenia: wąski, wyśrodkowany — to 1–3 cyfry, nie tekst */
+.bulk-dni{width:64px;min-height:32px;font-size:12.5px;text-align:center}
+.bulk-sep{width:1px;height:22px;background:rgba(255,255,255,.28)}
 
 /* ------------------------------------------------------------------ pulpit */
 

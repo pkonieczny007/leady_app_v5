@@ -13,6 +13,22 @@
 | Dane startowe produkcji | **import z aktualnego pliku `PH Nowy … .xlsx`** — potrzebna świeża wersja od klienta |
 | Aplikacja mobilna | **PWA** (jedna aplikacja: Android + iPhone + komputer), nie natywna — uzasadnienie niżej |
 
+## Decyzje z odpowiedzi Kasi — 08.08 wieczór
+
+Odpowiedzi na pytania z sekcji E. Zmieniają zakres etapu 3b i dokładają poprawki.
+
+| Temat | Decyzja | Skutek dla planu |
+|---|---|---|
+| Świeży plik danych | **jest**: `PH PRÓBA Nowy dla handlowców.xlsx` (08.08, 21:15) | blokada etapu 5 zdjęta |
+| Kto przypisuje szkoły | **wyłącznie koordynator handlowców (Kasia)** — handlowiec NIE przypisuje sam | ścieżka „chcę wziąć tę szkołę" **wypada z 3b**; zostaje komunikat „skontaktuj się z koordynatorem" |
+| Auto-zwrot po terminie | automatyczny, bez ręcznego odpinania; zwrócona szkoła ma się **„świecić, że wróciła"** | automat już jest (`zwrot.py`, karencja 2 dni); dochodzi plakietka „wróciła DATA" na `/niewykorzystane` |
+| Limit zajęć trenera | **4–5 dziennie to norma** (rano przedszkole 2–3 grupy, potem DT albo szkoła) | sprawdzić, że nic nie zakłada max 2; kolizje dalej tylko ostrzegają |
+| Co widzi trener | kalendarz DT + cykliczne **tylko do odczytu**, własna dostępność do edycji, **reszty ma nie widzieć** | zgodne z obecnym stanem — potwierdzić testem |
+| Co widzi handlowiec (PH) | każdy widzi każdego, edytuje swoje | zgodne z obecnym stanem |
+| Konta na start | koordynatorki: **Kasia + Weronika Małolepsza**; admini: **Julia Młynarczyk + Przemek** — admin ma uprawnienia koordynatora | zostają 3 role; „admin" = konto z rolą koordynator, osobnej roli nie budujemy |
+| Dane trenerów | Kasia uzupełnia arkusz trenerów (biuro + rekruterka dopiszą); importować **tylko mail i telefon** (bez adresu i notatek prywatnych) | uwaga przy imporcie |
+| RSPO / baza szkół | Wojtek chce **całą aktualną bazę szkół**; rejony: Rybnik, Żory, Knurów, Orzesze, pow. mikołowski, Tychy, Katowice, Jaworzno, Sosnowiec, Dąbrowa Górnicza, Będzin z powiatem, Świętochłowice, Ruda Śląska, Zabrze, Siemianowice, Chorzów, pow. pszczyński, Piekary Śląskie | **etap po wtorku** — projekt niżej (sekcja F) |
+
 ---
 
 # A. Git i bazy danych
@@ -134,22 +150,60 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 1 | PIN, role, filtr „moje szkoły", CSRF | pt 07.08 | **✅** |
 | — | Karta dostępu w PDF + `narzedzia/konto.py` | pt 07.08 | **✅** |
 | — | Tryb serwisowy (jeden PIN, bez wyboru osoby) | pt 07.08 | **✅** |
-| 3b | „+2 tygodnie" + samodzielne wzięcie szkoły | sob 08.08, ~3h | ⬜ **następne** |
-| 2b | PWA — ikona na ekranie telefonu | nd 09.08, ~3h | ⬜ (po HTTPS) |
-| 4 | VPS, domena, HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
-| 5 | Import realnych danych + przejście na sucho | pon wieczór, ~2h | ⬜ |
+| 6 | **Konta ↔ Słowniki** — dodawanie pracowników działa z obu miejsc | sob 08.08 | **✅** |
+| 3b | **„Przedłuż termin"** masowo (licznik dni, domyślnie 14, ±/wpisanie) + termin przy przypisaniu z góry dziś+14 | sob 08.08 | **✅** |
+| 7 | Plakietka „wróciła do puli" na `/baza` + skok do daty w kalendarzu | sob 08.08 | **✅** |
+| 8 | **Weryfikacja ścieżek**: testy ✅ (585/585) · **zostaje ręczny test z telefonu**: trener ustawia dostępność, handlowiec formularz→kalendarz | nd 09.08 | ⬜ |
+| 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
+| 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
+| 9 | Próba backup → przywracanie na profilu test; na VPS cron 6:00 (`.db` + `.xlsx`) | pon 10.08, ~1h | ⬜ |
+| 5 | Import `PH PRÓBA Nowy dla handlowców.xlsx` do prod + przejście na sucho po LTE | pon wieczór, ~2h | ⬜ |
+| 10 | Szybkie wdrażanie wersji: git push → skrypt na VPS (`git pull` + `docker compose up -d --build`) | pon, przy okazji etapu 4 | ⬜ |
 
-**Stan na piątek 07.08, godz. 12:40.** Pięć etapów zamkniętych w jeden dzień.
-Testy: **407 sprawdzeń w 8 plikach**, wszystkie przechodzą.
-Zostały trzy dni robocze i ~12 godzin pracy.
+**Stan na sobotę 08.08 późny wieczór.** Rdzeń v5 zamknięty, poprawki 6, 3b i 7
+zrobione tego samego wieczora. Testy: **585 sprawdzeń w 9 plikach**, komplet OK.
+Na niedzielę/poniedziałek zostają: serwer, dane, backup, telefon.
 
-### Co dokładnie zostało w etapie 3b
+### Etap 3b — jak ostatecznie wygląda (doprecyzowanie z 08.08)
 
-| Rzecz | Dlaczego |
+Zamiast sztywnego „+2 tygodnie": w pasku masowych akcji jest **licznik dni**
+(domyślnie 14, przyciski −/+, można wpisać własną liczbę) i przycisk
+**„Przedłuż termin"** działający na wszystkie zaznaczone leady. Nowy termin =
+obecny termin + N dni; dla leadów już po terminie liczymy **od dziś** — inaczej
+przedłużenie szkoły przeterminowanej od miesiąca dawałoby datę nadal w przeszłości
+i automat zabrałby ją mimo przedłużenia. Każde przedłużenie zostawia ślad
+w historii leada. Dodatkowo pole terminu przy zwykłym „Przypisz" jest z góry
+wypełnione na **dziś + 14 dni** (edytowalne) — Kasia rozdaje szkoły „na 2 tygodnie".
+
+| ~~„Chcę wziąć tę szkołę" dla handlowca~~ | **wypadło 08.08** — Kasia: „tylko koordynator ma prawo przypisu" |
 |---|---|
-| Przycisk **„termin +2 tygodnie"** na `/baza` | ze spotkania: „10 szkół z terminem do 2 tygodni". Dziś termin wpisuje się z kalendarza — działa, ale przy 10 szkołach to 10 kliknięć w datę |
-| **„Chcę wziąć tę szkołę"** dla handlowca | ze spotkania: samodzielne przypisanie ma być możliwe, ale trudniejsze niż wybór z listy, z komunikatem o kontakcie z koordynatorem |
-| Ślad w historii + widok dla koordynatora | żeby koordynator wiedział, kto sam sobie coś wziął i dlaczego |
+
+### Etap 6 — Konta ↔ Słowniki (zgłoszone i **zrobione** 08.08)
+
+Objaw: „nie można dodawać pracowników; trener dodany w Słownikach nie pojawia się
+w Kontach". Przyczyna jest w kodzie, nie w danych:
+
+- panel `/uzytkownicy` buduje listę „bez konta" **tylko ze słownika `handlowiec`**
+  (`app.py`, `uzytkownicy_view`) — trenerzy nigdy się tam nie pokażą,
+- `api_slownik_add` dodaje wartość do słownika i **nie tworzy konta** — konta
+  hurtowo zakłada tylko `bootstrap_konta()` przy pierwszym starcie profilu.
+
+Naprawa (dwustronna, żeby nie trzeba było pamiętać kolejności):
+
+1. dodanie do słownika `handlowiec`/`trener` **automatycznie zakłada konto** z rolą
+   wg rodzaju słownika, bez PIN-u (bez PIN-u nie da się zalogować — PIN nadaje
+   koordynator, dokładnie jak przy bootstrapie),
+2. lista „bez konta" w `/uzytkownicy` czyta **oba** słowniki,
+3. test: dodaj trenera w słowniku → konto istnieje z rolą `trener` → nadaj PIN → loguje się.
+
+### Filtr daty w kalendarzu (etap 7, **zrobione** 08.08)
+
+Pole daty w pasku kalendarza: wybór daty przeskakuje na właściwy miesiąc,
+podświetla tydzień z tą datą (obwódka + plakietka „tydzień z …") i przewija do
+niego ekran. Działa we wszystkich trzech widokach (macierz / agenda / starty);
+data w adresie wygrywa z wyborem miesiąca, a ręczna zmiana miesiąca czyści datę.
+Osobny widok „tydzień" (7 dni od wybranej daty) — dopiero po wtorku, jeśli
+handlowcy o niego poproszą po realnym użyciu.
 
 ### Co doszło poza planem (z uwag w trakcie)
 
@@ -302,9 +356,10 @@ Do tego jedna kartka A5 dla handlowca: adres, jak dodać ikonę do ekranu, PIN, 
 
 | Etap | Kiedy | Co |
 |---|---|---|
-| 6 | śr–czw 12–13.08 | pełne offline: kolejka wysyłkowa, synchronizacja po odzyskaniu zasięgu, oznaczenie „czeka na wysłanie" |
-| 7 | tydzień 18.08 | poprawki z pierwszego tygodnia realnego użycia — **to najcenniejszy materiał, jaki dostaniesz** |
-| 8 | wrzesień | rozliczenia (30/30/5), powiadomienia mailowe, Google Calendar |
+| 11 | śr–czw 12–13.08 | pełne offline: kolejka wysyłkowa, synchronizacja po odzyskaniu zasięgu, oznaczenie „czeka na wysłanie" |
+| 12 | tydzień 18.08 | poprawki z pierwszego tygodnia realnego użycia — **to najcenniejszy materiał, jaki dostaniesz** |
+| 13 | tydzień 18.08 | **baza szkół z RSPO** — projekt w sekcji F |
+| 14 | wrzesień | rozliczenia (30/30/5), powiadomienia mailowe, Google Calendar |
 
 ---
 
@@ -321,11 +376,35 @@ Do tego jedna kartka A5 dla handlowca: adres, jak dodać ikonę do ekranu, PIN, 
 
 ---
 
-# E. Pytania do klienta — wysłać dziś, odpowiedzi potrzebne do niedzieli
+# E. Pytania do klienta — stan po odpowiedziach z 08.08
 
-1. **Plik `PH Nowy … .xlsx` w najświeższej wersji** — to jest blokada dla całego wtorku.
-2. **Auto-zwrot szkół:** ile dni karencji po terminie? Czy ostrzegać handlowca wcześniej? Czy szkoła z umówionym DT ma nigdy nie wracać do puli?
-3. **Samodzielne przypisanie szkoły przez handlowca:** ma być zablokowane z komunikatem „skontaktuj się z koordynatorem", czy dozwolone z podaniem powodu i zapisem w historii?
-4. **Podpowiedź trenera w formularzu:** czy handlowiec ma prawo obiecać dyrektorowi termin na podstawie tej podpowiedzi, czy to tylko wskazówka, a wiążąco potwierdza koordynator?
-5. **Lista handlowców i ich PIN-y** — kto ma konto na start i kto jest koordynatorem (admin).
-6. **Formularz — czy czegoś brakuje?** We wzorze nie ma: osoby kontaktowej i telefonu (jest w bazie leadów), zgody na wynajem sali, informacji o sprzęcie (sala komputerowa / chromebooki — a to jest w kalendarzu STARTY).
+1. ~~Plik `PH Nowy … .xlsx`~~ — **jest** (`PH PRÓBA Nowy dla handlowców.xlsx`, 08.08).
+2. ~~Auto-zwrot~~ — **automatyczny**, zwrócona szkoła ma się świecić. Karencja
+   zostaje na naszych 2 dniach (`KARENCJA_DNI`), Kasia nie podała innej wartości.
+3. ~~Samodzielne przypisanie~~ — **NIE**. Tylko koordynator handlowców (Kasia).
+4. **Podpowiedź trenera w formularzu** — czy handlowiec może obiecać termin
+   dyrektorowi, czy wiążąco potwierdza koordynator? **⬜ nadal bez odpowiedzi.**
+5. ~~Konta~~ — koordynatorki: Kasia, Weronika Małolepsza; admini (te same
+   uprawnienia): Julia Młynarczyk, Przemek. Handlowcy i trenerzy ze słowników.
+6. **Formularz — czy czegoś brakuje?** — **⬜ nadal bez odpowiedzi** (osoba
+   kontaktowa, zgoda na salę, sprzęt).
+7. **Osoba będąca i handlowcem, i trenerem** ma dziś dwa konta (różne prefiksy
+   w słownikach) — jedno konto czy dwa? **⬜ nadal bez odpowiedzi.**
+
+---
+
+# F. Baza szkół z RSPO — propozycja
+
+**Pełna propozycja (do pokazania Wojtkowi): `docs/12_RSPO.md`.** Skrót i fakty
+zweryfikowane 08.08:
+
+- fundament **już jest w kodzie**: kolumna `rspo` z unikalnym indeksem,
+  `importuj_rspo()` (import z pliku przez ekran Import), dopasowanie placówek
+  po numerze RSPO → zmiana nazwy w rejestrze nie tworzy duplikatu,
+- oficjalne API `api.rspo.gov.pl` **wymaga wniosku** (e-mail na `rspo@cie.gov.pl`,
+  rozpatrzenie do 14 dni) — wniosek wysłać w poniedziałek, zegar tyka,
+- otwarte dane na dane.gov.pl są z lat 2013–2017 — odpadają,
+- plan dwuetapowy: **A** (od wtorku, zero kodu) — wykazy rejonów Kasi
+  z wyszukiwarki rspo.gov.pl wgrywane istniejącym importem; **B** (po dostępie
+  do API, ~1 dzień pracy) — `narzedzia/rspo.py`, przycisk „Odśwież z RSPO"
+  z raportem nowych/zmienionych/zniknięć, flaga „objęta działaniem".

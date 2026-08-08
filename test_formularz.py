@@ -445,6 +445,19 @@ def main():
     sprawdz("podgląd automatu odpowiada 200", kod == 200)
     sprawdz("podgląd podaje karencję", (j or {}).get("karencja") == zwrot.KARENCJA_DNI)
 
+    # ============================== Z5 — „świeci się, że wróciła" (Kasia, 08.08)
+    # Po Z4 lead wrócił automatem, więc jego OSTATNI wpis w historii to auto-zwrot
+    # — dokładnie wtedy plakietka na /baza ma się palić.
+    print("\nZ5 — zwrócona szkoła świeci na /baza, dopóki nikt jej nie ruszy")
+    html = KL.get("/baza").get_data(as_text=True)
+    sprawdz("na /baza jest plakietka zwrotu", "tag-zwrot" in html)
+    sprawdz("plakietka dotyczy zwróconego leada", '"%d"' % l_przetermin in html)
+
+    # pierwszy ruch człowieka (ponowne przypisanie) ma zgasić plakietkę sam z siebie
+    post("/api/przypisz", {"ids": [l_przetermin], "handlowiec": H, "deadline": dni(10)})
+    html = KL.get("/baza").get_data(as_text=True)
+    sprawdz("po przypisaniu plakietka gaśnie", "tag-zwrot" not in html)
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

@@ -123,6 +123,19 @@
     pasek.hidden = ids.length === 0;
   }
 
+  // Termin przy przypisywaniu: z góry wypełniony na dziś + 14 dni — Kasia
+  // rozdaje szkoły „na 2 tygodnie", więc kalendarzyk służy tylko do wyjątków.
+  // Data składana lokalnie (nie toISOString), bo ta liczy w UTC i tuż po
+  // północy podstawiałaby wczorajszą datę.
+  (function () {
+    var pole = document.getElementById("bulk-deadline");
+    if (!pole || pole.value) return;
+    var t = new Date();
+    t.setDate(t.getDate() + 14);
+    pole.value = t.getFullYear() + "-" + ("0" + (t.getMonth() + 1)).slice(-2)
+               + "-" + ("0" + t.getDate()).slice(-2);
+  })();
+
   document.addEventListener("change", function (ev) {
     if (ev.target.id === "chk-all") {
       var stan = ev.target.checked;
@@ -156,8 +169,31 @@
       return;
     }
 
+    // Strzałki licznika dni działają bez zaznaczenia — ustawianie liczby
+    // to nie akcja na rekordach.
+    if (akcja === "dni") {
+      var licznikDni = document.getElementById("bulk-dni");
+      if (licznikDni) {
+        var v = parseInt(licznikDni.value, 10) || 14;
+        v = Math.min(365, Math.max(1, v + parseInt(btn.dataset.krok, 10)));
+        licznikDni.value = v;
+      }
+      return;
+    }
+
     var ids = zaznaczone();
     if (!ids.length) { toast("Najpierw zaznacz rekordy", true); return; }
+
+    if (akcja === "przedluz") {
+      var poleDni = document.getElementById("bulk-dni");
+      var dni = poleDni ? parseInt(poleDni.value, 10) : 14;
+      if (!dni || dni < 1 || dni > 365) { toast("Podaj liczbę dni (1–365)", true); return; }
+      api("POST", "/api/przedluz", { ids: ids, dni: dni }).then(function (j) {
+        toast("Przedłużono termin " + j.n + " rekordów o " + j.dni + " dni");
+        setTimeout(function () { location.reload(); }, 500);
+      }).catch(function (e) { toast("Nie przedłużono: " + e.message, true); });
+      return;
+    }
 
     if (akcja === "przypisz") {
       var h = document.getElementById("bulk-handlowiec");

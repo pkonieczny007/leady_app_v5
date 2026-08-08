@@ -500,6 +500,19 @@
   <button type="button" class="btn btn-danger btn-sm" data-akcja="odbierz"
           title="Lead wraca do puli „Niewykorzystane rekordy”">Odbierz handlowcowi</button>
   {% endif %}
+  {# Przedłużenie działa na SAM termin — handlowiec i status zostają. Osobno od
+     „Przypisz", bo przy przedłużaniu 10 szkół naraz nikt nie chce wybierać
+     handlowca ani wpisywać daty per rekord; liczy się „daj im jeszcze N dni". #}
+  <span class="bulk-sep" aria-hidden="true"></span>
+  <label class="bulk-lab" for="bulk-dni">przedłuż o</label>
+  <button type="button" class="btn btn-secondary btn-sm" data-akcja="dni" data-krok="-1"
+          title="mniej dni">−</button>
+  <input type="number" class="input bulk-dni" id="bulk-dni" value="14" min="1" max="365">
+  <button type="button" class="btn btn-secondary btn-sm" data-akcja="dni" data-krok="1"
+          title="więcej dni">+</button>
+  <label class="bulk-lab" for="bulk-dni">dni</label>
+  <button type="button" class="btn btn-primary btn-sm" data-akcja="przedluz"
+          title="Nowy termin = obecny termin + tyle dni (dla leadów po terminie: dziś + tyle dni)">Przedłuż termin</button>
   <button type="button" class="btn btn-secondary btn-sm" data-akcja="odznacz">Odznacz</button>
 </div>
 {% endmacro %}

@@ -73,6 +73,30 @@
      min_szer='1180px',
      pusto='Brak placówek dla tych filtrów. Wgraj bazę RSPO w „↑ Import" albo wczytaj dane demo.') }}
 
+{% if zwroty %}
+<script>
+  // Plakietka „wróciła do puli" — dopinana tu, po stronie przeglądarki, żeby
+  // nie komplikować wspólnego makra tabeli przypadkiem jednego ekranu.
+  // Świeci tylko, dopóki nikt leada nie ruszył (patrz trasa /baza).
+  (function () {
+    var zwroty = {{ zwroty | tojson }};
+    Object.keys(zwroty).forEach(function (id) {
+      var tr = document.querySelector('tr[data-lead="' + id + '"]');
+      if (!tr) return;
+      tr.classList.add("wrocila");
+      var td = tr.querySelector("td:nth-child(3)");   // kolumna „placówka"
+      if (!td) return;
+      var b = document.createElement("span");
+      b.className = "tag tag-zwrot";
+      b.textContent = "wróciła " + zwroty[id];
+      b.title = "Automat zwrócił tę szkołę do puli po terminie ostatecznym ("
+              + zwroty[id] + "). Plakietka zgaśnie po pierwszej zmianie na leadzie.";
+      td.appendChild(b);
+    });
+  })();
+</script>
+{% endif %}
+
 {{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
 
 {{ legenda('Przypisanie leada to zmiana właściciela i statusu — rekord zostaje w jednej

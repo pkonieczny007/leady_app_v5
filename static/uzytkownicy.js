@@ -78,7 +78,10 @@
     if (b.classList.contains("uz-dodaj")) {
       var kto = b.dataset.osoba;
       b.disabled = true;
-      api("POST", "/api/uzytkownik", { osoba: kto, rola: "handlowiec" })
+      // rola z przycisku — listę „bez konta" budują OBA słowniki (handlowcy
+      // i trenerzy), więc na sztywno wpisany handlowiec robiłby z trenerów
+      // handlowców z pełnym dostępem do leadów
+      api("POST", "/api/uzytkownik", { osoba: kto, rola: b.dataset.rola || "handlowiec" })
         .then(function (j) { pokazPin(j.osoba, j.pin); })
         .catch(function (e) { b.disabled = false; toast("Nie dodano: " + e.message, true); });
       return;
