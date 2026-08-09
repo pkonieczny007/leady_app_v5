@@ -330,6 +330,72 @@ def main():
         sprawdz("%s: dołączony moduł obsługi awarii" % znacznik,
                 "formularz_awaria.js" in html)
 
+    # ================================ F5c — „Plan na dziś" wspólny dla wariantów
+    # Ze spotkania: koordynator w weekend wybiera szkoły z terminem, handlowiec
+    # w terenie na nich pracuje. Do 09.08 termin docierał do przeglądarki
+    # (moje[].deadline) i nie był nigdzie pokazywany — ścieżka urywała się
+    # w formularzu.
+    print("\nF5c — plan od koordynatora we wszystkich trzech wariantach")
+    for adres, znacznik in (("/formularz/kroki", "v1"), ("/formularz/ciagly", "v2"),
+                            ("/formularz/v3", "v3")):
+        h = KL.get(adres + "?handlowiec=" + H).get_data(as_text=True)
+        sprawdz("%s: sekcja planu jest" % znacznik, 'id="fx-plan"' in h)
+        sprawdz("%s: wspólny skrypt planu" % znacznik, "fx_plan.js" in h)
+        sprawdz("%s: dane szkół z terminami" % znacznik, "FX_MOJE" in h)
+    sprawdz("wszystkie warianty używają JEDNEGO fragmentu szablonu",
+            "_plan_dnia.html" in open("templates/formularz.html", encoding="utf-8").read()
+            and "_plan_dnia.html" in open("templates/formularz2.html", encoding="utf-8").read()
+            and "_plan_dnia.html" in open("templates/formularz3.html", encoding="utf-8").read())
+
+    # pozycja planu musi nieść to, czego potrzebuje lista: termin, stan, gwiazdkę
+    r = KL.get("/formularz/v3?handlowiec=" + H)
+    h = r.get_data(as_text=True)
+    sprawdz("dane niosą termin", '"deadline"' in h)
+    sprawdz("dane niosą informację o umówionym DT", '"ma_dt"' in h)
+    sprawdz("dane niosą gwiazdkę planu tygodnia", '"pin"' in h)
+    sprawdz("dane niosą właściciela (dla cudzych przypiętych)", '"wlasciciel"' in h)
+
+    # Gwiazdka na CUDZEJ szkole: handlowiec bywa w terenie „przy okazji" pod
+    # szkołą kolegi i przypina ją sobie na tydzień. Ma się pojawić w planie,
+    # ale z jawnym właścicielem — przypisanie ma swojego gospodarza.
+    conn = db.get_conn()
+    pid_c = conn.execute("INSERT INTO placowki (nazwa, miejscowosc) VALUES (?,?)",
+                         ("SP Kolegi Przypieta", M)).lastrowid
+    lid_c = conn.execute("INSERT INTO leady (placowka_id, handlowiec, status_realizacji) "
+                         "VALUES (?,?,?)", (pid_c, H2, "01. Próba")).lastrowid
+    conn.commit(); conn.close()
+    # Przypięcie robimy „ręką handlowca H": w tym pliku klient testowy jest
+    # zalogowany jako koordynator, a o tym, czyja to gwiazdka, rozstrzyga autor
+    # wpisu w historii (kolumna `pin_tydzien` niesie samą datę).
+    post("/api/pin", {"id": lid_c, "pin": True})
+    conn = db.get_conn()
+    conn.execute("UPDATE log SET kto=? WHERE lead_id=? AND co='plan tygodnia'",
+                 (H, lid_c))
+    conn.commit(); conn.close()
+    h = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("cudza szkoła przypięta gwiazdką wchodzi do planu",
+            "SP Kolegi Przypieta" in h)
+    sprawdz("i niesie nazwisko właściciela do ostrzeżenia", H2 in h)
+
+    # cudza szkoła przypięta przez KOGOŚ INNEGO nie ma prawa się pojawić —
+    # inaczej plan zapełniłby się gwiazdkami całego zespołu
+    conn = db.get_conn()
+    conn.execute("UPDATE log SET kto=? WHERE lead_id=? AND co='plan tygodnia'",
+                 (H2, lid_c))
+    conn.commit(); conn.close()
+    h = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("cudza gwiazdka kolegi NIE wchodzi do mojego planu",
+            "SP Kolegi Przypieta" not in h)
+
+    conn = db.get_conn()
+    conn.execute("UPDATE log SET kto=? WHERE lead_id=? AND co='plan tygodnia'",
+                 (H, lid_c))
+    conn.commit(); conn.close()
+    post("/api/pin", {"id": lid_c, "pin": False})
+    h = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("po zdjęciu gwiazdki cudza szkoła znika z planu",
+            "SP Kolegi Przypieta" not in h)
+
     print("\nF6 — wyszukiwarka szkół (wariant 1)")
     r = KL.get("/api/placowki/szukaj?q=" + "sp 1")
     poz = r.get_json()["pozycje"]

@@ -193,6 +193,18 @@ def main():
     sprawdz("rok 3000 też odrzucony",
             "3000-" not in KL.get("/kalendarz?d=3000-01-01").get_data(as_text=True))
 
+    # Zgłoszone 09.08: wybór miesiąca ginął przy przejściu kalendarz ↔ dostępność
+    # (linki w nawigacji nie niosą `m`, więc każdy ekran startował od ostatniego
+    # miesiąca z danymi). Wybór ma przeżyć zmianę ekranu.
+    KL.get("/kalendarz?m=2026-09")
+    sprawdz("dostępność otwiera się na miesiącu wybranym w kalendarzu",
+            "2026-09" in KL.get("/dostepnosc").get_data(as_text=True))
+    KL.get("/dostepnosc?m=2026-10")
+    sprawdz("i odwrotnie — kalendarz pamięta wybór z dostępności",
+            "2026-10" in KL.get("/kalendarz").get_data(as_text=True))
+    sprawdz("adres z konkretnym miesiącem dalej wygrywa",
+            "2026-09" in KL.get("/kalendarz?m=2026-09").get_data(as_text=True))
+
     # -----------------------------------------------------------------
     print("\nS3 — DWA DT jednego trenera w jednym dniu (ZGLOSZONY BUG)")
     lead2 = nowa_szkola("SP 8 Będzin", miasto="15. Będzin")

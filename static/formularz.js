@@ -157,6 +157,13 @@
     zapiszSzkic();
   }
 
+  // Wejście dla wspólnej sekcji „Plan na dziś" (fx_plan.js). Każdy wariant
+  // wybiera szkołę inaczej, więc podaje własną funkcję pod tą samą nazwą.
+  window.FX_PLAN_WYBIERZ = function (p) {
+    wybierz(p);
+    odswiezKandydatow();          // miasto się zmieniło → inni kandydaci
+  };
+
   $("fx-zmien").addEventListener("click", function () {
     stan.wybrana = null;
     boxWybrana.hidden = true;

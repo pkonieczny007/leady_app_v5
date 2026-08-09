@@ -168,6 +168,16 @@
     zapiszSzkic();
   });
 
+  // Wejście dla wspólnej sekcji „Plan na dziś" (fx_plan.js) — identyczne jak
+  // w v2, bo wybór szkoły działa tu tak samo: dwie listy, druga doczytywana.
+  window.FX_PLAN_WYBIERZ = function (p) {
+    selMiasto.value = p.miejscowosc || "";
+    wczytajSzkoly(selMiasto.value, function () {
+      selSzkola.value = String(p.placowka_id);
+      selSzkola.dispatchEvent(new Event("change"));
+    });
+  };
+
   $("f2-nowa-otworz").addEventListener("click", function () {
     stan.nowa = !stan.nowa;
     $("f2-nowa").hidden = !stan.nowa;

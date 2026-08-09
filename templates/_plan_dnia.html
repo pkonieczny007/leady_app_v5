@@ -1,0 +1,30 @@
+{#
+  PLAN NA DZIŚ — szkoły, które koordynator przydzielił temu handlowcowi.
+
+  Powstało z pytania o pracę ustaloną na spotkaniu: „w weekend koordynator
+  wybiera 5 szkół i nadaje termin, handlowiec w terenie działa na tych
+  szkołach". Ścieżka działała aż do formularza i tu się urywała — termin
+  docierał do przeglądarki (`moje[].deadline`) i nie był nigdzie pokazywany,
+  a handlowiec, który chciał zobaczyć swoją listę, musiał wyjść z formularza.
+
+  WSPÓLNY fragment dla v1, v2 i v3 — dołączany przez `{% include %}`, żeby
+  trzy warianty nie mogły się rozjechać. Różnią się sposobem WYPEŁNIANIA,
+  a nie tym, co handlowiec widzi na wejściu; inaczej klient porównywałby
+  funkcje zamiast układu.
+
+  Sortowanie i wygląd liczy przeglądarka (`fx-plan.js`), bo te same dane
+  siedzą już w `window.FX_MOJE` i drugi raz ich nie wysyłamy.
+#}
+{% if moje %}
+<details class="fx-plan" id="fx-plan" open>
+  <summary class="fx-plan-glowa">
+    <span class="fx-plan-tytul">Twoje szkoły od koordynatora</span>
+    <span class="fx-plan-licznik" id="fx-plan-n">{{ moje|length }}</span>
+  </summary>
+  <div class="fx-plan-tresc" id="fx-plan-lista"></div>
+  <p class="fx-plan-nota">
+    Kliknij szkołę, żeby wypełnić dla niej formularz.
+    Najbliższy termin na górze; z umówionym DT na końcu.
+  </p>
+</details>
+{% endif %}

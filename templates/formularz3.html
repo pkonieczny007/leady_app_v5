@@ -87,6 +87,8 @@
   </div>
   {% endif %}
 
+  {% include "_plan_dnia.html" %}
+
   <form id="f2-form" autocomplete="off" novalidate>
 
   {# ==================================================== DANE PLACÓWKI #}
@@ -335,4 +337,5 @@
 </script>
 <script src="{{ url_for('static', filename='formularz_awaria.js') }}"></script>
 <script src="{{ url_for('static', filename='formularz3.js') }}"></script>
+<script src="{{ url_for('static', filename='fx_plan.js') }}"></script>
 {% endblock %}

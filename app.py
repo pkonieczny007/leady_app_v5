@@ -200,6 +200,30 @@ def _sensowny_miesiac(rrmm):
     return s if _sensowna_data(s + "-01") else ""
 
 
+def _miesiac_ekranu(args, miesiace):
+    """
+    Który miesiąc pokazać na kalendarzu i dostępności.
+
+    Zgłoszone 09.08: trener ustawia wrzesień w kalendarzu, przechodzi na
+    dostępność i widzi październik, a po powrocie kalendarz też skacze na
+    październik. Powód: linki w nawigacji nie niosą `m`, więc każdy ekran
+    zaczynał od ostatniego miesiąca, w którym cokolwiek jest w bazie.
+
+    Wybór ZAPAMIĘTUJEMY W SESJI i traktujemy jak domyślny na obu ekranach —
+    tak samo jak filtr „moje szkoły": jawny wybór człowieka wygrywa z tym,
+    co aplikacja uznałaby sama, i przeżywa przejście na sąsiedni ekran.
+    Adres z `?m=` dalej wygrywa, bo to świadome wskazanie konkretnego miesiąca.
+    """
+    z_adresu = _sensowny_miesiac(args.get("m"))
+    if z_adresu:
+        session["miesiac"] = z_adresu
+        return z_adresu
+    zapamietany = _sensowny_miesiac(session.get("miesiac"))
+    if zapamietany:
+        return zapamietany
+    return miesiace[-1] if miesiace else dzis()[:7]
+
+
 def _walidacja(conn, field, value, mapa_slownikow, dozwolone_klucze):
     """
     Wspólna walidacja zapisu pola. Zwraca (value, blad).
@@ -533,8 +557,9 @@ def kalendarz():
     # Data spoza widełek (literówka w roku, stara zakładka) jest ignorowana,
     # a nie przenosi kalendarza w rok 2 bez drogi powrotnej — patrz `_sensowna_data`.
     dzien = _sensowna_data(request.args.get("d"))
-    month = dzien[:7] if dzien else (_sensowny_miesiac(request.args.get("m"))
-                                     or (miesiace[-1] if miesiace else dzis()[:7]))
+    month = dzien[:7] if dzien else _miesiac_ekranu(request.args, miesiace)
+    if dzien:
+        session["miesiac"] = month      # skok do daty też jest wyborem miesiąca
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
@@ -576,10 +601,9 @@ def dostepnosc():
     """
     conn = get_conn()
     miesiace = cv.available_months(conn)
-    # ten sam bezpiecznik co w kalendarzu — `?m=0002-08` z adresu nie ma prawa
-    # przenieść grafiku w rok, z którego nie da się wrócić
-    month = (_sensowny_miesiac(request.args.get("m"))
-             or (miesiace[-1] if miesiace else dzis()[:7]))
+    # ten sam bezpiecznik i ta sama pamięć wyboru co w kalendarzu — przejście
+    # między grafikiem a dostępnością nie ma przestawiać miesiąca
+    month = _miesiac_ekranu(request.args, miesiace)
     weekend = request.args.get("weekend") == "1"
     ch = _chipy_grafiku(request.args)
     grid = dv.build_dostepnosc(conn, month, weekend=weekend,
@@ -1258,13 +1282,31 @@ def _kontekst_formularza(conn, handlowiec):
         f = repo.pusty_filtr()
         f["handlowiec"] = handlowiec
         f["zakres"] = "przydzielone"
-        moje = [{"lead_id": r["id"], "placowka_id": r["placowka_id"],
-                 "nazwa": r["placowka"], "miejscowosc": r["miejscowosc"] or "",
-                 "typ": r["typ_placowki"] or "", "adres": r["adres"] or "",
-                 "osoba_kontakt": r["osoba_kontakt"] or "", "telefon": r["telefon"] or "",
-                 "mail": r["mail"] or "", "moja": True, "deadline": r["deadline"] or "",
-                 "ma_dt": bool(r["dt_data"])}
-                for r in repo.filtruj_leady(conn, f, limit=300)]
+        moje = [_pozycja_planu(r, moja=True) for r in
+                repo.filtruj_leady(conn, f, limit=300)]
+
+        # SZKOŁY PRZYPIĘTE GWIAZDKĄ, KTÓRE NALEŻĄ DO KOGO INNEGO.
+        # Handlowiec bywa w terenie „przy okazji" pod cudzą szkołą i przypina ją
+        # sobie na tydzień. Do 09.08 taka szkoła znikała z formularza, bo lista
+        # brała wyłącznie przypisane do niego — czyli gwiazdka działała na
+        # `/tydzien`, a w miejscu, gdzie realnie się pracuje, nie znaczyła nic.
+        #
+        # Kogo przypięcie? Sama kolumna `pin_tydzien` niesie tylko datę, więc
+        # autora czytamy z historii zmian (tam `kto` bierze się z sesji).
+        # Cudzą szkołę pokazujemy z OSTRZEŻENIEM, a nie po cichu: przypisanie
+        # ma swojego właściciela i to on odpowiada za termin.
+        mam = {p["lead_id"] for p in moje}
+        for r in repo.filtruj_leady(conn, _filtr_pin(), limit=100):
+            if r["id"] in mam or not (r["handlowiec"] or "").strip():
+                continue
+            kto = conn.execute(
+                "SELECT kto FROM log WHERE lead_id=? AND co='plan tygodnia' "
+                "ORDER BY id DESC LIMIT 1", (r["id"],)).fetchone()
+            if not kto or kto["kto"] != handlowiec:
+                continue                      # przypiął ktoś inny — nie moja sprawa
+            poz = _pozycja_planu(r, moja=False)
+            poz["wlasciciel"] = r["handlowiec"]
+            moje.append(poz)
     return {
         "slowniki": wszystkie_slowniki(conn),
         "handlowiec": handlowiec,
@@ -1272,6 +1314,25 @@ def _kontekst_formularza(conn, handlowiec):
         "ostrzezenia": zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else [],
         "today": dzis(),
         "dzis_iso": dzis(),
+    }
+
+
+def _filtr_pin():
+    f = repo.pusty_filtr()
+    f["zakres"] = "pin"
+    return f
+
+
+def _pozycja_planu(r, moja):
+    """Jedna szkoła na liście „Plan na dziś" — wspólna dla wszystkich wariantów."""
+    return {
+        "lead_id": r["id"], "placowka_id": r["placowka_id"],
+        "nazwa": r["placowka"], "miejscowosc": r["miejscowosc"] or "",
+        "typ": r["typ_placowki"] or "", "adres": r["adres"] or "",
+        "osoba_kontakt": r["osoba_kontakt"] or "", "telefon": r["telefon"] or "",
+        "mail": r["mail"] or "", "moja": moja,
+        "deadline": r["deadline"] or "", "ma_dt": bool(r["dt_data"]),
+        "pin": bool(r["pin_tydzien"]), "wlasciciel": "",
     }
 
 

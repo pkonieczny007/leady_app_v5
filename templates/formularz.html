@@ -72,6 +72,8 @@
   </div>
   {% endif %}
 
+  {% include "_plan_dnia.html" %}
+
   {# ----------------------------------------------------------- pasek kroków #}
   <nav class="fx-kroki" aria-label="Postęp">
     {% for nr, tytul in [(1,'Placówka'), (2,'Dzień Technologii'), (3,'Cykle'), (4,'Podsumowanie')] %}
@@ -298,4 +300,7 @@
 </script>
 <script src="{{ url_for('static', filename='formularz_awaria.js') }}"></script>
 <script src="{{ url_for('static', filename='formularz.js') }}"></script>
+{# po skrypcie wariantu: `fx_plan.js` woła `FX_PLAN_WYBIERZ`, które wariant
+   definiuje dopiero u siebie #}
+<script src="{{ url_for('static', filename='fx_plan.js') }}"></script>
 {% endblock %}
