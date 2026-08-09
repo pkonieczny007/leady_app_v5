@@ -1,0 +1,340 @@
+# 15. Domena i wdrożenie — krok po kroku
+
+Instrukcja do **wykonania z palca**, nie do czytania. Pisana dlatego, że
+podpinanie domeny robi się raz na rok i za każdym razem od nowa przypomina się,
+co po czym idzie.
+
+**Najważniejsza rzecz w całym dokumencie:** DNS propaguje się od kilkunastu minut
+do kilku godzin, a `certbot` **odmówi wystawienia certyfikatu, dopóki domena nie
+wskazuje na serwer** (Let's Encrypt sprawdza to, pukając z zewnątrz pod adres,
+który właśnie certyfikujesz). Dlatego rekord DNS ustawiamy **jako pierwszą
+czynność poniedziałku**, a resztę robimy, kiedy on się rozchodzi. Odwrócenie tej
+kolejności to godzina czekania w środku dnia i błąd `Timeout during connect`,
+który wygląda jak awaria, a jest tylko niecierpliwością.
+
+---
+
+## 0. Co trzeba mieć pod ręką
+
+| Rzecz | Skąd wziąć | Wpisz tutaj |
+|---|---|---|
+| adres IP VPS-a | `ssh …@opxen.xyz` → `curl -4 ifconfig.me` | `……………………` |
+| panel DNS domeny `silesia3d.site` | tam, gdzie działa już `librus.silesia3d.site` | `……………………` |
+| dostęp `sudo` na VPS | jest — działa tam nginx i inne aplikacje | ✔ |
+
+Na serwerze **już coś stoi** i tego nie ruszamy: rozliczenia na `5057`, poprzednia
+wersja leadów na `5058`. Nowa aplikacja wchodzi obok, na własnych portach:
+**5301 = produkcja, 5302 = demo**.
+
+### Nazwy subdomen
+
+| | subdomena | port | profil bazy |
+|---|---|---|---|
+| demo | `leady-demo.silesia3d.site` | 5302 | `test` (realne dane, wolno psuć) |
+| produkcja | `leady.silesia3d.site` | 5301 | `prod` |
+
+Dlaczego `leady-demo`, a nie `demo.leady`? W panelach DNS trzeci poziom bywa
+kłopotliwy do wpisania, a certyfikat i tak bierzemy osobny dla każdej nazwy —
+płaska nazwa nic nie kosztuje, a nie trzeba się zastanawiać, czy panel ją przyjmie.
+
+**Demo idzie pierwsze i to nie jest formalność.** Na demo wolno wywalić kontener,
+zresetować bazę i pomylić się w nginx. Kiedy ta sama ścieżka przejdzie drugi raz,
+na produkcji nie ma już niespodzianek — a we wtorek rano nie ma czasu na
+niespodzianki.
+
+---
+
+## 1. DNS — rób to najpierw, o poranku
+
+W panelu domeny `silesia3d.site` dodaj **dwa rekordy A**:
+
+| Typ | Nazwa (host) | Wartość | TTL |
+|---|---|---|---|
+| `A` | `leady` | *IP VPS-a* | 300 (albo minimum, jakie panel pozwala) |
+| `A` | `leady-demo` | *IP VPS-a* | 300 |
+
+Uwagi, na których łatwo się przewrócić:
+
+- **W polu „nazwa" wpisuje się samo `leady`, bez domeny.** Część paneli chce
+  pełnej nazwy `leady.silesia3d.site`, część dokleja domenę sama — jeśli wpiszesz
+  pełną tam, gdzie nie trzeba, powstanie `leady.silesia3d.site.silesia3d.site`.
+  Sprawdź, jak wygląda istniejący wpis `librus`, i zrób **dokładnie tak samo**.
+- **Bez CNAME.** CNAME ma sens, gdy celujesz w cudzą nazwę, która może zmienić IP
+  (np. hosting współdzielony). Tu celujemy we własny serwer o stałym adresie —
+  `A` jest prostsze i o jedno zapytanie szybsze.
+- **Rekord `AAAA` tylko wtedy, gdy serwer ma IPv6** (`curl -6 ifconfig.me`
+  odpowiada). Jeśli dodasz `AAAA` na adres, którego nginx nie nasłuchuje,
+  część telefonów w sieciach komórkowych — a właśnie z nich korzystają
+  handlowcy — trafi w IPv6 i zobaczy „nie można połączyć", podczas gdy z biura
+  wszystko działa. To najbardziej mylący możliwy objaw. Nie masz IPv6 → nie
+  dodawaj `AAAA`.
+- **TTL na czas wdrożenia ustaw nisko.** Jeśli pomylisz IP, przy TTL 3600 czekasz
+  godzinę na poprawkę. Po wdrożeniu można podnieść.
+
+## 2. Sprawdź, czy DNS już działa (zanim ruszysz cokolwiek dalej)
+
+```powershell
+nslookup leady.silesia3d.site
+nslookup leady-demo.silesia3d.site
+```
+
+Ma zwrócić **IP Twojego VPS-a**. Dopóki zwraca „Non-existent domain" albo stary
+adres — nie ma sensu iść dalej, `certbot` i tak odmówi.
+
+Jeśli w domu widzisz jeszcze stary wynik, a chcesz sprawdzić, czy świat już widzi
+nowy (Twój router lubi trzymać cache):
+
+```powershell
+nslookup leady.silesia3d.site 8.8.8.8
+```
+
+Z serwera to samo z drugiej strony — tu liczy się to, co widzi Let's Encrypt:
+
+```bash
+dig +short leady.silesia3d.site
+```
+
+**Dopiero gdy oba adresy odpowiadają poprawnie, przechodź dalej.** W międzyczasie
+możesz robić punkty 3 i 4 — nie wymagają DNS-u.
+
+---
+
+## 3. Kod i sekrety na serwerze
+
+```bash
+ssh …@opxen.xyz
+git clone https://github.com/pkonieczny007/leady_app_v5.git
+cd leady_app_v5
+```
+
+Repozytorium jest prywatne — jeśli `clone` pyta o hasło, użyj tokenu z GitHuba
+albo klucza SSH (`gh auth login` na serwerze też załatwia sprawę).
+
+### Plik `.env` — trzy rzeczy, bez których nie wolno tego wystawić
+
+```bash
+cp .env.example .env
+nano .env
+chmod 600 .env
+```
+
+| Zmienna | Domyślnie w kodzie | Dlaczego to blokada wdrożenia |
+|---|---|---|
+| `SECRET_KEY` | `leady-v3-demo` | Wartość leży **w repozytorium na GitHubie**. Kto ją zna, podpisze sobie ciastko sesji koordynatora i wejdzie bez PIN-u. |
+| `PIN_KOORDYNATORA` | `0000` | PIN startowy konta z pełnymi uprawnieniami. |
+| `PIN_SERWISOWY` | (brak) | **Nie ustawiaj.** Jeden PIN wpuszcza bez wyboru osoby, na uprawnienia koordynatora — to klucz uniwersalny do bazy z telefonami dyrektorów. Na profilu `prod` kod wymaga dodatkowo `PIN_SERWISOWY_PROD=tak`, więc przypadkiem się nie włączy; ale świadomie też nie. |
+
+Nowy `SECRET_KEY` wygeneruj **na serwerze**, żeby nigdzie nie przeszedł przez
+schowek ani historię poleceń na Twoim komputerze:
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+PIN koordynatora **wpisz w edytorze**, nie poleceniem w konsoli — polecenie
+z PIN-em zostaje w `~/.bash_history` i w logu narzędzi.
+
+Po pierwszym starcie i tak zmień PIN w panelu `/uzytkownicy`; dopóki jest
+startowy, aplikacja krzyczy o tym czerwoną ramką.
+
+## 4. Kontenery — najpierw demo
+
+```bash
+docker compose up -d --build leady_v5_demo
+docker compose logs -f leady_v5_demo          # Ctrl+C wychodzi z podglądu
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5302/logowanie   # 200
+```
+
+`200` z `curl` na `127.0.0.1` znaczy, że aplikacja żyje — jeszcze bez nginx,
+bez domeny i bez HTTPS. To dobry moment, żeby się zatrzymać: jeśli tu nie ma
+`200`, żadna konfiguracja domeny tego nie naprawi.
+
+Produkcję stawia się tym samym poleceniem, ale **dopiero po demo**:
+
+```bash
+docker compose up -d --build leady_v5
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5301/logowanie
+```
+
+Baza siedzi w wolumenie dockera (`leady_v5_data` / `leady_v5_demo_data`), osobnym
+dla każdej usługi — `docker compose build` i restart jej nie ruszają. **Ale
+`docker compose down -v` kasuje wolumeny.** Nigdy nie dopisuj `-v` odruchowo.
+
+## 5. nginx — subdomena bez SSL
+
+Plik `/etc/nginx/sites-available/leady.silesia3d.site`:
+
+```nginx
+server {
+    listen 80;
+    server_name leady.silesia3d.site;
+
+    # xlsx klienta ma ~5 MB, domyślny limit nginx to 1 MB — bez tego import
+    # kończy się błędem 413, który w przeglądarce wygląda jak zawieszenie.
+    client_max_body_size 32M;
+
+    location / {
+        proxy_pass         http://127.0.0.1:5301;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        # eksport większych zbiorów do XLSX bywa wolny; tyle samo ma gunicorn
+        proxy_read_timeout 180s;
+    }
+}
+```
+
+Drugi plik, `leady-demo.silesia3d.site`, jest identyczny z dwoma zmianami:
+`server_name` i `proxy_pass` na port **5302**.
+
+```bash
+sudo ln -s /etc/nginx/sites-available/leady.silesia3d.site      /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/leady-demo.silesia3d.site /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`nginx -t` przed każdym `reload` — literówka w konfiguracji potrafi położyć
+**wszystkie** aplikacje na serwerze, także rozliczenia, których nie ruszałeś.
+
+Co robią te nagłówki: `X-Forwarded-Proto` mówi aplikacji, że pierwotne żądanie
+przyszło po HTTPS, mimo że do kontenera trafia zwykłym HTTP. Aplikacja **dziś go
+nie czyta** — o ciastku `Secure` decyduje zmienna `HTTPS` (punkt 7) — ale nagłówki
+ustawiamy od razu, bo bez `X-Real-IP` w logach zobaczysz wyłącznie `127.0.0.1`
+i nie odróżnisz handlowca od bota.
+
+## 6. certbot — HTTPS
+
+**Osobno dla każdej subdomeny**, nie jednym poleceniem z dwoma `-d`. Powód
+praktyczny: jeśli DNS jednej jeszcze się nie rozszedł, wspólne polecenie
+wywala się w całości i nie dostajesz żadnego certyfikatu.
+
+```bash
+sudo certbot --nginx -d leady-demo.silesia3d.site
+sudo certbot --nginx -d leady.silesia3d.site
+```
+
+Certbot sam dopisze do plików nginx sekcję `listen 443 ssl`, ścieżki do
+certyfikatów i przekierowanie z `http` na `https` (na pytanie o redirect
+odpowiedz **tak**). Nie edytuj tych dopisanych linii ręcznie — przy odnowieniu
+i tak zostaną nadpisane.
+
+Sprawdź, że odnawianie jest włączone — certyfikat żyje 90 dni i nikt o nim nie
+pamięta w listopadzie:
+
+```bash
+systemctl list-timers | grep certbot     # ma być wpis z datą następnego uruchomienia
+sudo certbot renew --dry-run             # próba na sucho, bez zużywania limitów
+```
+
+## 7. Dopiero teraz `HTTPS=1`
+
+W `.env` dopisz `HTTPS=1` i zrestartuj:
+
+```bash
+docker compose up -d leady_v5 leady_v5_demo
+```
+
+Ta zmienna włącza flagę `Secure` na ciastku sesji — przeglądarka przestaje je
+wysyłać po zwykłym HTTP. **Dlatego ustawia się ją po certyfikacie, nie przed:**
+włączona na serwerze bez HTTPS oznacza „logowanie nie działa, wraca na ekran
+logowania w kółko" i szukanie błędu w kodzie logowania, w którym go nie ma.
+
+Kolejność w jednej linii, do zapamiętania:
+
+```
+DNS → nslookup → kontener → nginx bez SSL → certbot → HTTPS=1 → restart
+```
+
+## 8. Kopie zapasowe — cron o 6:00
+
+```bash
+crontab -e
+```
+
+```cron
+0 6 * * * cd /home/UZYTKOWNIK/leady_app_v5 && docker compose exec -T leady_v5 \
+  python narzedzia/baza.py backup --profil prod --trzymaj 30 >> /var/log/leady_backup.log 2>&1
+```
+
+`-T` jest konieczne: bez niego `docker compose exec` chce terminala, a cron go nie
+ma — zadanie kończy się cicho błędem i przez tydzień nikt nie zauważy, że kopii
+nie ma. Kopie lądują w `/data/kopie` **w wolumenie**, więc przeżywają przebudowę
+kontenera.
+
+Retencja 30 dni z zachowaniem wszystkich poniedziałkowych (tak działa
+`--trzymaj`) — kopia sprzed miesiąca przydaje się rzadko, ale kiedy się przyda,
+to bardzo.
+
+**Ściągaj kopie z serwera raz w tygodniu na swój dysk.** Serwer może paść
+w całości razem z wolumenem; kopia leżąca obok oryginału to nie jest kopia.
+
+```powershell
+scp "…@opxen.xyz:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+```
+
+Próbę **przywracania** trzeba przejść zanim ruszy produkcja (etap 9) — kopia,
+której nigdy nie odtworzono, jest tylko nadzieją:
+
+```bash
+docker compose exec -T leady_v5_demo python narzedzia/baza.py przywroc \
+  --profil test --z /data/kopie/test_2026-08-10_0600.db
+```
+
+## 9. Wdrożenie nowej wersji
+
+```bash
+cd ~/leady_app_v5 && ./wdroz.sh
+```
+
+Skrypt robi `git pull`, przebudowę i sprawdzenie, czy aplikacja wstała. Wchodzi
+razem z etapem 10.
+
+---
+
+## Grabie
+
+**„Za mało nie działa, za dużo działa" przy DNS.** Rekord z nazwą wpisaną
+w pełnej formie tam, gdzie panel dokleja domenę, daje
+`leady.silesia3d.site.silesia3d.site` — nazwa istnieje, tylko nie ta.
+`nslookup` powie „Non-existent domain", a Ty będziesz sprawdzał IP.
+
+**Certbot przed DNS-em.** Objaw: `Timeout during connect (likely firewall
+problem)`. Firewall nie ma z tym nic wspólnego — Let's Encrypt po prostu nie ma
+gdzie zapukać. Poczekaj i powtórz. Uwaga: **5 nieudanych prób na godzinę dla tej
+samej nazwy blokuje ją na godzinę**, więc nie da się tego „przeklikać".
+
+**Port 80 musi zostać otwarty także po włączeniu HTTPS.** Odnowienie certyfikatu
+idzie po HTTP. Zamknięcie „bo mamy już HTTPS" oznacza wygaśnięcie za 90 dni
+i awarię w listopadzie, po której nikt nie pamięta tej decyzji.
+
+**`HTTPS=1` bez certyfikatu = logowanie w pętli.** Patrz punkt 7.
+
+**`docker compose down -v` kasuje bazę.** Bez `-v` kontener można wywalać do woli.
+
+**`DATA_DIR` w compose wygrywa z `PROFIL`.** Aplikacja siada wtedy wprost na
+`/data`, a nie na `/data/<profil>`. Dlatego demo i produkcja **muszą mieć osobne
+wolumeny** — inaczej dwie usługi z różnym `PROFIL` pisałyby do jednego pliku,
+a kolorowy pasek u góry ekranu kłamałby, że to różne bazy. W `docker-compose.yml`
+jest to już rozdzielone; nie scalaj tych wolumenów.
+
+**`docker compose exec` bez `-T` w cronie.** Patrz punkt 8.
+
+**Kolejny błąd nginx kładzie cudze aplikacje.** Zawsze `nginx -t` przed `reload`.
+
+---
+
+## Checklista poniedziałku
+
+- [ ] rekordy `A` dla `leady` i `leady-demo` → IP VPS-a
+- [ ] `nslookup` obu nazw zwraca to IP
+- [ ] `git clone` na serwerze, `.env` z własnym `SECRET_KEY` i `PIN_KOORDYNATORA`
+- [ ] `PIN_SERWISOWY` **nie występuje** w `.env` ani w środowisku
+- [ ] demo wstaje, `curl` na 5302 daje 200
+- [ ] nginx dla obu subdomen, `nginx -t` czysty
+- [ ] `certbot` osobno dla demo i produkcji, `renew --dry-run` przechodzi
+- [ ] `HTTPS=1` dopisane, kontenery zrestartowane
+- [ ] logowanie z telefonu **po LTE**, nie z biurowego wifi
+- [ ] cron 6:00 + jedno uruchomienie z ręki, żeby zobaczyć, że kopia powstała
+- [ ] próba przywrócenia kopii na demo
+- [ ] produkcja: import realnych danych, przejście ścieżki handlowca z telefonu

@@ -1,3 +1,15 @@
+# Dwie usługi na jednym serwerze: demo i produkcja.
+#
+# Demo idzie PIERWSZE i nie jest to formalność — na nim wolno wywalić kontener
+# i pomylić się w nginx. Kiedy ta sama ścieżka przejdzie drugi raz, na produkcji
+# nie ma już niespodzianek. Szczegóły: docs/15_DOMENA_I_WDROZENIE.md
+#
+#   docker compose up -d --build leady_v5_demo     # najpierw to
+#   docker compose up -d --build leady_v5          # dopiero potem
+#
+# Sekrety (SECRET_KEY, PIN_KOORDYNATORA, HTTPS) idą z pliku `.env` obok tego
+# pliku — NIE wpisywać ich tutaj, bo to repozytorium na GitHubie.
+
 services:
   leady_v5:
     build: .
@@ -8,6 +20,8 @@ services:
       - "5301:5000"
     volumes:
       - leady_v5_data:/data
+    env_file:
+      - .env
     environment:
       - DATA_DIR=/data
       - PROFIL=prod
@@ -17,5 +31,25 @@ services:
       - KARENCJA_DNI=0
       - OSTRZEZENIE_DNI=2
 
+  leady_v5_demo:
+    build: .
+    container_name: leady_app_v5_demo
+    restart: unless-stopped
+    ports:
+      - "5302:5000"
+    volumes:
+      # OSOBNY wolumen. DATA_DIR wygrywa z PROFIL (tak czyta to db.py), więc
+      # przy wspólnym wolumenie demo i produkcja pisałyby do JEDNEGO pliku,
+      # a kolorowy pasek u góry ekranu kłamałby, że to różne bazy.
+      - leady_v5_demo_data:/data
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/data
+      - PROFIL=test
+      - KARENCJA_DNI=0
+      - OSTRZEZENIE_DNI=2
+
 volumes:
   leady_v5_data:
+  leady_v5_demo_data:

@@ -13,3 +13,8 @@ kopie/
 # karty dostepu z PIN-ami - NIGDY do repozytorium
 # (haslo do systemu z danymi osobowymi dyrektorow szkol)
 dostepy/
+
+# sekrety serwera: SECRET_KEY i PIN koordynatora. Na VPS repozytorium jest
+# klonem gita, wiec `git add .` bez tej linii wypchnaloby je na GitHuba.
+# Wzor bez wartosci zostaje w .env.example
+.env

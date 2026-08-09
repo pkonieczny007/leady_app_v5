@@ -295,25 +295,53 @@ tryb serwisowy · nowe repo.
   Telefonów/maili trenerów NIE przenosimy — trener to pozycja słownika, nie ma
   gdzie ich zapisać bez zmiany schematu
 
+### Przygotowanie wdrożenia — zrobione 09.08 wieczorem (etapy 11 i 10)
+`docs/15_DOMENA_I_WDROZENIE.md` — instrukcja do wykonania z palca: DNS → `nslookup`
+→ kontener → nginx bez SSL → certbot → `HTTPS=1` → restart, plus checklista.
+**Ta kolejność nie jest estetyczna, tylko wymuszona**: certbot nie wystawi
+certyfikatu, zanim domena nie wskaże serwera, a `HTTPS=1` przed certyfikatem
+daje logowanie w pętli (flaga `Secure` na ciastku).
+
+Dwie subdomeny: `leady-demo` (port 5302, `PROFIL=test`) i `leady` (5301, `prod`).
+Demo idzie pierwsze — na nim wolno się pomylić.
+
+Trzy pułapki znalezione przy pisaniu instrukcji, wszystkie naprawione:
+- **`narzedzia/baza.py` nie widział bazy w kontenerze.** Szukał w `data/<profil>`,
+  a compose ustawia `DATA_DIR=/data`. Nocny cron kopii co rano meldowałby „nie ma
+  bazy profilu 'prod'" do logu, którego nikt nie czyta — brak kopii wyszedłby
+  dopiero przy awarii. Teraz czyta `DATA_DIR`, kopie idą do `DATA_DIR/kopie`
+  (**na wolumen**, bo `/app/kopie` znika przy `docker compose build`), a komenda
+  na inny profil niż `PROFIL` **odmawia**, zamiast po cichu ruszyć nie tę bazę.
+- **`DATA_DIR` wygrywa z `PROFIL`** — dlatego demo i prod mają OSOBNE wolumeny.
+  Wspólny oznaczałby jedną bazę pod dwiema nazwami, a kolorowy pasek u góry
+  kłamałby, że to różne dane.
+- **`.env` nie było w `.gitignore`.** Na VPS repozytorium jest klonem gita; jeden
+  `git add .` wypchnąłby `SECRET_KEY` i PIN koordynatora na GitHuba. Wzór bez
+  wartości: `.env.example`.
+
+`wdroz.sh [demo|prod]` — kopia PRZED aktualizacją (po starcie nowej wersji jest
+za późno), `git pull`, przebudowa, sprawdzenie, że aplikacja odpowiada.
+Próba backup → przywracanie przeszła lokalnie na `test` (545 leadów po odtworzeniu).
+
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
-- **11 — PIERWSZE w poniedziałek**: instrukcja podpięcia domeny
-  (`docs/15_DOMENA_I_WDROZENIE.md`) — DNS propaguje się godzinami, a certbot nie
-  wystawi certyfikatu, zanim domena nie wskaże serwera
 - **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
   formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
 - **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)
-- **4** — VPS: najpierw **demo** na subdomenie (profile pusta/test), potem prod;
-  `certbot`, cron kopii o 6:00, skrypt wdrożenia (git pull + compose build)
-- **9** — próba pełnej ścieżki backup → przywracanie zanim ruszy prod
+- **4** — VPS wg `docs/15`: rekordy DNS **jako pierwsza czynność poniedziałku**
+  (propagacja idzie godzinami), potem demo, potem prod; cron kopii o 6:00
 - **5** — import realnych danych do profilu `prod`, próba na sucho z telefonu po LTE
 - RSPO: wniosek o API w poniedziałek + CSV z wyszukiwarki (eksport potwierdzony);
   propozycja w `docs/12_RSPO.md`, szczegóły z klientem we wtorek
 
 ### ⚠️ Bez tego NIE wolno wystawiać na VPS
+Wszystkie trzy siedzą w `.env` na serwerze (wzór: `.env.example`, plik jest
+w `.gitignore` i ma tam zostać):
 1. `SECRET_KEY` — domyślny `leady-v3-demo` leży w repozytorium, więc każdy mógłby
    podrobić sesję koordynatora
 2. `PIN_KOORDYNATORA` — domyślnie `0000`
 3. **`PIN_SERWISOWY` musi zniknąć ze środowiska** — to klucz uniwersalny
+   (na `prod` kod wymaga jeszcze `PIN_SERWISOWY_PROD=tak`, więc przypadkiem się
+   nie włączy — ale świadomie też nie)
 
 ### Czeka na odpowiedź klienta
 - podpowiedź trenera w formularzu: czy handlowiec może obiecać termin, czy

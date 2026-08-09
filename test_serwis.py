@@ -37,6 +37,36 @@ def sprawdz(nazwa, warunek, opis=""):
     return bool(warunek)
 
 
+def _wczytaj_baze(**srodowisko):
+    """
+    `narzedzia/baza.py` z zadanym środowiskiem.
+
+    Ścieżki liczy przy imporcie, więc żeby sprawdzić zachowanie w kontenerze
+    i poza nim, moduł trzeba wczytać dwa razy — stąd importlib zamiast
+    zwykłego `import`. Środowisko przywracamy, bo reszta testów działa
+    na własnym DATA_DIR.
+    """
+    import importlib.util
+    klucze = ("DATA_DIR", "PROFIL", "KOPIE_DIR")
+    stare = {k: os.environ.get(k) for k in klucze}
+    try:
+        for k in klucze:
+            os.environ.pop(k, None)
+        os.environ.update(srodowisko)
+        sciezka = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "narzedzia", "baza.py")
+        spec = importlib.util.spec_from_file_location("_baza_test", sciezka)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    finally:
+        for k, v in stare.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 def wejdz(pin, osoba=""):
     kl = A.app.test_client()
     r = kl.post("/api/logowanie", json={"osoba": osoba, "pin": pin})
@@ -128,6 +158,36 @@ def main():
     sprawdz("i nie jest oznaczony jako serwis", not (j or {}).get("serwis"))
     _, kod, _ = wejdz("0000", "Koordynator")
     sprawdz("zły PIN nadal odrzucany", kod == 401)
+
+    # ============================ S7 — kopie zapasowe w kontenerze
+    #
+    # Nie dotyczy trybu serwisowego, ale tej samej rodziny błędów: coś, co
+    # zależy WYŁĄCZNIE od zmiennych środowiskowych i psuje się cicho.
+    # `narzedzia/baza.py` szukał bazy w data/<profil>, a kontener trzyma ją
+    # wprost w DATA_DIR — nocny cron kopii co rano meldowałby „nie ma bazy
+    # profilu 'prod'" do logu, którego nikt nie czyta. Brak kopii wyszedłby
+    # dopiero przy awarii, czyli w najgorszym możliwym momencie.
+    print("\nS7 — narzedzia/baza.py w kontenerze (DATA_DIR)")
+    b = _wczytaj_baze(DATA_DIR="/data", PROFIL="prod")
+    sprawdz("baza czytana z DATA_DIR, nie z data/<profil>",
+            b.sciezka_db("prod") == os.path.join("/data", "leady_v3.db"),
+            b.sciezka_db("prod"))
+    sprawdz("kopie lądują na wolumenie (/app/kopie znika przy przebudowie)",
+            b.KOPIE == os.path.join("/data", "kopie"), b.KOPIE)
+    sprawdz("własny profil przechodzi", b._obcy_profil("prod") is None)
+    obcy = b._obcy_profil("test")
+    sprawdz("obcy profil ODMAWIA zamiast ruszyć nie tę bazę", bool(obcy))
+    sprawdz("i mówi wprost którego profilu dotyczy", bool(obcy) and "'test'" in obcy)
+
+    b = _wczytaj_baze(KOPIE_DIR="/gdzie/indziej", DATA_DIR="/data", PROFIL="test")
+    sprawdz("KOPIE_DIR ma pierwszeństwo", b.KOPIE == "/gdzie/indziej", b.KOPIE)
+
+    b = _wczytaj_baze()
+    sprawdz("bez DATA_DIR (praca na Windows) — ścieżka jak dawniej",
+            b.sciezka_db("prod").endswith(os.path.join("data", "prod", "leady_v3.db")),
+            b.sciezka_db("prod"))
+    sprawdz("bez DATA_DIR wszystkie profile dostępne",
+            b._obcy_profil("prod", "test", "pusta") is None)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

@@ -172,16 +172,26 @@ słowniki. Baza jest pusta — dane wczytujesz na jeden z trzech sposobów:
 ### Docker
 
 ```bash
-docker compose up -d --build         # http://<host>:5301
+cp .env.example .env && nano .env    # SECRET_KEY, PIN_KOORDYNATORA — bez tego ani kroku
+docker compose up -d --build leady_v5_demo    # demo    → http://<host>:5302  (PROFIL=test)
+docker compose up -d --build leady_v5         # produkcja → http://<host>:5301  (PROFIL=prod)
 ```
 
-Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `leady_v5_data`, kontener `leady_app_v5` — v4 na tym samym serwerze działa dalej nietknięta.
+Porty 5301/5302, żeby nie kolidować z v1 (5057) ani v4 (5058). Osobne wolumeny
+`leady_v5_data` i `leady_v5_demo_data` — `DATA_DIR` wygrywa z `PROFIL`, więc na
+wspólnym wolumenie obie usługi pisałyby do jednej bazy. v4 na tym samym serwerze
+działa dalej nietknięta.
+
+Pełna ścieżka wdrożenia (DNS, nginx, certbot, kopie, checklista):
+[`docs/15_DOMENA_I_WDROZENIE.md`](docs/15_DOMENA_I_WDROZENIE.md).
+Aktualizacja wersji na serwerze: `./wdroz.sh demo` albo `./wdroz.sh prod`.
 
 ### Zmienne środowiskowe
 
 | Zmienna | Domyślnie | Znaczenie |
 |---|---|---|
-| `DATA_DIR` | `./data/<PROFIL>` | katalog bazy SQLite; ustawiony wprost ma pierwszeństwo przed `PROFIL` (tak działa docker-compose) |
+| `DATA_DIR` | `./data/<PROFIL>` | katalog bazy SQLite; ustawiony wprost ma pierwszeństwo przed `PROFIL` (tak działa docker-compose). Czyta go też `narzedzia/baza.py` — inaczej kopie w kontenerze szukałyby nieistniejącej ścieżki |
+| `KOPIE_DIR` | `./kopie` (w kontenerze `DATA_DIR/kopie`) | gdzie lądują kopie zapasowe. W kontenerze **musi być na wolumenie** — `/app/kopie` znika przy każdej przebudowie obrazu |
 | `PORT` | `5301` | port (tylko `python app.py`); własny, bo na 5000 startuje domyślnie każda apka Flaska i nowy proces cicho nie zajmuje portu |
 | `CEL_TYGODNIOWY` | `5` | „minimum na tydzień" — ile DT ma umówić handlowiec |
 | `NA_STRONE` | `150` | ile wierszy na stronę listy |

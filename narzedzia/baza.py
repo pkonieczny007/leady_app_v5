@@ -15,6 +15,11 @@ czytający zmienną PROFIL. To narzędzie te bazy zakłada, kopiuje i archiwizuj
 Uwaga: PROFIL czytany jest przy imporcie `db`, dlatego każda komenda ustawia
 zmienną środowiskową PRZED wczytaniem modułów aplikacji i robi to w podprocesie
 (`_w_profilu`), gdy potrzebuje dwóch różnych profili naraz.
+
+W kontenerze (DATA_DIR=/data) baza nie leży w data/<profil>, tylko wprost
+w DATA_DIR, a kopie w DATA_DIR/kopie — inaczej ginęłyby przy przebudowie obrazu.
+Wtedy widoczny jest wyłącznie profil z PROFIL; polecenie na inny profil kończy
+się błędem zamiast po cichu ruszyć nie tę bazę.
 """
 import argparse
 import datetime as dt
@@ -34,14 +39,48 @@ for _s in (sys.stdout, sys.stderr):
 
 KATALOG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(KATALOG, "data")
-KOPIE = os.path.join(KATALOG, "kopie")
 PROFILE = ["prod", "test", "pusta"]
+
+# W kontenerze aplikacja NIE siada na data/<profil> — docker-compose ustawia
+# DATA_DIR=/data i baza leży wprost tam (tak samo czyta to db.py). Bez tego
+# nocny cron „backup --profil prod" co rano meldowałby „nie ma bazy profilu
+# 'prod'" i przez tydzień nikt by nie zauważył, że kopii nie ma.
+DATA_DIR = (os.environ.get("DATA_DIR") or "").strip()
+PROFIL_SRODOWISKA = (os.environ.get("PROFIL") or "").strip().lower()
+
+# Kopie w kontenerze muszą trafić na wolumen (/data/kopie), bo /app znika przy
+# każdym `docker compose build`. Poza kontenerem zostaje katalog w repozytorium.
+KOPIE = (os.environ.get("KOPIE_DIR")
+         or (os.path.join(DATA_DIR, "kopie") if DATA_DIR else os.path.join(KATALOG, "kopie")))
 
 sys.path.insert(0, KATALOG)
 
 
 def sciezka_db(profil):
+    if DATA_DIR and profil == PROFIL_SRODOWISKA:
+        return os.path.join(DATA_DIR, "leady_v3.db")
     return os.path.join(DATA, profil, "leady_v3.db")
+
+
+def _obcy_profil(*profile):
+    """
+    Czy któryś z profili jest niedostępny w tym uruchomieniu.
+
+    Przy ustawionym DATA_DIR widać dokładnie JEDNĄ bazę — tę wskazaną przez
+    PROFIL. Podprocesy z `_w_profilu` dziedziczą DATA_DIR, więc `--profil test`
+    w kontenerze produkcyjnym nie otworzyłby bazy testowej, tylko po cichu
+    produkcyjną. Lepiej odmówić niż zrobić backup nie tej bazy.
+    """
+    if not DATA_DIR:
+        return None
+    obce = [p for p in profile if p != PROFIL_SRODOWISKA]
+    if not obce:
+        return None
+    return ("BŁĄD: przy DATA_DIR=%s widoczny jest wyłącznie profil %r, "
+            "a polecenie dotyczy %s.\n"
+            "      Uruchom je w kontenerze tego profilu albo bez DATA_DIR."
+            % (DATA_DIR, PROFIL_SRODOWISKA or "(nieustawiony)",
+               ", ".join(repr(p) for p in obce)))
 
 
 def _stempel():
@@ -75,6 +114,9 @@ def _w_profilu(profil, kod):
 # ------------------------------------------------------------------ komendy
 
 def cmd_lista(_args):
+    if DATA_DIR:
+        print("DATA_DIR=%s — widoczny tylko profil %r (tak działa kontener)\n"
+              % (DATA_DIR, PROFIL_SRODOWISKA or "(nieustawiony)"))
     print("%-8s %-10s %8s %8s %8s  %s" % (
         "PROFIL", "STAN", "PLACÓWKI", "LEADY", "MB", "ŚCIEŻKA"))
     for p in PROFILE:
@@ -264,6 +306,14 @@ def main():
     p.add_argument("--z", required=True, help="ścieżka do pliku .db z kopie/")
 
     args = ap.parse_args()
+
+    uzyte = [p for p in (getattr(args, "profil", None), getattr(args, "z", None),
+                         getattr(args, "do", None)) if p in PROFILE]
+    blad = _obcy_profil(*uzyte)
+    if blad:
+        print(blad)
+        return 1
+
     return {"lista": cmd_lista, "nowa": cmd_nowa, "kopiuj": cmd_kopiuj,
             "backup": cmd_backup, "przywroc": cmd_przywroc}[args.cmd](args)
 

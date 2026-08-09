@@ -5,3 +5,9 @@ __pycache__/
 venv/
 .git/
 *.log
+# sekrety i kopie nie mają czego szukać w obrazie — .env i tak wchodzi przez
+# env_file w docker-compose, a wypalony w warstwie obrazu zostaje tam na zawsze
+.env
+kopie/
+dostepy/
+tmp/

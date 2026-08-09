@@ -156,12 +156,12 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 7 | Plakietka „wróciła do puli" na `/baza` + skok do daty w kalendarzu | sob 08.08 | **✅** |
 | 3c | **Zwrot bez karencji po terminie** (decyzja 08.08): `KARENCJA_DNI=0`, ostrzeżenie **2 dni PRZED terminem** (`OSTRZEZENIE_DNI=2`); testy Z1–Z5 dostosowane | nd 09.08 rano | **✅** |
 | 8 | **Weryfikacja ścieżek**: testy ✅ (585/585) · **zostaje ręczny test z telefonu**: trener ustawia dostępność, handlowiec formularz→kalendarz | nd 09.08 | ⬜ |
-| 11 | **Instrukcja podpięcia domeny** — krok po kroku, do zrobienia PRZED wdrożeniem | pon 10.08 rano, ~0,5h | ⬜ **pierwsze** |
+| 11 | **Instrukcja podpięcia domeny** → `docs/15_DOMENA_I_WDROZENIE.md` (DNS, nginx, certbot, kolejność, checklista) | nd 09.08 wieczorem | **✅** |
+| 10 | Wdrażanie wersji: `wdroz.sh [demo\|prod]` — kopia przed aktualizacją, `git pull`, przebudowa, sprawdzenie odpowiedzi | nd 09.08 wieczorem | **✅** |
+| 9 | Próba backup → przywracanie **na profilu test przeszła** (0,4 MB `.db` + `.xlsx`, 545 leadów po odtworzeniu); zostaje cron 6:00 na VPS | nd 09.08 / pon 10.08 | 🟡 |
 | 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
 | 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
-| 9 | Próba backup → przywracanie na profilu test; na VPS cron 6:00 (`.db` + `.xlsx`) | pon 10.08, ~1h | ⬜ |
 | 5 | Import `PH PRÓBA Nowy dla handlowców.xlsx` do prod + przejście na sucho po LTE | pon wieczór, ~2h | ⬜ |
-| 10 | Szybkie wdrażanie wersji: git push → skrypt na VPS (`git pull` + `docker compose up -d --build`) | pon, przy okazji etapu 4 | ⬜ |
 
 ### Zrobione dodatkowo w niedzielę 09.08 (poza planem, z testów na telefonie)
 
@@ -391,7 +391,25 @@ Dwie rzeczy, które trzeba dopowiedzieć, bo inaczej to zaboli ludzi:
 
 To wymaga potwierdzenia u klienta — pytania na końcu dokumentu.
 
-## Etap 11 — instrukcja podpięcia domeny (PRZED wdrożeniem)
+## Etap 11 — ZROBIONE 09.08 wieczorem, plus trzy rzeczy naprawione przy okazji
+
+Instrukcja jest w **`docs/15_DOMENA_I_WDROZENIE.md`** — do wykonania z palca,
+z checklistą na koniec. Pisanie jej wyciągnęło trzy usterki, które zabolałyby
+dopiero na serwerze, kiedy nie ma czasu ich szukać:
+
+| Co było | Co by się stało | Naprawione |
+|---|---|---|
+| `narzedzia/baza.py` szukał bazy w `data/<profil>`, a kontener ma ją wprost w `DATA_DIR=/data` | **cron kopii o 6:00 co rano meldowałby „nie ma bazy profilu 'prod'"** — do pliku logu, którego nikt nie czyta. Brak kopii wyszedłby dopiero przy awarii | `baza.py` czyta `DATA_DIR`; kopie idą do `DATA_DIR/kopie`, czyli **na wolumen** (`/app/kopie` znika przy każdym `docker compose build`). Polecenie na inny profil niż ten z `PROFIL` **odmawia** zamiast po cichu ruszyć nie tę bazę |
+| `docker-compose.yml` miał jedną usługę | Demo i produkcja na jednym serwerze nie miały jak stanąć obok siebie | druga usługa `leady_v5_demo` (port 5302, `PROFIL=test`, **osobny wolumen** — `DATA_DIR` wygrywa z `PROFIL`, więc wspólny wolumen = jedna baza pod dwoma nazwami) |
+| `.env` nie było w `.gitignore` | Na VPS repozytorium jest klonem gita. Jeden `git add .` i `SECRET_KEY` z PIN-em koordynatora **lądują na GitHubie** | `.env` w `.gitignore` i `.dockerignore`, wzór bez wartości w `.env.example` |
+
+Próba **backup → przywracanie** (etap 9) przeszła lokalnie na profilu `test`:
+kopia `.db` 0,4 MB + eksport `.xlsx`, odtworzenie zwróciło 545 leadów. Na VPS
+zostaje to samo z crona i jedno uruchomienie z ręki, żeby zobaczyć plik.
+
+Poniżej pierwotny zakres etapu — zostaje jako uzasadnienie decyzji.
+
+### Etap 11 — pierwotny zakres (dlaczego akurat tak)
 
 Przemek: *„dawno nie podpinałem i nie pamiętam, trzeba coś stworzyć wcześniej"*.
 DNS propaguje się do kilku godzin, a `certbot` **nie wystawi certyfikatu, dopóki
