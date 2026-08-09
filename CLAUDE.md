@@ -72,6 +72,16 @@ Narzędzia (`narzedzia/`):
 - `konto.py` — konta z linii poleceń; **wyjście awaryjne**, gdy nie da się
   zalogować (świeży profil, zapomniany PIN koordynatora)
 - `karta_dostepu.py` — PDF do wydruku z PIN-ami i tabelą uprawnień
+- `rspo.py` — wykaz szkół z pliku CSV rejestru RSPO (v5, 09.08)
+
+**Czym są `narzedzia/` i czym nie są.** To część TEGO repozytorium i tej samej
+bazy (czytają `PROFIL`, importują `db.py`) — nie osobny program. Ale uruchamia
+się je z linii poleceń, więc w praktyce są **dla nas, nie dla klienta**: Kasia
+nie kliknie `python narzedzia/rspo.py`. Kolejność jest celowa — najpierw skrypt
+(tani, do sprawdzenia pomysłu na realnych danych), a to, co się sprawdzi
+i będzie potrzebne klientowi regularnie, przenosimy do aplikacji jako ekran.
+`rspo.py` jest właśnie na tym etapie: działa, ma być używany co miesiąc przez
+koordynatorkę — czyli po wtorku powinien zostać ekranem w panelu koordynatora.
 
 ---
 
@@ -249,9 +259,21 @@ tryb serwisowy · nowe repo.
 - **7** — plakietka „wróciła do puli" na `/baza` (gaśnie przy pierwszym ruchu
   na leadzie) + skok do daty w kalendarzu (podświetlony tydzień, 3 widoki)
 
+### Zrobione w niedzielę 09.08
+- **3c** — zwrot bez karencji po terminie (`KARENCJA_DNI=0`), 2 dni jako
+  ostrzeżenie PRZED terminem (`OSTRZEZENIE_DNI=2`)
+- **import** — ⚠️ importer brał 165 placówek zamiast 545, bo zakładka bazy
+  w nowym pliku nazywa się „Baza szkół Śląskie", a nie „BAZA"; rozpoznajemy
+  ją teraz po początku nazwy. Nowe statusy klienta („04. Brak zgody na DT",
+  „04. Odpuścić") i alias „Julia" → 05. Młynarczyk
+- **profil `test` ma świeże dane** z `PH PRÓBA Nowy dla handlowców.xlsx`
+  (545 placówek, 523 z telefonem, 529 z mailem)
+- **`narzedzia/rspo.py`** — wykaz z CSV rejestru + raport dopasowania nazw;
+  szczegóły i liczby w `docs/12_RSPO.md`
+- **kopia plików klienta** w `SIERPIEN2026\_KOPIE_PLIKOW_KLIENTA\2026-08-09`
+  — Kasia nie ma własnej kopii pliku, o czym powiedziała wprost
+
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
-- ~~3c~~ — **zrobione nd 09.08 rano**: zwrot bez karencji po terminie
-  (`KARENCJA_DNI=0`), 2 dni jako ostrzeżenie PRZED terminem (`OSTRZEZENIE_DNI=2`)
 - **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
   formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
 - **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)
