@@ -391,6 +391,41 @@ Dwie rzeczy, które trzeba dopowiedzieć, bo inaczej to zaboli ludzi:
 
 To wymaga potwierdzenia u klienta — pytania na końcu dokumentu.
 
+## Poniedziałek 10.08 — plan godzinowy
+
+**Stan na wieczór 09.08:** DNS gotowy (`ph` i `demo-ph` → `57.128.241.52`),
+**demo działa na HTTPS** (certyfikat do 07.11.2026), porty nie wyciekają na
+świat. Produkcja jeszcze nie stoi — i dobrze, bo najpierw sprawdzamy na demo.
+
+| # | Co | Ile | Dlaczego w tej kolejności |
+|---|---|---|---|
+| 1 | **Test z telefonu po LTE na demo**: trener ustawia dostępność, handlowiec formularz → kalendarz, „Plan na dziś", rejony przy Knurowie | 45 min | Jedyna rzecz, która może wywrócić cały dzień. Jeśli w terenie coś nie działa, chcesz to wiedzieć rano, a nie o 22:00 |
+| 2 | **Baza produkcyjna LOKALNIE** z pliku klienta + rejony + sprawdzenie liczb (545) | 45 min | Import już raz nas zaskoczył. Poprawianie kodu na produkcji przy czekających ludziach to nie jest plan |
+| 3 | **Produkcja na serwerze**: kontener, nginx, certbot, wgranie gotowej bazy, PIN koordynatora | 1,5 h | Ścieżka przećwiczona na demo, więc to powtórka bez niespodzianek |
+| 4 | **Kopie**: cron 6:00 + próba przywracania **na demo** | 45 min | Kopia, której nigdy nie odtworzono, jest tylko nadzieją |
+| 5 | **PWA** — manifest i ikona | 1 h | Wymagało HTTPS, teraz jest. Handlowiec dostaje ikonę na ekranie telefonu |
+| 6 | **Karty dostępu PDF** z PIN-ami + wydruk | 30 min | Bez tego we wtorek nikt się nie zaloguje |
+| 7 | **Wzorce `stan.sh`** na demo: zapisz `pelna`, sprawdź `pusta`, wróć | 20 min | Pierwsze uruchomienie skryptu — na demo, gdzie nic nie boli |
+| 8 | **Wieczorem: pełna ścieżka na PRODUKCJI z telefonu po LTE** + kartka A5 dla handlowca | 1 h | Ostatnia rzecz przed wtorkiem ma być próbą tego, co realnie się wydarzy |
+
+**Zacznij od punktu 1**, nie od produkcji. Kolejność jest ustawiona ryzykiem:
+najpierw to, co może zmusić do zmiany planu.
+
+### Co może wywrócić ten plan
+- import daje inną liczbę placówek niż 545 → punkt 2 się wydłuża, punkt 5 (PWA) wypada
+- coś nie działa na telefonie w terenie → punkt 1 rośnie kosztem 5 i 7
+
+PWA i wzorce `stan.sh` to jedyne rzeczy, które **wolno poświęcić**. Reszta jest
+warunkiem wtorku.
+
+### Wtorek rano, zanim przyjdą ludzie
+- rozdanie PIN-ów z wydrukowanych kart
+- dla Kasi: 6 osób z rejonem spoza słownika trenerów (Legierski, Rudek, Jeleń,
+  Borszcz, Wąsek, Nerushenko) i „Pyrzowice" spoza słownika miast
+- dla Wojtka: `docs/12_RSPO.md`, warianty zakresu 1573 / 2552 / 6116
+
+---
+
 ## Etap 11 — ZROBIONE 09.08 wieczorem, plus trzy rzeczy naprawione przy okazji
 
 Instrukcja jest w **`docs/15_DOMENA_I_WDROZENIE.md`** — do wykonania z palca,
