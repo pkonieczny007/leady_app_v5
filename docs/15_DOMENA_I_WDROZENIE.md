@@ -14,84 +14,99 @@ który wygląda jak awaria, a jest tylko niecierpliwością.
 
 ---
 
-## 0. Co trzeba mieć pod ręką
+## 0. Konkrety tego wdrożenia
 
-| Rzecz | Skąd wziąć | Wpisz tutaj |
-|---|---|---|
-| adres IP VPS-a | `ssh …@opxen.xyz` → `curl -4 ifconfig.me` | `……………………` |
-| panel DNS domeny `silesia3d.site` | tam, gdzie działa już `librus.silesia3d.site` | `……………………` |
-| dostęp `sudo` na VPS | jest — działa tam nginx i inne aplikacje | ✔ |
-
-Na serwerze **już coś stoi** i tego nie ruszamy: rozliczenia na `5057`, poprzednia
-wersja leadów na `5058`. Nowa aplikacja wchodzi obok, na własnych portach:
-**5301 = produkcja, 5302 = demo**.
+| Rzecz | Wartość |
+|---|---|
+| VPS | `ubuntu@51.68.46.218` (OVH) |
+| DNS domeny `silesia3d.site` | OVH — `ns10.ovh.net`, `dns10.ovh.net` |
+| nginx na serwerze | **jest i działa** (port 80 odpowiada `301`, 443 odpowiada `200`) |
 
 ### Nazwy subdomen
 
 | | subdomena | port | profil bazy |
 |---|---|---|---|
-| demo | `leady-demo.silesia3d.site` | 5302 | `test` (realne dane, wolno psuć) |
-| produkcja | `leady.silesia3d.site` | 5301 | `prod` |
+| demo | `demo-ph.silesia3d.site` | 5302 | `test` (realne dane, wolno psuć) |
+| produkcja | `ph.silesia3d.site` | 5301 | `prod` |
 
-Dlaczego `leady-demo`, a nie `demo.leady`? W panelach DNS trzeci poziom bywa
-kłopotliwy do wpisania, a certyfikat i tak bierzemy osobny dla każdej nazwy —
-płaska nazwa nic nie kosztuje, a nie trzeba się zastanawiać, czy panel ją przyjmie.
+Płaskie `demo-ph`, a nie `demo.ph` — w panelach DNS trzeci poziom bywa kłopotliwy,
+a certyfikat i tak bierzemy osobny dla każdej nazwy.
 
 **Demo idzie pierwsze i to nie jest formalność.** Na demo wolno wywalić kontener,
 zresetować bazę i pomylić się w nginx. Kiedy ta sama ścieżka przejdzie drugi raz,
 na produkcji nie ma już niespodzianek — a we wtorek rano nie ma czasu na
 niespodzianki.
 
+### Dwie rzeczy sprawdzone 09.08, zanim ktokolwiek dotknął serwera
+
+**`librus.silesia3d.site` stoi na INNEJ maszynie** — `57.128.241.52`, nie
+`51.68.46.218`. Był w planach „wzorem do odtworzenia", ale jego konfiguracji
+nginx po prostu nie ma na naszym serwerze. Nie ma czego kopiować; blok `server`
+z punktu 5 jest kompletny i wystarczy.
+
+**Porty 5057 i 5058 są z zewnątrz zamknięte** — czyli aplikacje, które tam
+działają, słuchają tylko na `127.0.0.1` albo ich tu w ogóle nie ma. Tak samo
+robimy my: `docker-compose.yml` publikuje porty jako `127.0.0.1:5301` i
+`127.0.0.1:5302`, więc aplikacja jest dostępna **wyłącznie przez nginx**.
+To nie ostrożność na wyrost — bez adresu z przodu docker otwiera port na
+wszystkich interfejsach i **wpisuje regułę wprost do iptables, omijając ufw**.
+Efekt: `http://51.68.46.218:5301` działa bez HTTPS, na bazie z telefonami
+i mailami dyrektorów szkół, a firewall pokazuje, że wszystko jest zamknięte.
+
 ---
 
-## 1. DNS — rób to najpierw, o poranku
+## 1. DNS w OVH — rób to najpierw, o poranku
 
-W panelu domeny `silesia3d.site` dodaj **dwa rekordy A**:
+**OVH Manager → Web Cloud → Domeny → `silesia3d.site` → zakładka „Strefa DNS"
+→ Dodaj wpis → typ `A`.** Dwa razy:
 
-| Typ | Nazwa (host) | Wartość | TTL |
-|---|---|---|---|
-| `A` | `leady` | *IP VPS-a* | 300 (albo minimum, jakie panel pozwala) |
-| `A` | `leady-demo` | *IP VPS-a* | 300 |
+| Pole w formularzu OVH | Wpis 1 | Wpis 2 |
+|---|---|---|
+| Subdomena | `ph` | `demo-ph` |
+| TTL | `1 minuta` (albo `Domyślny`) | `1 minuta` |
+| Cel | `51.68.46.218` | `51.68.46.218` |
 
 Uwagi, na których łatwo się przewrócić:
 
-- **W polu „nazwa" wpisuje się samo `leady`, bez domeny.** Część paneli chce
-  pełnej nazwy `leady.silesia3d.site`, część dokleja domenę sama — jeśli wpiszesz
-  pełną tam, gdzie nie trzeba, powstanie `leady.silesia3d.site.silesia3d.site`.
-  Sprawdź, jak wygląda istniejący wpis `librus`, i zrób **dokładnie tak samo**.
-- **Bez CNAME.** CNAME ma sens, gdy celujesz w cudzą nazwę, która może zmienić IP
-  (np. hosting współdzielony). Tu celujemy we własny serwer o stałym adresie —
-  `A` jest prostsze i o jedno zapytanie szybsze.
-- **Rekord `AAAA` tylko wtedy, gdy serwer ma IPv6** (`curl -6 ifconfig.me`
-  odpowiada). Jeśli dodasz `AAAA` na adres, którego nginx nie nasłuchuje,
-  część telefonów w sieciach komórkowych — a właśnie z nich korzystają
-  handlowcy — trafi w IPv6 i zobaczy „nie można połączyć", podczas gdy z biura
-  wszystko działa. To najbardziej mylący możliwy objaw. Nie masz IPv6 → nie
-  dodawaj `AAAA`.
-- **TTL na czas wdrożenia ustaw nisko.** Jeśli pomylisz IP, przy TTL 3600 czekasz
+- **W polu „Subdomena" wpisuje się samo `ph`, bez domeny.** OVH dokleja
+  `.silesia3d.site` sam i pokazuje pod spodem podgląd pełnej nazwy — przeczytaj
+  go, zanim klikniesz „Dalej". Wpisanie pełnej nazwy daje
+  `ph.silesia3d.site.silesia3d.site`, a `nslookup` powie wtedy „nie ma takiej
+  domeny" i będziesz sprawdzał IP zamiast literówki.
+- **Nie ruszaj rekordu głównego** — `silesia3d.site` wskazuje na `213.186.33.5`
+  (hosting OVH) i tak ma zostać. Dodajemy subdomeny, nie zmieniamy strony.
+- **Bez CNAME.** CNAME ma sens, gdy celujesz w cudzą nazwę, która może zmienić IP.
+  Tu celujemy we własny serwer o stałym adresie — `A` jest prostsze i o jedno
+  zapytanie szybsze.
+- **`AAAA` (IPv6) na razie pomijamy.** VPS-y OVH mają IPv6, ale rekord `AAAA`
+  wskazujący adres, na którym nginx nie nasłuchuje, daje najbardziej mylący
+  możliwy objaw: z biura po wifi działa, a **z telefonu po LTE „nie można
+  połączyć"** — bo komórka woli IPv6. Handlowcy pracują właśnie z telefonów.
+  Sam IPv4 działa wszędzie; IPv6 można dodać spokojnie po wtorku.
+- **Niski TTL na czas wdrożenia.** Jeśli pomylisz IP, przy TTL 3600 czekasz
   godzinę na poprawkę. Po wdrożeniu można podnieść.
+
+OVH pokazuje po zapisaniu komunikat, że zmiany w strefie wchodzą w życie do
+**24 godzin**. W praktyce przy TTL 60 s subdomena wstaje w kilka–kilkanaście
+minut, bo to nowa nazwa — nic nie musi wygasnąć z cache'u.
 
 ## 2. Sprawdź, czy DNS już działa (zanim ruszysz cokolwiek dalej)
 
 ```powershell
-nslookup leady.silesia3d.site
-nslookup leady-demo.silesia3d.site
+nslookup ph.silesia3d.site 8.8.8.8
+nslookup demo-ph.silesia3d.site 8.8.8.8
 ```
 
-Ma zwrócić **IP Twojego VPS-a**. Dopóki zwraca „Non-existent domain" albo stary
-adres — nie ma sensu iść dalej, `certbot` i tak odmówi.
+Pytamy wprost serwera Google (`8.8.8.8`), bo domowy router lubi zapamiętać
+odpowiedź „nie ma takiej domeny" i potem uparcie ją powtarzać.
 
-Jeśli w domu widzisz jeszcze stary wynik, a chcesz sprawdzić, czy świat już widzi
-nowy (Twój router lubi trzymać cache):
+Ma zwrócić **`51.68.46.218`**. Dopóki zwraca „Non-existent domain" — nie ma sensu
+iść dalej, `certbot` i tak odmówi.
 
-```powershell
-nslookup leady.silesia3d.site 8.8.8.8
-```
-
-Z serwera to samo z drugiej strony — tu liczy się to, co widzi Let's Encrypt:
+Z serwera to samo z drugiej strony (tu liczy się to, co widzi Let's Encrypt):
 
 ```bash
-dig +short leady.silesia3d.site
+dig +short ph.silesia3d.site demo-ph.silesia3d.site
 ```
 
 **Dopiero gdy oba adresy odpowiadają poprawnie, przechodź dalej.** W międzyczasie
@@ -102,7 +117,7 @@ możesz robić punkty 3 i 4 — nie wymagają DNS-u.
 ## 3. Kod i sekrety na serwerze
 
 ```bash
-ssh …@opxen.xyz
+ssh ubuntu@51.68.46.218
 git clone https://github.com/pkonieczny007/leady_app_v5.git
 cd leady_app_v5
 ```
@@ -162,12 +177,12 @@ dla każdej usługi — `docker compose build` i restart jej nie ruszają. **Ale
 
 ## 5. nginx — subdomena bez SSL
 
-Plik `/etc/nginx/sites-available/leady.silesia3d.site`:
+Plik `/etc/nginx/sites-available/ph.silesia3d.site`:
 
 ```nginx
 server {
     listen 80;
-    server_name leady.silesia3d.site;
+    server_name ph.silesia3d.site;
 
     # xlsx klienta ma ~5 MB, domyślny limit nginx to 1 MB — bez tego import
     # kończy się błędem 413, który w przeglądarce wygląda jak zawieszenie.
@@ -185,12 +200,12 @@ server {
 }
 ```
 
-Drugi plik, `leady-demo.silesia3d.site`, jest identyczny z dwoma zmianami:
+Drugi plik, `demo-ph.silesia3d.site`, jest identyczny z dwoma zmianami:
 `server_name` i `proxy_pass` na port **5302**.
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/leady.silesia3d.site      /etc/nginx/sites-enabled/
-sudo ln -s /etc/nginx/sites-available/leady-demo.silesia3d.site /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/ph.silesia3d.site      /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/demo-ph.silesia3d.site /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -210,8 +225,8 @@ praktyczny: jeśli DNS jednej jeszcze się nie rozszedł, wspólne polecenie
 wywala się w całości i nie dostajesz żadnego certyfikatu.
 
 ```bash
-sudo certbot --nginx -d leady-demo.silesia3d.site
-sudo certbot --nginx -d leady.silesia3d.site
+sudo certbot --nginx -d demo-ph.silesia3d.site
+sudo certbot --nginx -d ph.silesia3d.site
 ```
 
 Certbot sam dopisze do plików nginx sekcję `listen 443 ssl`, ścieżki do
@@ -253,7 +268,7 @@ crontab -e
 ```
 
 ```cron
-0 6 * * * cd /home/UZYTKOWNIK/leady_app_v5 && docker compose exec -T leady_v5 \
+0 6 * * * cd /home/ubuntu/leady_app_v5 && docker compose exec -T leady_v5 \
   python narzedzia/baza.py backup --profil prod --trzymaj 30 >> /var/log/leady_backup.log 2>&1
 ```
 
@@ -270,7 +285,7 @@ to bardzo.
 w całości razem z wolumenem; kopia leżąca obok oryginału to nie jest kopia.
 
 ```powershell
-scp "…@opxen.xyz:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+scp "ubuntu@51.68.46.218:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
 ```
 
 Próbę **przywracania** trzeba przejść zanim ruszy produkcja (etap 9) — kopia,
@@ -296,7 +311,7 @@ razem z etapem 10.
 
 **„Za mało nie działa, za dużo działa" przy DNS.** Rekord z nazwą wpisaną
 w pełnej formie tam, gdzie panel dokleja domenę, daje
-`leady.silesia3d.site.silesia3d.site` — nazwa istnieje, tylko nie ta.
+`ph.silesia3d.site.silesia3d.site` — nazwa istnieje, tylko nie ta.
 `nslookup` powie „Non-existent domain", a Ty będziesz sprawdzał IP.
 
 **Certbot przed DNS-em.** Objaw: `Timeout during connect (likely firewall
@@ -326,11 +341,13 @@ jest to już rozdzielone; nie scalaj tych wolumenów.
 
 ## Checklista poniedziałku
 
-- [ ] rekordy `A` dla `leady` i `leady-demo` → IP VPS-a
-- [ ] `nslookup` obu nazw zwraca to IP
+- [ ] w OVH rekordy `A`: `ph` i `demo-ph` → `51.68.46.218`
+- [ ] `nslookup … 8.8.8.8` obu nazw zwraca `51.68.46.218`
 - [ ] `git clone` na serwerze, `.env` z własnym `SECRET_KEY` i `PIN_KOORDYNATORA`
 - [ ] `PIN_SERWISOWY` **nie występuje** w `.env` ani w środowisku
 - [ ] demo wstaje, `curl` na 5302 daje 200
+- [ ] `docker ps` pokazuje porty jako `127.0.0.1:5301->` i `127.0.0.1:5302->`,
+      a nie `0.0.0.0:` — inaczej aplikacja stoi w internecie bez HTTPS
 - [ ] nginx dla obu subdomen, `nginx -t` czysty
 - [ ] `certbot` osobno dla demo i produkcji, `renew --dry-run` przechodzi
 - [ ] `HTTPS=1` dopisane, kontenery zrestartowane

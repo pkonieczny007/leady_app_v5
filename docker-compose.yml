@@ -16,8 +16,14 @@ services:
     container_name: leady_app_v5
     restart: unless-stopped
     ports:
-      # host:kontener — 5301, żeby nie kolidowało z v1 (5057) ani v4 (5058)
-      - "5301:5000"
+      # host:kontener — 5301, żeby nie kolidowało z v1 (5057) ani v4 (5058).
+      #
+      # 127.0.0.1 z przodu NIE jest ozdobą: bez tego docker otwiera port na
+      # WSZYSTKICH interfejsach i aplikacja jest dostępna pod http://IP:5301
+      # — z pominięciem nginx, czyli bez HTTPS, na bazie z telefonami
+      # dyrektorów szkół. Docker wpisuje się wprost do iptables, więc ufw
+      # takiego portu nie zasłoni. nginx i tak puka na 127.0.0.1.
+      - "127.0.0.1:5301:5000"
     volumes:
       - leady_v5_data:/data
     env_file:
@@ -36,7 +42,8 @@ services:
     container_name: leady_app_v5_demo
     restart: unless-stopped
     ports:
-      - "5302:5000"
+      # tylko przez nginx — patrz komentarz przy usłudze produkcyjnej
+      - "127.0.0.1:5302:5000"
     volumes:
       # OSOBNY wolumen. DATA_DIR wygrywa z PROFIL (tak czyta to db.py), więc
       # przy wspólnym wolumenie demo i produkcja pisałyby do JEDNEGO pliku,

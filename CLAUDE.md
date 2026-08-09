@@ -302,8 +302,17 @@ tryb serwisowy · nowe repo.
 certyfikatu, zanim domena nie wskaże serwera, a `HTTPS=1` przed certyfikatem
 daje logowanie w pętli (flaga `Secure` na ciastku).
 
-Dwie subdomeny: `leady-demo` (port 5302, `PROFIL=test`) i `leady` (5301, `prod`).
-Demo idzie pierwsze — na nim wolno się pomylić.
+Serwer: `ubuntu@51.68.46.218` (OVH, nginx z HTTPS już tam działa), domena
+w OVH DNS. Dwie subdomeny: `demo-ph.silesia3d.site` (port 5302, `PROFIL=test`)
+i `ph.silesia3d.site` (5301, `prod`). Demo idzie pierwsze — na nim wolno się
+pomylić. **`librus.silesia3d.site` stoi na INNEJ maszynie** (`57.128.241.52`),
+więc nie ma tam wzoru konfiguracji do skopiowania — blok nginx w `docs/15` jest
+kompletny.
+
+**Porty publikowane jako `127.0.0.1:5301` / `127.0.0.1:5302`, nie gołe `5301`.**
+Docker wpisuje reguły wprost do iptables, z pominięciem `ufw` — bez adresu
+z przodu aplikacja byłaby dostępna pod `http://IP:5301` bez HTTPS, a firewall
+pokazywałby, że wszystko zamknięte.
 
 Trzy pułapki znalezione przy pisaniu instrukcji, wszystkie naprawione:
 - **`narzedzia/baza.py` nie widział bazy w kontenerze.** Szukał w `data/<profil>`,
