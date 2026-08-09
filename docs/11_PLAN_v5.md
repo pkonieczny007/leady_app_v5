@@ -216,6 +216,7 @@ zapisać bez zmiany schematu. Decyzja po wtorku, jeśli będą potrzebne w aplik
 | Kilka zakresów godzin dziennie (8–12 + 16–18) | **wstrzymane** — tylko jeśli poproszą 11.08 | zmiana schematu (`UNIQUE(trener, data)`), 3–4 h z ryzykiem |
 | Ostrzeżenie o przerwie na dojazd (<30 min) | po wtorku, ~45 min | poniedziałek zajmuje wdrożenie |
 | Usterki z `docs/14` (pasek koordynatora u handlowca, limit 60 w wyszukiwarce, `/api/pin` bez właściciela) | po wtorku | żadna nie blokuje pracy |
+| **Układ rozjeżdża się na telefonie** (na komputerze OK) — zgłoszone 09.08 po teście LTE na demo | po wtorku | ścieżka działa, więc to nie blokuje pracy handlowca. **Do ustalenia rano: które ekrany i jaki telefon** — najlepiej zrzut ekranu, bo „rozjeżdża się" bywa czym innym przy 360 px, a czym innym przy 430 px |
 
 **Stan na sobotę 08.08 późny wieczór.** Rdzeń v5 zamknięty, poprawki 6, 3b i 7
 zrobione tego samego wieczora. Testy: **585 sprawdzeń w 9 plikach**, komplet OK.
