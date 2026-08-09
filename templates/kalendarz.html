@@ -90,8 +90,11 @@
   </select>
 
   {# Skok do daty (08.08): handlowiec wpisuje datę i ląduje w tygodniu, w którym
-     ona leży — trafiony tydzień jest podświetlony i przewinięty na ekran. #}
+     ona leży — trafiony tydzień jest podświetlony i przewinięty na ekran.
+     min/max: literówka w roku („0002") przenosiła kalendarz w rok 2 n.e.,
+     a lista miesięcy ma tylko te z danymi, więc nie było czym wrócić. #}
   <input type="date" class="input input-auto" name="d" value="{{ dzien }}"
+         min="{{ data_min }}" max="{{ data_max }}"
          title="Skocz do tygodnia z tą datą" onchange="this.form.submit()">
 
   <select class="input input-auto" name="typ" onchange="this.form.submit()">

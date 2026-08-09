@@ -168,6 +168,38 @@ def poniedzialek(d=None):
     return (d - dt.timedelta(days=d.weekday())).isoformat()
 
 
+# Widełki lat dla ekranów kalendarzowych.
+#
+# Zgłoszone 09.08: w polu „skocz do daty" wystarczyło pomylić się przy wpisywaniu
+# roku (`0002` zamiast `2026`) i kalendarz przenosił się do roku 2 naszej ery —
+# a że lista miesięcy zawiera tylko te z danymi, nie było czym wrócić. Pole daty
+# w przeglądarce przyjmuje cztery cyfry bez zająknięcia, więc sama walidacja
+# formatu tu nie wystarcza; potrzebny jest ZAKRES.
+#
+# Pilnujemy go w OBU miejscach: w polu (min/max — przeglądarka nie da wpisać)
+# i na serwerze (adres da się wpisać ręcznie albo wkleić ze starej zakładki).
+ROK_MIN, ROK_MAX = 2025, 2035
+DATA_MIN = "%d-01-01" % ROK_MIN
+DATA_MAX = "%d-12-31" % ROK_MAX
+
+
+def _sensowna_data(iso):
+    """Data w widełkach albo pusty string. Do parametrów z adresu."""
+    try:
+        d = dt.date.fromisoformat((iso or "").strip())
+    except ValueError:
+        return ""
+    return d.isoformat() if ROK_MIN <= d.year <= ROK_MAX else ""
+
+
+def _sensowny_miesiac(rrmm):
+    """„2026-08" w widełkach albo pusty string."""
+    s = (rrmm or "").strip()
+    if len(s) != 7 or s[4] != "-":
+        return ""
+    return s if _sensowna_data(s + "-01") else ""
+
+
 def _walidacja(conn, field, value, mapa_slownikow, dozwolone_klucze):
     """
     Wspólna walidacja zapisu pola. Zwraca (value, blad).
@@ -497,13 +529,11 @@ def kalendarz():
     # wpisuje datę i ma widok tygodnia, w którym ona leży. Data wygrywa
     # z wyborem miesiąca — formularz wysyła oba pola, ale to data jest gestem
     # „zawieź mnie tam", a select miesiąca tylko stał obok.
-    dzien = (request.args.get("d") or "").strip()
-    if dzien:
-        try:
-            dt.date.fromisoformat(dzien)
-        except ValueError:
-            dzien = ""
-    month = dzien[:7] if dzien else (request.args.get("m")
+    #
+    # Data spoza widełek (literówka w roku, stara zakładka) jest ignorowana,
+    # a nie przenosi kalendarza w rok 2 bez drogi powrotnej — patrz `_sensowna_data`.
+    dzien = _sensowna_data(request.args.get("d"))
+    month = dzien[:7] if dzien else (_sensowny_miesiac(request.args.get("m"))
                                      or (miesiace[-1] if miesiace else dzis()[:7]))
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
@@ -530,6 +560,7 @@ def kalendarz():
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
         "today": dzis(), "dzien": dzien,
+        "data_min": DATA_MIN, "data_max": DATA_MAX,
     }
     conn.close()
     return render_template("kalendarz.html", **ctx)
@@ -545,7 +576,10 @@ def dostepnosc():
     """
     conn = get_conn()
     miesiace = cv.available_months(conn)
-    month = request.args.get("m") or (miesiace[-1] if miesiace else dzis()[:7])
+    # ten sam bezpiecznik co w kalendarzu — `?m=0002-08` z adresu nie ma prawa
+    # przenieść grafiku w rok, z którego nie da się wrócić
+    month = (_sensowny_miesiac(request.args.get("m"))
+             or (miesiace[-1] if miesiace else dzis()[:7]))
     weekend = request.args.get("weekend") == "1"
     ch = _chipy_grafiku(request.args)
     grid = dv.build_dostepnosc(conn, month, weekend=weekend,

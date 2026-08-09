@@ -174,6 +174,25 @@ def main():
     sprawdz("zła data nie wysypuje kalendarza",
             KL.get("/kalendarz?d=krzak").status_code == 200)
 
+    # REGRESJA (zgłoszone 09.08): wpisanie „0002" zamiast „2026" przenosiło
+    # kalendarz do roku 2 n.e., a lista miesięcy ma tylko miesiące z danymi —
+    # nie było czym wrócić. Data spoza widełek ma być IGNOROWANA, nie honorowana.
+    r = KL.get("/kalendarz?d=0002-08-09")
+    h = r.get_data(as_text=True)
+    sprawdz("rok 2 n.e. w polu daty nie zabiera kalendarza w przeszłość",
+            r.status_code == 200 and "0002-" not in h)
+    sprawdz("po złej dacie kalendarz stoi na sensownym miesiącu",
+            "2026-" in h)
+    r = KL.get("/kalendarz?m=0002-08")
+    sprawdz("to samo dla miesiąca wpisanego wprost w adres",
+            r.status_code == 200 and "0002-" not in r.get_data(as_text=True))
+    sprawdz("dostępność też ma bezpiecznik na miesiąc",
+            "0002-" not in KL.get("/dostepnosc?m=0002-08").get_data(as_text=True))
+    sprawdz("pole daty ogranicza rok w przeglądarce",
+            'min="2025-01-01"' in html_kal and 'max="2035-12-31"' in html_kal)
+    sprawdz("rok 3000 też odrzucony",
+            "3000-" not in KL.get("/kalendarz?d=3000-01-01").get_data(as_text=True))
+
     # -----------------------------------------------------------------
     print("\nS3 — DWA DT jednego trenera w jednym dniu (ZGLOSZONY BUG)")
     lead2 = nowa_szkola("SP 8 Będzin", miasto="15. Będzin")
