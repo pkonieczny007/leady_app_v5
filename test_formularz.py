@@ -190,11 +190,13 @@ def main():
     r = KL.get("/formularz")
     sprawdz("/formularz zwraca 200", r.status_code == 200)
     html = r.get_data(as_text=True)
-    sprawdz("pokazuje DWA linki, nie kafelki", html.count('class="fw-link"') == 2)
-    sprawdz("linki prowadzą do obu wariantów",
-            "/formularz/kroki" in html and "/formularz/ciagly" in html)
+    sprawdz("pokazuje TRZY linki, nie kafelki", html.count("fw-link") >= 3)
+    sprawdz("linki prowadzą do wszystkich wariantów",
+            "/formularz/kroki" in html and "/formularz/ciagly" in html
+            and "/formularz/v3" in html)
     sprawdz("nazwy wariantów jak ustalone",
-            "FORMULARZ v1" in html and "Formularz v2" in html)
+            "FORMULARZ v1" in html and "Formularz v2" in html
+            and "Formularz v3" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -222,6 +224,32 @@ def main():
             "Numer sali DT" in html and "Ilość dzieci w klasach" in html
             and "Zajęcia cykliczne (dzień tygodnia)" in html)
     sprawdz("dołącza własny arkusz stylów", "formularz2.css" in html)
+
+    # ====================================== F5b — wariant 3 (v2 + żywa dostępność)
+    # Z uwag po teście na telefonie 09.08: w v2 dało się wybrać trenera
+    # niedostępnego i dowiedzieć się o tym dopiero po zapisie.
+    print("\nF5b — wariant 3: podpowiedź prowadzącego")
+    r3 = KL.get("/formularz/v3")
+    sprawdz("/formularz/v3 zwraca 200", r3.status_code == 200)
+    html3 = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("v3 ma układ v2 — te same trzy sekcje",
+            html3.count('class="f2-sekcja"') == 3)
+    sprawdz("plakietka statusu wybranego prowadzącego",
+            'id="f3-status"' in html3)
+    sprawdz("plakietka startuje ukryta (nie ma czego pokazywać bez daty)",
+            'id="f3-status" hidden' in html3.replace('"\n', '" '))
+    sprawdz("podgląd dnia całej firmy", 'id="f3-dzien"' in html3)
+    sprawdz("własny arkusz stylów obok stylów v2",
+            "formularz3.css" in html3 and "formularz2.css" in html3)
+    sprawdz("własny skrypt, nie skrypt v2",
+            "formularz3.js" in html3 and "formularz2.js" not in html3)
+    sprawdz("v3 mówi wprost, że rejon nie ukrywa nikogo",
+            "nikogo nie ukrywa" in html3)
+
+    # v3 MUSI zapisywać tym samym API co v1 i v2 — inaczej klient wybierałby
+    # między funkcjami zamiast między układem.
+    sprawdz("v3 nie ma własnego adresu zapisu",
+            "/api/formularz" in open("static/formularz3.js", encoding="utf-8").read())
 
     # Oba warianty muszą zapisywać TAK SAMO — gdyby się rozjechały, klient
     # wybierałby między funkcjami, a nie między układem, i porównanie nic nie znaczy.
@@ -290,7 +318,8 @@ def main():
             and (o3 or {}).get("lead_id") != (o4 or {}).get("lead_id"))
 
     print("\nA2 — pełny ekran i wyjście przez „Zakończ”")
-    for adres, znacznik in (("/formularz/kroki", "v1"), ("/formularz/ciagly", "v2")):
+    for adres, znacznik in (("/formularz/kroki", "v1"), ("/formularz/ciagly", "v2"),
+                            ("/formularz/v3", "v3")):
         html = KL.get(adres + "?handlowiec=" + H).get_data(as_text=True)
         sprawdz("%s: brak nawigacji aplikacji" % znacznik,
                 'class="nav' not in html and "Kalendarz DT</a>" not in html)

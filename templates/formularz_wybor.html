@@ -39,11 +39,14 @@
        data-cel="{{ url_for('formularz_kroki') }}">FORMULARZ v1</a>
     <a class="fw-link" href="{{ url_for('formularz_ciagly') }}"
        data-cel="{{ url_for('formularz_ciagly') }}">Formularz v2</a>
+    <a class="fw-link fw-link-nowy" href="{{ url_for('formularz_v3') }}"
+       data-cel="{{ url_for('formularz_v3') }}">Formularz v3 <span class="fw-znacznik">nowe</span></a>
   </nav>
 
   <p class="fw-nota">
-    Oba zapisują tak samo — różni je tylko sposób wypełniania.
+    Wszystkie zapisują tak samo — różni je tylko sposób wypełniania.
     <br>v1: krok po kroku · v2: wszystko na jednym ekranie (wg makiety z 06.08)
+    <br>v3: jak v2, ale widać, kto jest wolny, kto ma kolizję i co się dzieje tego dnia
   </p>
 </div>
 {% endblock %}

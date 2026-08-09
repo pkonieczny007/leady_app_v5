@@ -1,0 +1,81 @@
+/* =============================================================================
+   Wariant 3 formularza — dokładka do `formularz2.css`, nie zamiennik.
+   Style dotyczą wyłącznie tego, czego v2 nie ma: plakietki statusu wybranego
+   prowadzącego, grup kandydatów i podglądu dnia.
+
+   Kolor niesie znaczenie tak samo jak w reszcie aplikacji: zielony = można,
+   bursztyn = da się, ale coś jest na rzeczy, czerwony = to zła osoba na ten
+   termin. Nic z tego nie blokuje zapisu — ostrzegamy, nie blokujemy.
+   ============================================================================= */
+
+.f3-status{
+  margin:8px 0 0;padding:8px 11px;border-radius:var(--radius-sm);
+  font-size:13.5px;line-height:1.45;border-left:4px solid var(--line);
+  background:var(--panel-2);
+}
+.f3-status-wolny{background:var(--ok-l);border-left-color:var(--ok)}
+.f3-status-nieznany{background:var(--panel-2);border-left-color:var(--muted)}
+.f3-status-zastrzezenie{background:var(--amber-l);border-left-color:var(--amber-d)}
+.f3-status-niedostepny{background:var(--warn-l);border-left-color:var(--warn)}
+
+/* Bez godziny startu serwer nie liczy kolizji — mówimy to wprost przy liście. */
+.f3-uwaga-godzina{color:var(--warn-d);font-weight:600}
+
+.f3-grupa{margin-top:8px}
+.f3-grupa>summary{
+  cursor:pointer;font-size:13px;font-weight:600;padding:4px 0;
+  list-style:none;user-select:none;
+}
+.f3-grupa>summary::-webkit-details-marker{display:none}
+.f3-grupa>summary::before{content:"▸ ";color:var(--muted)}
+.f3-grupa[open]>summary::before{content:"▾ "}
+.f3-licznik{
+  display:inline-block;min-width:20px;text-align:center;
+  background:var(--color-neutral-200);color:var(--ink-2);
+  border-radius:20px;padding:0 7px;font-size:11.5px;font-variant-numeric:tabular-nums;
+}
+
+/* Kandydat: nazwisko w pierwszej linii, wolne okna albo zajęcia w drugiej.
+   Dwie linie, bo na telefonie jedna długa linia i tak by się zawinęła — lepiej
+   niech zawija się tam, gdzie chcemy. */
+.f3-kand{
+  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  width:100%;text-align:left;padding:7px 10px;min-height:44px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--panel);cursor:pointer;
+}
+.f3-kand:hover{border-color:var(--accent)}
+.f3-kand-imie{font-size:13.5px;font-weight:600;color:var(--ink)}
+.f3-kand-info{font-size:11.5px;color:var(--muted);line-height:1.35}
+.f3-kand-wolny{border-left:4px solid var(--ok)}
+.f3-kand-nieznany{border-left:4px solid var(--color-neutral-300)}
+.f3-kand-zastrzezenie{border-left:4px solid var(--amber-d)}
+.f3-kand-niedostepny{border-left:4px solid var(--warn);opacity:.75}
+.f3-rejon{
+  font-size:10.5px;font-weight:600;color:var(--color-accent-800);
+  background:var(--accent-l);border-radius:20px;padding:1px 6px;margin-left:4px;
+}
+
+/* Podgląd dnia całej firmy — odpowiedź na „a kto u was będzie tego dnia?". */
+.f3-dzien{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.f3-dzien>summary{
+  cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600;
+  list-style:none;user-select:none;
+}
+.f3-dzien>summary::-webkit-details-marker{display:none}
+.f3-dzien>summary::before{content:"▸ "}
+.f3-dzien[open]>summary::before{content:"▾ "}
+.f3-dzien-lista{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
+.f3-dzien-lista li{
+  display:grid;grid-template-columns:96px 1fr;gap:2px 10px;
+  font-size:12px;padding:5px 8px;background:var(--panel-2);
+  border-radius:var(--radius-sm);
+}
+.f3-dzien-godz{grid-row:span 2;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink-2)}
+.f3-dzien-kto{font-weight:600;color:var(--ink)}
+.f3-dzien-gdzie{color:var(--muted)}
+.f3-dzien-pusto{font-size:12px;color:var(--muted);margin:8px 0 0}
+
+@media (max-width:520px){
+  .f3-dzien-lista li{grid-template-columns:78px 1fr}
+}

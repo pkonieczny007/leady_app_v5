@@ -1212,6 +1212,29 @@ def formularz_ciagly():
     return render_template("formularz2.html", **ctx)
 
 
+@app.route("/formularz/v3")
+def formularz_v3():
+    """
+    WARIANT 3 — układ wariantu 2, mocniejsza podpowiedź prowadzącego.
+
+    Powstał z uwag po teście na telefonie (09.08): w v2 dało się wybrać z listy
+    trenera niedostępnego albo mającego tego dnia inne zajęcia i dowiedzieć się
+    o tym dopiero po zapisie, bo lista rozwijana niosła cały słownik i nie była
+    w żaden sposób związana z wynikiem sprawdzenia dostępności.
+
+    Serwer liczył te dane od dawna (`przydzial.kandydaci` zwraca kategorię,
+    powód, wolne okna, zajęcia dnia, obciążenie i rejon) — v2 zużywał z tego
+    jakąś trzecią część. Tu nie dokładamy zapytań ani nowego API: pokazujemy
+    to, co i tak przychodzi w odpowiedzi.
+
+    Zapis, walidacja i ochrona przed dublem są WSPÓLNE z v1 i v2.
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
+    conn.close()
+    return render_template("formularz3.html", **ctx)
+
+
 @app.route("/api/placowki")
 def api_placowki():
     """
