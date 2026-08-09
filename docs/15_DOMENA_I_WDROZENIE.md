@@ -294,7 +294,67 @@ Kolejność w jednej linii, do zapamiętania:
 DNS → nslookup → kontener → nginx bez SSL → certbot → HTTPS=1 → restart
 ```
 
-## 8. Kopie zapasowe — cron o 6:00
+## 8. Dane produkcyjne — przygotuj LOKALNIE, wgraj gotowe
+
+Kuszące jest wejść na ekran „Import" na produkcji i wgrać tam plik klienta.
+Nie rób tego. Import z pliku Excela klienta to operacja, która **już raz nas
+zaskoczyła** — importer brał 165 placówek zamiast 545, bo zakładka zmieniła
+nazwę. Gdyby to wyszło na serwerze we wtorek rano, poprawiasz kod na produkcji,
+przy ludziach czekających na dane.
+
+Kolejność odwrotna kosztuje tyle samo, a jest powtarzalna:
+
+```powershell
+# 1. u siebie: świeży profil prod z pliku klienta
+python narzedzia/baza.py nowa --profil prod --z-pliku "C:\XEN\AI-szkolenie\SIERPIEN2026\8.08.2026-home\PH PRÓBA Nowy dla handlowców.xlsx"
+
+# 2. rejony trenerów (tabela `rejony` po samym imporcie jest PUSTA,
+#    a bez niej podpowiedź „jeździ tu" milczy)
+python narzedzia/trenerzy.py rejony --plik "…\PH PRÓBA Nowy dla handlowców.xlsx" --zapisz --profil prod
+
+# 3. sprawdź liczby ZANIM cokolwiek pojedzie na serwer
+python narzedzia/baza.py lista          # ma być 545 placówek
+
+# 4. czysta kopia do wysłania
+python narzedzia/baza.py backup --profil prod --bez-excela
+scp kopie\prod_*.db ubuntu@57.128.241.52:/tmp/
+```
+
+Na serwerze:
+
+```bash
+cd ~/apps/ph.silesia3d.site
+docker compose stop leady_v5
+docker compose run --rm leady_v5 sh -c \
+  'cp /tmp/prod_*.db /data/leady_v3.db && rm -f /data/leady_v3.db-wal /data/leady_v3.db-shm'
+docker compose start leady_v5
+docker compose exec leady_v5 python narzedzia/konto.py ustaw \
+  --osoba Koordynator --rola koordynator --pin losowy --profil prod
+```
+
+`docker compose run` nie publikuje portów, więc nie wchodzi w drogę działającej
+usłudze. PIN-y dla reszty zespołu — `narzedzia/karta_dostepu.py`, wydruk na
+wtorek.
+
+### Trzy stany na demo — jeden adres, przełącznik
+
+Klient chce zobaczyć aplikację świeżo postawioną, z danymi do prób i z kompletem
+danych. To trzy **stany** jednej instalacji, nie trzy instalacje — trzy adresy
+znaczyłyby trzy certyfikaty, trzy kontenery do aktualizowania i trzy podobne
+adresy, w które ktoś może wpisać realną pracę nie tam, gdzie trzeba.
+
+```bash
+./stan.sh zapisz pelna     # bieżący stan zachowaj jako wzorzec
+./stan.sh pusta            # stan startowy: baza budowana od zera
+./stan.sh wgraj pelna      # powrót do danych
+./stan.sh lista            # co jest przygotowane + liczby bieżącego stanu
+```
+
+Skrypt **działa wyłącznie na demo** i przed każdą podmianą robi kopię bieżącego
+stanu. Produkcji celowo nie dotyka: „wgraj wzorzec" pomylone o jedną literę
+kasowałoby pracę handlowców.
+
+## 9. Kopie zapasowe — cron o 6:00
 
 ```bash
 crontab -e
@@ -329,7 +389,7 @@ docker compose exec -T leady_v5_demo python narzedzia/baza.py przywroc \
   --profil test --z /data/kopie/test_2026-08-10_0600.db
 ```
 
-## 9. Wdrożenie nowej wersji
+## 10. Wdrożenie nowej wersji
 
 ```bash
 cd ~/apps/ph.silesia3d.site && ./wdroz.sh
@@ -366,7 +426,7 @@ wolumeny** — inaczej dwie usługi z różnym `PROFIL` pisałyby do jednego pli
 a kolorowy pasek u góry ekranu kłamałby, że to różne bazy. W `docker-compose.yml`
 jest to już rozdzielone; nie scalaj tych wolumenów.
 
-**`docker compose exec` bez `-T` w cronie.** Patrz punkt 8.
+**`docker compose exec` bez `-T` w cronie.** Patrz punkt 9.
 
 **Kolejny błąd nginx kładzie cudze aplikacje.** Zawsze `nginx -t` przed `reload`.
 
