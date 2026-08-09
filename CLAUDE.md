@@ -250,10 +250,8 @@ tryb serwisowy · nowe repo.
   na leadzie) + skok do daty w kalendarzu (podświetlony tydzień, 3 widoki)
 
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
-- **3c — PIERWSZE w niedzielę rano** (decyzja Przemka 08.08 późnym wieczorem):
-  zwrot **bez karencji po terminie** (`KARENCJA_DNI=0`), a 2 dni to **ostrzeżenie
-  PRZED terminem** (`OSTRZEZENIE_DNI=2`); poprawić docker-compose i testy Z1–Z4,
-  które zakładają karencję 2
+- ~~3c~~ — **zrobione nd 09.08 rano**: zwrot bez karencji po terminie
+  (`KARENCJA_DNI=0`), 2 dni jako ostrzeżenie PRZED terminem (`OSTRZEZENIE_DNI=2`)
 - **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
   formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
 - **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)

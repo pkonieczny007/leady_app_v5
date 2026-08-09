@@ -321,28 +321,35 @@ def main():
     conn.execute("DELETE FROM placowki")
     conn.commit()
 
+    # Od 09.08 bez karencji PO terminie (decyzja Przemka za intencją Kasi):
+    # lead wraca pierwszego dnia po terminie, a 2 dni to ostrzeżenie PRZED nim.
     K = zwrot.KARENCJA_DNI
-    l_przetermin = dodaj_lead(conn, "A przeterminowana", M, H, dni(-K - 5))
-    l_karencja = dodaj_lead(conn, "B w karencji", M, H, dni(-1))
+    sprawdz("konfiguracja zgodna z decyzją 08.08: karencja 0, ostrzeżenie 2 dni",
+            K == 0 and zwrot.OSTRZEZENIE_DNI == 2,
+            "K=%d, O=%d" % (K, zwrot.OSTRZEZENIE_DNI))
+    l_przetermin = dodaj_lead(conn, "A przeterminowana", M, H, dni(-5))
+    l_wczoraj = dodaj_lead(conn, "B termin wczoraj", M, H, dni(-1))
     l_dzis = dodaj_lead(conn, "C termin dziś", M, H, dni(0))
+    l_za2 = dodaj_lead(conn, "D2 termin za 2 dni", M, H, dni(2))
     l_przyszly = dodaj_lead(conn, "D termin w przyszłości", M, H, dni(10))
-    l_sukces = dodaj_lead(conn, "E po terminie, ale sukces", M, H, dni(-K - 5),
+    l_sukces = dodaj_lead(conn, "E po terminie, ale sukces", M, H, dni(-5),
                           "03. DT umówione")
-    l_odpadl = dodaj_lead(conn, "F odpadła", M, H, dni(-K - 5),
+    l_odpadl = dodaj_lead(conn, "F odpadła", M, H, dni(-5),
                           "04. BRAK KONTAKTU ZE SZKOŁĄ")
-    l_niczyja = dodaj_lead(conn, "G niczyja", M, None, dni(-K - 5))
+    l_niczyja = dodaj_lead(conn, "G niczyja", M, None, dni(-5))
     l_bezterminu = dodaj_lead(conn, "H bez terminu", M, H, None)
     # po terminie, ale w kalendarzu wisi DT — sukces po faktach, nie po statusie
-    l_ma_dt = dodaj_lead(conn, "I ma DT w kalendarzu", M, H, dni(-K - 5))
+    l_ma_dt = dodaj_lead(conn, "I ma DT w kalendarzu", M, H, dni(-5))
     conn.execute("INSERT INTO eventy (lead_id, typ, data, trener) VALUES (?,?,?,?)",
                  (l_ma_dt, "DT", dni(5), T))
     conn.commit()
 
     lista = zwrot.do_zwrotu(conn)
-    sprawdz("do zwrotu trafia tylko lead po terminie i karencji",
-            nazwy(lista) == ["A przeterminowana"], str(nazwy(lista)))
-    sprawdz("lead w karencji jeszcze nie wraca",
-            not any(x["id"] == l_karencja for x in lista))
+    sprawdz("wracają leady po terminie — już od pierwszego dnia po nim",
+            nazwy(lista) == ["A przeterminowana", "B termin wczoraj"],
+            str(nazwy(lista)))
+    sprawdz("termin dziś jeszcze nie wraca (wróci jutro)",
+            not any(x["id"] == l_dzis for x in lista))
     sprawdz("lead z sukcesem nie wraca nigdy",
             not any(x["id"] == l_sukces for x in lista))
     sprawdz("lead odpadnięty nie wraca", not any(x["id"] == l_odpadl for x in lista))
@@ -356,19 +363,23 @@ def main():
             not any(x["id"] == l_przyszly for x in lista))
 
     # ================================================ Z2 — ostrzeżenia dla handlowca
-    print("\nZ2 — ostrzeżenie zamiast zaskoczenia")
+    print("\nZ2 — ostrzeżenie PRZED terminem, nie po nim")
 
     zag = zwrot.zagrozone(conn, handlowiec=H)
     nz = nazwy(zag)
-    sprawdz("handlowiec widzi ostrzeżenie o leadzie w karencji", "B w karencji" in nz, str(nz))
+    sprawdz("ostrzeżenie pali się już 2 dni PRZED terminem",
+            "D2 termin za 2 dni" in nz, str(nz))
     sprawdz("widzi też lead z terminem dziś", "C termin dziś" in nz)
+    sprawdz("terminu za 10 dni jeszcze nie pokazujemy (bez szumu)",
+            "D termin w przyszłości" not in nz)
     sprawdz("nie ostrzegamy o leadzie z DT", "I ma DT w kalendarzu" not in nz)
     sprawdz("nie ostrzegamy o leadzie z sukcesem", "E po terminie, ale sukces" not in nz)
-    b = [x for x in zag if x["placowka"] == "B w karencji"][0]
-    sprawdz("ostrzeżenie mówi, ILE dni zostało",
-            isinstance(b["dni_do_zwrotu"], int) and b["dni_do_zwrotu"] <= K,
-            "dni_do_zwrotu=%s" % b["dni_do_zwrotu"])
-    sprawdz("ostrzeżenie podaje datę zwrotu", bool(b.get("wraca_dnia")))
+    c = [x for x in zag if x["placowka"] == "C termin dziś"][0]
+    sprawdz("ostrzeżenie mówi, ILE dni zostało (termin dziś → wraca jutro)",
+            c["dni_do_zwrotu"] == 1, "dni_do_zwrotu=%s" % c["dni_do_zwrotu"])
+    d2 = [x for x in zag if x["placowka"] == "D2 termin za 2 dni"][0]
+    sprawdz("ostrzeżenie podaje datę zwrotu (dzień po terminie)",
+            d2.get("wraca_dnia") == dni(3), str(d2.get("wraca_dnia")))
     sprawdz("najpilniejsze na górze listy",
             zag == sorted(zag, key=lambda x: x["dni_do_zwrotu"]))
     sprawdz("ostrzeżenia filtrowane po handlowcu",
@@ -386,7 +397,7 @@ def main():
 
     kod, j = post("/api/zwrot", {})
     sprawdz("API zwrotu odpowiada 200", kod == 200)
-    sprawdz("zwrócono dokładnie jeden lead", (j or {}).get("n") == 1, str(j)[:120])
+    sprawdz("zwrócono oba leady po terminie", (j or {}).get("n") == 2, str(j)[:120])
 
     conn = db.get_conn()
     r = dict(conn.execute("SELECT * FROM leady WHERE id=?", (l_przetermin,)).fetchone())
@@ -419,7 +430,7 @@ def main():
 
     conn = db.get_conn()
     conn.execute("UPDATE leady SET handlowiec=?, deadline=? WHERE id=?",
-                 (H, dni(-zwrot.KARENCJA_DNI - 5), l_przetermin))
+                 (H, dni(-5), l_przetermin))
     conn.commit()
 
     teraz = dt.datetime.now()
@@ -453,8 +464,10 @@ def main():
     sprawdz("na /baza jest plakietka zwrotu", "tag-zwrot" in html)
     sprawdz("plakietka dotyczy zwróconego leada", '"%d"' % l_przetermin in html)
 
-    # pierwszy ruch człowieka (ponowne przypisanie) ma zgasić plakietkę sam z siebie
-    post("/api/przypisz", {"ids": [l_przetermin], "handlowiec": H, "deadline": dni(10)})
+    # pierwszy ruch człowieka (ponowne przypisanie) ma zgasić plakietkę sam z siebie;
+    # przypisujemy OBA zwrócone leady — bez karencji w Z3 wróciły A i B
+    post("/api/przypisz", {"ids": [l_przetermin, l_wczoraj],
+                           "handlowiec": H, "deadline": dni(10)})
     html = KL.get("/baza").get_data(as_text=True)
     sprawdz("po przypisaniu plakietka gaśnie", "tag-zwrot" not in html)
 

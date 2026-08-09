@@ -61,7 +61,11 @@
        który po cichu zabiera pracę, zostanie obejściem, nie narzędziem. #}
     <section class="section">
       <h2 class="h2-inline">Wracają do puli
-        <span class="tag tag-outline small">automat · karencja {{ karencja }} dni</span>
+        {# przy karencji 0 napis „karencja 0 dni" brzmiałby jak błąd — mówimy
+           wprost, kiedy automat zabiera #}
+        <span class="tag tag-outline small">automat ·
+          {{ 'zwrot pierwszego dnia po terminie' if not karencja
+             else 'karencja %d dni' % karencja }}</span>
       </h2>
       {% if zagrozone or do_zwrotu %}
       <div class="table-scroll">

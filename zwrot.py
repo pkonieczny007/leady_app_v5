@@ -9,14 +9,18 @@ na pulpicie i ręczne „odbierz handlowcowi".
 
 TRZY DECYZJE PROJEKTOWE, bez których automat robiłby ludziom krzywdę:
 
-1. KARENCJA. Lead nie wraca w sekundę po północy dnia terminu, tylko po
-   `KARENCJA_DNI` (domyślnie 2). Handlowiec, który umówił się na rozmowę
-   „w poniedziałek po lekcjach", nie traci szkoły w niedzielę o 23:59.
+1. BEZ KARENCJI PO TERMINIE — decyzja Przemka z 08.08 (późny wieczór), zgodnie
+   z intencją Kasi („najlepiej jak automatycznie wróci"): lead wraca PIERWSZEGO
+   dnia po terminie. Wcześniejsze 2 dni karencji (nasza propozycja z 07.08,
+   klient nigdy jej nie potwierdził) przenieśliśmy w całości na stronę
+   ostrzeżenia — patrz pkt 2. `KARENCJA_DNI` zostaje jako zmienna (domyślnie 0),
+   bo to decyzja klienta, nie architektury — może wrócić jedną linijką konfiguracji.
 
-2. OSTRZEŻENIE ZAMIAST ZASKOCZENIA. Zanim cokolwiek wróci, lead trafia na listę
-   `zagrozone()` — handlowiec widzi „ta szkoła wraca do puli za 2 dni" i ma czas
-   zareagować. Automat, który po cichu zabiera pracę, zostanie znienawidzony
-   i obejdą go przez wpisywanie byle czego, żeby „odświeżyć" rekord.
+2. OSTRZEŻENIE ZAMIAST ZASKOCZENIA. Na `OSTRZEZENIE_DNI` (domyślnie 2) PRZED
+   terminem lead trafia na listę `zagrozone()` — handlowiec widzi „ta szkoła
+   wraca do puli za 2 dni" i ma czas zareagować, ZANIM termin minie. Automat,
+   który po cichu zabiera pracę, zostanie znienawidzony i obejdą go przez
+   wpisywanie byle czego, żeby „odświeżyć" rekord.
 
 3. ZWROT NIE KASUJE PRACY. Wraca WYŁĄCZNIE przypisanie (handlowiec, termin,
    przypięcie na tydzień). Notatki, kontakty, ustalenia i historia zostają przy
@@ -37,8 +41,8 @@ import os
 from db import (STATUS_SUKCES_PREFIX, STATUS_ODPADL_PREFIX, meta_get, meta_set,
                 zapisz_log)
 
-KARENCJA_DNI = int(os.environ.get("KARENCJA_DNI", "2"))
-OSTRZEZENIE_DNI = int(os.environ.get("OSTRZEZENIE_DNI", "3"))
+KARENCJA_DNI = int(os.environ.get("KARENCJA_DNI", "0"))
+OSTRZEZENIE_DNI = int(os.environ.get("OSTRZEZENIE_DNI", "2"))
 
 # Co ile minut najwyżej przelatuje automat przy okazji ruchu w aplikacji.
 # Nie potrzeba tu crona: 60 minut w zupełności wystarcza dla zjawiska mierzonego

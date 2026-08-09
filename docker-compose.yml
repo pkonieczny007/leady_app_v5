@@ -12,7 +12,10 @@ services:
       - DATA_DIR=/data
       - PROFIL=prod
       # ile dni po terminie lead wraca do puli nieprzydzielonych
-      - KARENCJA_DNI=2
+      # Decyzja 08.08: zwrot pierwszego dnia po terminie (bez karencji),
+      # a 2 dni to ostrzeżenie PRZED terminem.
+      - KARENCJA_DNI=0
+      - OSTRZEZENIE_DNI=2
 
 volumes:
   leady_v5_data:

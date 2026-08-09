@@ -154,7 +154,7 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 6 | **Konta ↔ Słowniki** — dodawanie pracowników działa z obu miejsc | sob 08.08 | **✅** |
 | 3b | **„Przedłuż termin"** masowo (licznik dni, domyślnie 14, ±/wpisanie) + termin przy przypisaniu z góry dziś+14 | sob 08.08 | **✅** |
 | 7 | Plakietka „wróciła do puli" na `/baza` + skok do daty w kalendarzu | sob 08.08 | **✅** |
-| 3c | **Zwrot bez karencji po terminie** (decyzja 08.08): `KARENCJA_DNI=0`, ostrzeżenie **2 dni PRZED terminem** (`OSTRZEZENIE_DNI=2`); dostosować testy Z1–Z4 | nd 09.08, ~0,5h | ⬜ **pierwsze rano** |
+| 3c | **Zwrot bez karencji po terminie** (decyzja 08.08): `KARENCJA_DNI=0`, ostrzeżenie **2 dni PRZED terminem** (`OSTRZEZENIE_DNI=2`); testy Z1–Z5 dostosowane | nd 09.08 rano | **✅** |
 | 8 | **Weryfikacja ścieżek**: testy ✅ (585/585) · **zostaje ręczny test z telefonu**: trener ustawia dostępność, handlowiec formularz→kalendarz | nd 09.08 | ⬜ |
 | 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
 | 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |

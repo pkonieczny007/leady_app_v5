@@ -80,8 +80,10 @@ wisi czerwony pasek w pasy i każde wejście ląduje w historii jako
 „logowanie serwisowe". Testy: `python test_serwis.py` (30 sprawdzeń).
 
 **Nowość v5: auto-zwrot po terminie** (`zwrot.py`) — szkoły po terminie wracają
-do puli nieprzydzielonych SAME. Z karencją (`KARENCJA_DNI`, domyślnie 2),
-z ostrzeżeniem „wraca do puli za N dni" u handlowca i na pulpicie, i **bez kasowania
+do puli nieprzydzielonych SAME, **pierwszego dnia po terminie** (decyzja klienta
+z 08.08; `KARENCJA_DNI`, domyślnie 0). Ostrzeżenie „wraca do puli za N dni"
+działa już 2 dni PRZED terminem (`OSTRZEZENIE_DNI`), u handlowca i na pulpicie,
+i **bez kasowania
 pracy** — wraca wyłącznie przypisanie, notatki i kontakty zostają przy placówce.
 Automat wisi na zwykłym ruchu w aplikacji (najwyżej raz na godzinę), nie na cronie,
 który na VPS potrafi cicho umrzeć.
@@ -190,8 +192,8 @@ Port 5301, żeby nie kolidować z v1 (5057) ani v4 (5058). Baza w wolumenie `lea
 | `PIN_SERWISOWY_PROD` | — | `tak` — dopiero to włącza tryb serwisowy na profilu `prod`. Sam `PIN_SERWISOWY` na produkcji nie wystarcza (v5) |
 | `HTTPS` | — | ustaw cokolwiek za reverse proxy z HTTPS — włącza `Secure` na ciastku sesji (v5) |
 | `PROFIL` | `test` | która baza: `prod` / `test` / `pusta` (v5) |
-| `KARENCJA_DNI` | `2` | ile dni po terminie zanim lead wróci do puli (v5) |
-| `OSTRZEZENIE_DNI` | `3` | z ilodniowym wyprzedzeniem ostrzegać handlowca (v5) |
+| `KARENCJA_DNI` | `0` | ile dni po terminie zanim lead wróci do puli; `0` = wraca pierwszego dnia po terminie (v5) |
+| `OSTRZEZENIE_DNI` | `2` | ile dni PRZED terminem ostrzegać handlowca (v5) |
 
 ---
 
