@@ -21,7 +21,9 @@ który wygląda jak awaria, a jest tylko niecierpliwością.
 | VPS | `ubuntu@57.128.241.52` (OVH) |
 | DNS domeny `silesia3d.site` | OVH — `ns10.ovh.net`, `dns10.ovh.net` |
 | nginx | `nginx/1.26.3 (Ubuntu)`, działa |
-| certbot | działa — `librus.silesia3d.site` ma ważny certyfikat Let's Encrypt (wystawiony 26.07.2026, do 24.10.2026) |
+| certbot | skonfigurowany, konto Let's Encrypt istnieje (`librus.silesia3d.site`, ważny do 24.10.2026) |
+| gdzie mieszkają aplikacje | `/home/ubuntu/apps/<subdomena>/` — tak stoi librus |
+| nasz katalog | `/home/ubuntu/apps/ph.silesia3d.site` |
 
 ### Nazwy subdomen
 
@@ -38,24 +40,47 @@ zresetować bazę i pomylić się w nginx. Kiedy ta sama ścieżka przejdzie dru
 na produkcji nie ma już niespodzianek — a we wtorek rano nie ma czasu na
 niespodzianki.
 
-### Co sprawdzone z zewnątrz 09.08, zanim ktokolwiek dotknął serwera
+### Jak stoi librus — wzór do powtórzenia (sprawdzone 09.08)
 
-**Wzór jest na miejscu.** `librus.silesia3d.site` stoi na TYM samym serwerze:
-przekierowuje `http` → `https` (kod 301) i ma ważny certyfikat Let's Encrypt.
-Czyli certbot z wtyczką nginx jest zainstalowany i skonfigurowany — nasze
-subdomeny to powtórzenie tej samej ścieżki, nie stawianie jej od zera.
+| | |
+|---|---|
+| katalog | `/home/ubuntu/apps/librus.silesia3d.site` (etykieta compose `working_dir`) |
+| kontener | `librus_raport_app`, gunicorn, port kontenera 5000 |
+| port na hoście | `5100` |
+| nginx | `proxy_pass http://127.0.0.1:5100`, blok w `sites-available` + dowiązanie w `sites-enabled` |
+| certyfikat | Let's Encrypt, tylko dla `librus.silesia3d.site` |
 
-**Wolne porty.** `5301` i `5302` z zewnątrz nie odpowiadają, więc nic ich nie
-zajmuje. `5057` i `5058` też są zamknięte — aplikacje, które tam działają,
-słuchają wyłącznie na `127.0.0.1`.
+Nasza aplikacja wchodzi w tę samą konwencję: `/home/ubuntu/apps/ph.silesia3d.site`.
+**Jeden katalog obsługuje obie subdomeny**, bo to jedno `docker-compose.yml`
+z dwiema usługami (`leady_v5` i `leady_v5_demo`) — ten sam kod, dwie bazy.
+Osobny katalog na demo znaczyłby dwa klony repozytorium i pytanie „który jest
+świeższy" przy każdej aktualizacji.
 
-**I my tak samo:** `docker-compose.yml` publikuje porty jako `127.0.0.1:5301`
-i `127.0.0.1:5302`, więc aplikacja jest dostępna **wyłącznie przez nginx**.
-To nie ostrożność na wyrost — bez adresu z przodu docker otwiera port na
-wszystkich interfejsach i **wpisuje regułę wprost do iptables, omijając ufw**.
-Efekt: `http://57.128.241.52:5301` działa bez HTTPS, na bazie z telefonami
-i mailami dyrektorów szkół, a firewall pokazuje, że wszystko jest zamknięte.
+`5301` i `5302` są wolne — `ss -tlnp` nie pokazuje na nich niczego.
+
+### ⚠️ Czego z librusa NIE kopiujemy
+
+**Librus jest wystawiony na świat na porcie 5100, z pominięciem nginx.**
+`docker ps` pokazuje `0.0.0.0:5100->5000/tcp`, a z zewnątrz
+`http://57.128.241.52:5100/` odpowiada `200` od gunicorna — **czystym HTTP,
+bez certyfikatu**, mimo że `https://librus.silesia3d.site` działa poprawnie.
+Ktoś, kto zna adres IP, omija HTTPS jednym numerem portu.
+
+Tak działa docker: `ports: - "5100:5000"` bez adresu z przodu otwiera port na
+wszystkich interfejsach i **wpisuje regułę wprost do iptables, z pominięciem
+`ufw`** — firewall pokazuje wtedy, że wszystko jest zamknięte, a port stoi
+otworem. To jedna z tych rzeczy, które wyglądają na skonfigurowane i nie są.
+
+Dlatego nasz `docker-compose.yml` publikuje porty jako `127.0.0.1:5301`
+i `127.0.0.1:5302` — aplikacja jest dostępna **wyłącznie przez nginx**.
+U nas w bazie są telefony i maile dyrektorów szkół; wystawienie tego po HTTP
+to nie jest usterka kosmetyczna.
+
 Sprawdzenie po starcie: `docker ps` ma pokazywać `127.0.0.1:5301->`, nie `0.0.0.0:`.
+
+W librusie poprawka to jedna linia w jego `docker-compose.yml`
+(`"127.0.0.1:5100:5000"`) i `docker compose up -d` — ale to osobna aplikacja
+i osobna decyzja, nie ruszamy jej przy okazji naszego wdrożenia.
 
 ---
 
@@ -122,9 +147,13 @@ możesz robić punkty 3 i 4 — nie wymagają DNS-u.
 
 ```bash
 ssh ubuntu@57.128.241.52
-git clone https://github.com/pkonieczny007/leady_app_v5.git
-cd leady_app_v5
+cd ~/apps
+git clone https://github.com/pkonieczny007/leady_app_v5.git ph.silesia3d.site
+cd ph.silesia3d.site
 ```
+
+Katalog nazwany subdomeną, bo tak stoi librus i tak łatwiej po miesiącach
+znaleźć, co obsługuje daną nazwę.
 
 Repozytorium jest prywatne — jeśli `clone` pyta o hasło, użyj tokenu z GitHuba
 albo klucza SSH (`gh auth login` na serwerze też załatwia sprawę).
@@ -272,7 +301,7 @@ crontab -e
 ```
 
 ```cron
-0 6 * * * cd /home/ubuntu/leady_app_v5 && docker compose exec -T leady_v5 \
+0 6 * * * cd /home/ubuntu/apps/ph.silesia3d.site && docker compose exec -T leady_v5 \
   python narzedzia/baza.py backup --profil prod --trzymaj 30 >> /var/log/leady_backup.log 2>&1
 ```
 
@@ -289,7 +318,7 @@ to bardzo.
 w całości razem z wolumenem; kopia leżąca obok oryginału to nie jest kopia.
 
 ```powershell
-scp "ubuntu@57.128.241.52:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+scp "ubuntu@57.128.241.52:~/apps/ph.silesia3d.site/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
 ```
 
 Próbę **przywracania** trzeba przejść zanim ruszy produkcja (etap 9) — kopia,
@@ -303,7 +332,7 @@ docker compose exec -T leady_v5_demo python narzedzia/baza.py przywroc \
 ## 9. Wdrożenie nowej wersji
 
 ```bash
-cd ~/leady_app_v5 && ./wdroz.sh
+cd ~/apps/ph.silesia3d.site && ./wdroz.sh
 ```
 
 Skrypt robi `git pull`, przebudowę i sprawdzenie, czy aplikacja wstała. Wchodzi
@@ -340,6 +369,15 @@ jest to już rozdzielone; nie scalaj tych wolumenów.
 **`docker compose exec` bez `-T` w cronie.** Patrz punkt 8.
 
 **Kolejny błąd nginx kładzie cudze aplikacje.** Zawsze `nginx -t` przed `reload`.
+
+**`grep -r` nie wchodzi w dowiązania.** `sites-enabled` to same dowiązania do
+`sites-available`, więc `grep -rn "librus" /etc/nginx/sites-enabled/` nic nie
+znajduje, choć konfiguracja tam jest — wygląda to jak „nie ma takiego pliku".
+Szukaj przez `sudo nginx -T` (wypisuje konfigurację, która naprawdę działa)
+albo `grep -Rn` z wielkim `R`.
+
+**Port publikowany bez `127.0.0.1` omija ufw.** Patrz sekcja o librusie —
+to nie teoria, tak stoi sąsiednia aplikacja na tym serwerze.
 
 ---
 

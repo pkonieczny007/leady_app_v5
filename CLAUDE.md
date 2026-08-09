@@ -309,10 +309,17 @@ pomylić. Na tym samym serwerze stoi `librus.silesia3d.site` z ważnym
 certyfikatem Let's Encrypt, czyli **nginx 1.26.3 + certbot są skonfigurowane** —
 nasze subdomeny to powtórzenie tej ścieżki, nie stawianie jej od zera.
 
+Aplikacje mieszkają w `/home/ubuntu/apps/<subdomena>/` — nasza w
+`apps/ph.silesia3d.site`, jeden katalog na obie subdomeny (jedno compose,
+dwie usługi).
+
 **Porty publikowane jako `127.0.0.1:5301` / `127.0.0.1:5302`, nie gołe `5301`.**
 Docker wpisuje reguły wprost do iptables, z pominięciem `ufw` — bez adresu
 z przodu aplikacja byłaby dostępna pod `http://IP:5301` bez HTTPS, a firewall
-pokazywałby, że wszystko zamknięte.
+pokazywałby, że wszystko zamknięte. **To nie teoria:** librus na tym samym
+serwerze ma `0.0.0.0:5100->5000`, więc `http://57.128.241.52:5100` odpowiada
+gunicornem po czystym HTTP, choć jego `https://` działa poprawnie. Poprawka
+u nich to jedna linia, ale to ich aplikacja — nie ruszamy przy okazji.
 
 Trzy pułapki znalezione przy pisaniu instrukcji, wszystkie naprawione:
 - **`narzedzia/baza.py` nie widział bazy w kontenerze.** Szukał w `data/<profil>`,
