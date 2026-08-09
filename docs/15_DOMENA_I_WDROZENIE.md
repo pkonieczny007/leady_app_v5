@@ -18,9 +18,10 @@ który wygląda jak awaria, a jest tylko niecierpliwością.
 
 | Rzecz | Wartość |
 |---|---|
-| VPS | `ubuntu@51.68.46.218` (OVH) |
+| VPS | `ubuntu@57.128.241.52` (OVH) |
 | DNS domeny `silesia3d.site` | OVH — `ns10.ovh.net`, `dns10.ovh.net` |
-| nginx na serwerze | **jest i działa** (port 80 odpowiada `301`, 443 odpowiada `200`) |
+| nginx | `nginx/1.26.3 (Ubuntu)`, działa |
+| certbot | działa — `librus.silesia3d.site` ma ważny certyfikat Let's Encrypt (wystawiony 26.07.2026, do 24.10.2026) |
 
 ### Nazwy subdomen
 
@@ -37,21 +38,24 @@ zresetować bazę i pomylić się w nginx. Kiedy ta sama ścieżka przejdzie dru
 na produkcji nie ma już niespodzianek — a we wtorek rano nie ma czasu na
 niespodzianki.
 
-### Dwie rzeczy sprawdzone 09.08, zanim ktokolwiek dotknął serwera
+### Co sprawdzone z zewnątrz 09.08, zanim ktokolwiek dotknął serwera
 
-**`librus.silesia3d.site` stoi na INNEJ maszynie** — `57.128.241.52`, nie
-`51.68.46.218`. Był w planach „wzorem do odtworzenia", ale jego konfiguracji
-nginx po prostu nie ma na naszym serwerze. Nie ma czego kopiować; blok `server`
-z punktu 5 jest kompletny i wystarczy.
+**Wzór jest na miejscu.** `librus.silesia3d.site` stoi na TYM samym serwerze:
+przekierowuje `http` → `https` (kod 301) i ma ważny certyfikat Let's Encrypt.
+Czyli certbot z wtyczką nginx jest zainstalowany i skonfigurowany — nasze
+subdomeny to powtórzenie tej samej ścieżki, nie stawianie jej od zera.
 
-**Porty 5057 i 5058 są z zewnątrz zamknięte** — czyli aplikacje, które tam
-działają, słuchają tylko na `127.0.0.1` albo ich tu w ogóle nie ma. Tak samo
-robimy my: `docker-compose.yml` publikuje porty jako `127.0.0.1:5301` i
-`127.0.0.1:5302`, więc aplikacja jest dostępna **wyłącznie przez nginx**.
+**Wolne porty.** `5301` i `5302` z zewnątrz nie odpowiadają, więc nic ich nie
+zajmuje. `5057` i `5058` też są zamknięte — aplikacje, które tam działają,
+słuchają wyłącznie na `127.0.0.1`.
+
+**I my tak samo:** `docker-compose.yml` publikuje porty jako `127.0.0.1:5301`
+i `127.0.0.1:5302`, więc aplikacja jest dostępna **wyłącznie przez nginx**.
 To nie ostrożność na wyrost — bez adresu z przodu docker otwiera port na
 wszystkich interfejsach i **wpisuje regułę wprost do iptables, omijając ufw**.
-Efekt: `http://51.68.46.218:5301` działa bez HTTPS, na bazie z telefonami
+Efekt: `http://57.128.241.52:5301` działa bez HTTPS, na bazie z telefonami
 i mailami dyrektorów szkół, a firewall pokazuje, że wszystko jest zamknięte.
+Sprawdzenie po starcie: `docker ps` ma pokazywać `127.0.0.1:5301->`, nie `0.0.0.0:`.
 
 ---
 
@@ -64,7 +68,7 @@ i mailami dyrektorów szkół, a firewall pokazuje, że wszystko jest zamknięte
 |---|---|---|
 | Subdomena | `ph` | `demo-ph` |
 | TTL | `1 minuta` (albo `Domyślny`) | `1 minuta` |
-| Cel | `51.68.46.218` | `51.68.46.218` |
+| Cel | `57.128.241.52` | `57.128.241.52` |
 
 Uwagi, na których łatwo się przewrócić:
 
@@ -100,7 +104,7 @@ nslookup demo-ph.silesia3d.site 8.8.8.8
 Pytamy wprost serwera Google (`8.8.8.8`), bo domowy router lubi zapamiętać
 odpowiedź „nie ma takiej domeny" i potem uparcie ją powtarzać.
 
-Ma zwrócić **`51.68.46.218`**. Dopóki zwraca „Non-existent domain" — nie ma sensu
+Ma zwrócić **`57.128.241.52`**. Dopóki zwraca „Non-existent domain" — nie ma sensu
 iść dalej, `certbot` i tak odmówi.
 
 Z serwera to samo z drugiej strony (tu liczy się to, co widzi Let's Encrypt):
@@ -117,7 +121,7 @@ możesz robić punkty 3 i 4 — nie wymagają DNS-u.
 ## 3. Kod i sekrety na serwerze
 
 ```bash
-ssh ubuntu@51.68.46.218
+ssh ubuntu@57.128.241.52
 git clone https://github.com/pkonieczny007/leady_app_v5.git
 cd leady_app_v5
 ```
@@ -285,7 +289,7 @@ to bardzo.
 w całości razem z wolumenem; kopia leżąca obok oryginału to nie jest kopia.
 
 ```powershell
-scp "ubuntu@51.68.46.218:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+scp "ubuntu@57.128.241.52:~/leady_app_v5/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
 ```
 
 Próbę **przywracania** trzeba przejść zanim ruszy produkcja (etap 9) — kopia,
@@ -341,8 +345,8 @@ jest to już rozdzielone; nie scalaj tych wolumenów.
 
 ## Checklista poniedziałku
 
-- [ ] w OVH rekordy `A`: `ph` i `demo-ph` → `51.68.46.218`
-- [ ] `nslookup … 8.8.8.8` obu nazw zwraca `51.68.46.218`
+- [ ] w OVH rekordy `A`: `ph` i `demo-ph` → `57.128.241.52`
+- [ ] `nslookup … 8.8.8.8` obu nazw zwraca `57.128.241.52`
 - [ ] `git clone` na serwerze, `.env` z własnym `SECRET_KEY` i `PIN_KOORDYNATORA`
 - [ ] `PIN_SERWISOWY` **nie występuje** w `.env` ani w środowisku
 - [ ] demo wstaje, `curl` na 5302 daje 200
