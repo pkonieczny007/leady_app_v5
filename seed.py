@@ -116,6 +116,13 @@ STATUS_REALIZACJI = [
     "03b. Grupa cykliczna otwarta",           # realny kolejny etap lejka w ich pliku
     "03c. Grupa się nie otworzyła",
     "04. BRAK KONTAKTU ZE SZKOŁĄ",
+    # Dwa statusy z „PH PRÓBA Nowy dla handlowców.xlsx" (08.08.2026): szkoła
+    # odmówiła DT (4 wystąpienia) i „odpuszczamy ten kontakt" (2). Prefiks 04.
+    # celowo ten sam co „brak kontaktu" — dla aplikacji to wszystko jest
+    # odpadnięcie (lead wypada z listy roboczej i nie wraca automatem), ale
+    # POWÓD zostaje rozróżnialny, bo „nie chcą" to nie to samo co „nie odbierają".
+    "04. Brak zgody na DT",
+    "04. Odpuścić",
 ]
 
 DT = ["01. Tak", "02. Do ustalenia"]
@@ -159,6 +166,9 @@ ALIASY = {
         "Małolepsza": "03. Małolepsza",
         "Chytry": "04. Chytry",
         "Młynarczyk": "05. Młynarczyk",
+        # w pliku z 08.08 jeden lead podpisany samym imieniem — w firmie jest
+        # jedna Julia (Młynarczyk, zakładka „Młynarczyk" w tym samym pliku)
+        "Julia": "05. Młynarczyk",
     },
     "trener": {
         # literówki z arkusza
@@ -333,6 +343,9 @@ ALIASY = {
         "REZERWACJA WERKA": "00b. Rezerwacja",
         "BYŁO DT ALE NIE MA ZAJĘĆ - NIE OTWORZYŁA SIĘ GRUPA": "03c. Grupa się nie otworzyła",
         "GOTOWE :) - jest umowa, są zajęcia": "03b. Grupa cykliczna otwarta",
+        # wersalikami w pliku z 08.08 — u nas wartość kanoniczna ma normalną pisownię
+        "BRAK ZGODY NA DT": "04. Brak zgody na DT",
+        "ODPUŚCIĆ": "04. Odpuścić",
     },
     "typ_eventu": {
         "cykliczne": "CYKLICZNE",

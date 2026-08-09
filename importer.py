@@ -33,12 +33,28 @@ import re
 import openpyxl
 
 import parsers as P
-from db import alias_map, slownik_values, zapisz_log
+from db import alias_map, pl_fold, slownik_values, zapisz_log
 
 # ---------------------------------------------------------------- konfiguracja
 
 ZAKLADKI_HANDLOWCOW = ["Sacawa", "Olszewska", "Małolepsza", "Chytry", "Młynarczyk"]
-ZAKLADKA_BAZA = "BAZA"
+
+# Zakładka z bazą placówek do rozdania. Nazwa JEST RUCHOMA: w pliku z czerwca
+# nazywała się „BAZA", a w „PH PRÓBA Nowy dla handlowców.xlsx" (08.08.2026) już
+# „Baza szkół Śląskie" — z 545 wierszami telefonów, maili i adresów. Sztywne
+# porównanie do „BAZA" po cichu pomijało cały ten arkusz: import kończył się
+# sukcesem, ale wchodziło 165 placówek z zakładek handlowców zamiast 545,
+# czyli koordynatorka nie miała czego rozdawać. Dlatego dopasowujemy po
+# POCZĄTKU nazwy — „baza…" łapie oba warianty i kolejne, które przyjdą.
+PREFIKS_ZAKLADKI_BAZY = "baza"
+
+
+def _zakladka_bazy(nazwy):
+    """Pierwsza zakładka wyglądająca na bazę placówek albo None."""
+    for n in nazwy:
+        if pl_fold(n).startswith(PREFIKS_ZAKLADKI_BAZY):
+            return n
+    return None
 
 # Nasze rodzaje słowników → rodzaje w `parsers` (parsers ma własne nazwy)
 RODZAJ_PARSERS = {
@@ -530,8 +546,15 @@ def importuj_ph_nowy(conn, sciezka, replace=False):
     norm = Normalizator(conn)
     zap = Zapisywacz(conn, norm, "arkusz:PH Nowy")
 
-    kolejnosc = ([ZAKLADKA_BAZA] if ZAKLADKA_BAZA in wb.sheetnames else []) + \
+    baza = _zakladka_bazy(wb.sheetnames)
+    kolejnosc = ([baza] if baza else []) + \
                 [z for z in ZAKLADKI_HANDLOWCOW if z in wb.sheetnames]
+    if not baza:
+        # Widoczne w raporcie, bo to różnica między „mamy co rozdawać"
+        # a „koordynatorka patrzy na pustą listę".
+        zap.raport["uwagi"].append(
+            "UWAGA: nie znaleziono zakładki z bazą placówek (nazwa zaczynająca się "
+            "od „Baza…”) — weszły tylko szkoły z zakładek handlowców")
     if not kolejnosc:
         # nieznany plik — bierzemy pierwszą zakładkę, która ma rozpoznawalne nagłówki
         kolejnosc = [n for n in wb.sheetnames if _mapa_kolumn(wb[n])][:1]
