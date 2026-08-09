@@ -73,6 +73,7 @@ Narzędzia (`narzedzia/`):
   zalogować (świeży profil, zapomniany PIN koordynatora)
 - `karta_dostepu.py` — PDF do wydruku z PIN-ami i tabelą uprawnień
 - `rspo.py` — wykaz szkół z pliku CSV rejestru RSPO (v5, 09.08)
+- `trenerzy.py` — rejony z zakładki „Trenerzy regiony" → tabela `rejony` (v5, 09.08)
 
 **Czym są `narzedzia/` i czym nie są.** To część TEGO repozytorium i tej samej
 bazy (czytają `PROFIL`, importują `db.py`) — nie osobny program. Ale uruchamia
@@ -286,6 +287,13 @@ tryb serwisowy · nowe repo.
 - **poprawki z testów**: rok „0002" w polu daty nie porywa już kalendarza,
   miesiąc pamiętany między kalendarzem a dostępnością, „godz. nieustalona"
   zamiast pustki (w danych klienta 48 z 66 DT nie ma godziny)
+- **rejony trenerów** (`narzedzia/trenerzy.py`): tabela `rejony` była PUSTA,
+  choć klient ma dane w zakładce „Trenerzy regiony" — przeniesione do profilu
+  `test` (21 trenerów, 44 miasta), więc podpowiedź „jeździ tu" wreszcie działa.
+  **Na wtorek dla Kasi:** 6 osób z rejonem spoza słownika trenerów (Legierski,
+  Rudek, Jeleń, Borszcz, Wąsek, Nerushenko) i „Pyrzowice" spoza słownika miast.
+  Telefonów/maili trenerów NIE przenosimy — trener to pozycja słownika, nie ma
+  gdzie ich zapisać bez zmiany schematu
 
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
 - **11 — PIERWSZE w poniedziałek**: instrukcja podpięcia domeny

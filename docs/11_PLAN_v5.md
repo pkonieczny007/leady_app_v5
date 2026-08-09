@@ -177,6 +177,38 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | **„Plan na dziś"** w v1/v2/v3 — szkoły od koordynatora z terminami, gwiazdka cudzej szkoły z ostrzeżeniem | `docs/14` |
 | **Zapamiętany miesiąc** kalendarz ↔ dostępność | test z telefonu |
 
+### Rejony trenerów — przeniesione z arkusza (09.08), zostały dwa pytania
+
+`narzedzia/trenerzy.py rejony --plik … [--zapisz]` przenosi zakładkę
+„Trenerzy regiony" do tabeli `rejony`. Tabela była **pusta (0 z 40 trenerów)**,
+choć klient ma te dane od dawna — przez to podpowiedź trenera w formularzu
+nie mówiła „jeździ tu", mimo że umie.
+
+Stan po przeniesieniu do profilu `test`: **21 trenerów, 44 przypisania miast.**
+Parser radzi sobie z tym, jak klient realnie pisze: `Knurów/Rybnik`,
+`Ruda Śląska, Zabrze, …`, `Knurów - nie odebrała telefonu`,
+`Chorzów (od grudnia powiat Mikołów)`, a nawet `SP 27 Katowice` (nazwa szkoły
+niosąca miasto). Pięć przypadków ma test regresji w `test_przydzial.py` (P7).
+
+**Do wyjaśnienia z Kasią we wtorek:**
+
+1. **6 osób z rejonem nie ma w słowniku trenerów** — Legierski (Rybnik),
+   Rudek (Orzesze), Jeleń (Orzesze), Borszcz (Rybnik), Wąsek (Katowice),
+   Nerushenko (Katowice). To wygląda na nowe osoby z rekrutacji. Dodanie ich
+   w Słownikach założy konta automatycznie (poprawka z 08.08).
+2. **Swoboda ma rejon „Pyrzowice"** — miejscowości nie ma w słowniku miast.
+   Dopisać, czy to pomyłka?
+
+Poza tym z zakładki: 49 osób, ale tylko część to trenerzy (są też Szef,
+koordynatorzy, infolinia, płytkarze). **34 konta nie mają PIN-u** — to nie
+usterka, PIN nadaje koordynator kartą dostępu; przed wtorkiem trzeba je
+rozdać tym, którzy realnie wchodzą do aplikacji.
+
+**Czego świadomie NIE przenosimy:** telefonów i maili trenerów. Kasia (08.08)
+prosiła, żeby z jej arkusza brać tylko mail i telefon — ale trener jest dziś
+pozycją słownika, a nie tabelą z polami kontaktowymi, więc nie ma ich gdzie
+zapisać bez zmiany schematu. Decyzja po wtorku, jeśli będą potrzebne w aplikacji.
+
 ### Świadomie odłożone (nie porzucone)
 
 | Rzecz | Kiedy | Dlaczego teraz nie |

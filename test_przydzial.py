@@ -29,6 +29,46 @@ KL = A.app.test_client()
 # Od v5 aplikacja wymaga konta i tokenu CSRF. Testy sprawdzają logikę biznesową,
 # nie ekran logowania (ten ma własny plik), więc zakładamy konto koordynatora
 # i logujemy klienta raz, na starcie.
+def _sprawdz_parser_rejonow(sprawdz):
+    """
+    Rejony klient wpisuje swobodnym tekstem w jednej komórce:
+    „Zabrze/Knurów/??? nie odebrała telefonu", „SP 27 Katowice",
+    „Chorzów (od grudnia powiat Mikołów)". Parser z narzedzia/trenerzy.py
+    ma z tego wyciągnąć same miasta — sprawdzone na REALNYCH wpisach z pliku
+    klienta z 08.08.2026.
+    """
+    import importlib.util
+    sciezka = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "narzedzia", "trenerzy.py")
+    spec = importlib.util.spec_from_file_location("_trenerzy", sciezka)
+    tr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tr)
+
+    przypadki = [
+        ("Knurów/Rybnik", ["Knurów", "Rybnik"]),
+        ("Ruda Śląska, Zabrze, Świętochłowice, Chorzów", 4),
+        ("Knurów - nie odebrała telefonu", ["Knurów"]),
+        ("Zabrze/Knurów/??? nie odebrała telefonu", ["Zabrze", "Knurów"]),
+        ("Chorzów/Świętochłowice/Zabrze/Katowice (tylko duże grypy i dwie pod rząd)", 4),
+    ]
+    for tekst, oczekiwane in przypadki:
+        wynik = tr._czysc_region(tekst)
+        if isinstance(oczekiwane, int):
+            sprawdz("rejon %r → %d miast" % (tekst[:34], oczekiwane),
+                    len(wynik) == oczekiwane, str(wynik))
+        else:
+            sprawdz("rejon %r → %s" % (tekst[:34], oczekiwane),
+                    wynik == oczekiwane, str(wynik))
+
+    # „SP 27 Katowice" to szkoła, ale niesie tę samą informację co miasto
+    miasta = [("08. Katowice", "katowice"), ("05. Knurów", "knurow")]
+    fold = lambda s: (s or "").lower().translate(str.maketrans("ąćęłńóśźż", "acelnoszz"))
+    sprawdz("nazwa szkoły z miastem w środku daje miasto",
+            tr.dopasuj_miasto("SP 27 Katowice", miasta, fold) == "08. Katowice")
+    sprawdz("miejscowość spoza słownika zwraca None (nie zgaduje)",
+            tr.dopasuj_miasto("Pyrzowice", miasta, fold) is None)
+
+
 def _zaloguj_testowo():
     import db as _db, uzytkownicy as _uz
     c = _db.get_conn()
@@ -206,6 +246,11 @@ def main():
     sprawdz("/rejony zwraca 200", KL.get("/rejony").status_code == 200)
     sprawdz("karta leada z panelem zwraca 200",
             KL.get("/lead/%d" % lead_id).status_code == 200)
+
+    # Rejony z arkusza klienta — tabela `rejony` była pusta do 09.08, choć
+    # klient ma te dane od dawna; podpowiedź trenera działała przez to ubożej.
+    print("\nP7 — parser rejonów z arkusza „Trenerzy regiony”")
+    _sprawdz_parser_rejonow(sprawdz)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
