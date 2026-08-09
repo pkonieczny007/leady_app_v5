@@ -1,0 +1,8 @@
+# Pracujemy na Windows, wdrażamy na Linuksie. Git domyślnie zamienia końce
+# linii na CRLF przy pobraniu — a skrypt powłoki z CRLF na serwerze wywala się
+# komunikatem „bad interpreter: /usr/bin/env bash^M", który nie mówi nic o tym,
+# co jest naprawdę nie tak. Te pliki mają mieć LF wszędzie.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.yml           text eol=lf
+.env.example    text eol=lf
