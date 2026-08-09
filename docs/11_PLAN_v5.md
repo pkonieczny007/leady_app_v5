@@ -156,11 +156,34 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 7 | Plakietka „wróciła do puli" na `/baza` + skok do daty w kalendarzu | sob 08.08 | **✅** |
 | 3c | **Zwrot bez karencji po terminie** (decyzja 08.08): `KARENCJA_DNI=0`, ostrzeżenie **2 dni PRZED terminem** (`OSTRZEZENIE_DNI=2`); testy Z1–Z5 dostosowane | nd 09.08 rano | **✅** |
 | 8 | **Weryfikacja ścieżek**: testy ✅ (585/585) · **zostaje ręczny test z telefonu**: trener ustawia dostępność, handlowiec formularz→kalendarz | nd 09.08 | ⬜ |
+| 11 | **Instrukcja podpięcia domeny** — krok po kroku, do zrobienia PRZED wdrożeniem | pon 10.08 rano, ~0,5h | ⬜ **pierwsze** |
 | 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
 | 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
 | 9 | Próba backup → przywracanie na profilu test; na VPS cron 6:00 (`.db` + `.xlsx`) | pon 10.08, ~1h | ⬜ |
 | 5 | Import `PH PRÓBA Nowy dla handlowców.xlsx` do prod + przejście na sucho po LTE | pon wieczór, ~2h | ⬜ |
 | 10 | Szybkie wdrażanie wersji: git push → skrypt na VPS (`git pull` + `docker compose up -d --build`) | pon, przy okazji etapu 4 | ⬜ |
+
+### Zrobione dodatkowo w niedzielę 09.08 (poza planem, z testów na telefonie)
+
+| Rzecz | Skąd |
+|---|---|
+| **3c** — zwrot bez karencji, ostrzeżenie 2 dni PRZED terminem | decyzja Przemka 08.08 |
+| ⚠️ **import brał 165 placówek zamiast 545** — zakładka bazy zmieniła nazwę | próba importu świeżego pliku |
+| Nowe statusy klienta („04. Brak zgody na DT", „04. Odpuścić"), alias „Julia" | ten sam import |
+| **`narzedzia/rspo.py`** — wykaz z CSV rejestru + raport dopasowania nazw | prośba o RSPO, `docs/12` |
+| **Formularz v3** — status wybranego trenera, wszystkie kategorie, wolne okna, „co się dzieje tego dnia" | test z telefonu |
+| ⚠️ **rok „0002" w polu daty** zabierał kalendarz bez drogi powrotnej | test z telefonu |
+| **Dostępność: tryb zaznaczania dni** + gotowe godziny + trener widzi tylko siebie | „wypełnianie jest nieintuicyjne" |
+| **„Plan na dziś"** w v1/v2/v3 — szkoły od koordynatora z terminami, gwiazdka cudzej szkoły z ostrzeżeniem | `docs/14` |
+| **Zapamiętany miesiąc** kalendarz ↔ dostępność | test z telefonu |
+
+### Świadomie odłożone (nie porzucone)
+
+| Rzecz | Kiedy | Dlaczego teraz nie |
+|---|---|---|
+| Kilka zakresów godzin dziennie (8–12 + 16–18) | **wstrzymane** — tylko jeśli poproszą 11.08 | zmiana schematu (`UNIQUE(trener, data)`), 3–4 h z ryzykiem |
+| Ostrzeżenie o przerwie na dojazd (<30 min) | po wtorku, ~45 min | poniedziałek zajmuje wdrożenie |
+| Usterki z `docs/14` (pasek koordynatora u handlowca, limit 60 w wyszukiwarce, `/api/pin` bez właściciela) | po wtorku | żadna nie blokuje pracy |
 
 **Stan na sobotę 08.08 późny wieczór.** Rdzeń v5 zamknięty, poprawki 6, 3b i 7
 zrobione tego samego wieczora. Testy: **585 sprawdzeń w 9 plikach**, komplet OK.
@@ -335,6 +358,35 @@ Dwie rzeczy, które trzeba dopowiedzieć, bo inaczej to zaboli ludzi:
 - **zwrot nie kasuje pracy** — notatki, kontakty i ustalenia zostają przy placówce. Wraca tylko przypisanie.
 
 To wymaga potwierdzenia u klienta — pytania na końcu dokumentu.
+
+## Etap 11 — instrukcja podpięcia domeny (PRZED wdrożeniem)
+
+Przemek: *„dawno nie podpinałem i nie pamiętam, trzeba coś stworzyć wcześniej"*.
+DNS propaguje się do kilku godzin, a `certbot` **nie wystawi certyfikatu, dopóki
+domena nie wskazuje na serwer** — więc to musi być zrobione jako pierwsze
+w poniedziałek, inaczej HTTPS (a z nim PWA) czeka bezczynnie.
+
+Instrukcja do napisania w `docs/15_DOMENA_I_WDROZENIE.md`, z konkretami:
+
+1. **Co gdzie kliknąć u operatora domeny** — rekord `A` subdomeny
+   (np. `leady.silesia3d.site`) na adres IP VPS-a; jeśli serwer ma IPv6,
+   dodatkowo rekord `AAAA`. Bez CNAME — przy subdomenie na własny VPS to
+   niepotrzebna warstwa.
+2. **Jak sprawdzić, czy już działa**, zanim ruszy się cokolwiek dalej:
+   `nslookup leady.silesia3d.site` i porównanie z IP serwera.
+3. **Dwie subdomeny od razu**: `demo.…` (profile `pusta`/`test`) i docelowa
+   produkcyjna. Obie wskazują na ten sam VPS, różnią się konfiguracją nginx
+   i zmienną `PROFIL`.
+4. **nginx**: blok `server` per subdomena, `proxy_pass` na port kontenera,
+   nagłówki `X-Forwarded-*` (bez nich Flask nie wie, że jest za HTTPS).
+5. **certbot**: `--nginx -d demo.… -d …`, automatyczne odnawianie i sprawdzenie,
+   że timer działa (`systemctl list-timers | grep certbot`).
+6. **Zmienna `HTTPS`** w kontenerze — dopiero ona włącza `Secure` na ciastku sesji.
+7. **Kolejność bez pomyłki**: DNS → sprawdzenie → nginx bez SSL → certbot →
+   dopiero teraz `HTTPS=1` i restart.
+
+Punkt wyjścia: działający wzór `librus.silesia3d.site` na tym samym serwerze —
+wystarczy odtworzyć jego układ, nie wymyślać od nowa.
 
 ## Etap 4 — wdrożenie (poniedziałek)
 

@@ -273,7 +273,24 @@ tryb serwisowy · nowe repo.
 - **kopia plików klienta** w `SIERPIEN2026\_KOPIE_PLIKOW_KLIENTA\2026-08-09`
   — Kasia nie ma własnej kopii pliku, o czym powiedziała wprost
 
+### Zrobione w niedzielę 09.08 wieczorem (testy: 649 sprawdzeń, komplet OK)
+- **formularz v3** (`/formularz/v3`) — status wybranego trenera, cztery
+  kategorie, wolne okna, „co się dzieje tego dnia"; v1 i v2 nietknięte
+- **dostępność: tryb zaznaczania dni** — tap w komórki albo nagłówek tygodnia,
+  pasek z gotowymi godzinami, jedno żądanie na paczkę; trener widzi w wyborze
+  tylko siebie, znikł przycisk demo (i tak kończył się odmową)
+- **„Plan na dziś"** w v1/v2/v3 ze wspólnego `_plan_dnia.html` + `fx_plan.js`:
+  szkoły od koordynatora z terminem, zadania oddzielone od reszty (jeden
+  handlowiec ma 159 przypisanych szkół), gwiazdka na cudzej szkole z jawnym
+  ostrzeżeniem „przypisana do…" (autora gwiazdki czytamy z historii zmian)
+- **poprawki z testów**: rok „0002" w polu daty nie porywa już kalendarza,
+  miesiąc pamiętany między kalendarzem a dostępnością, „godz. nieustalona"
+  zamiast pustki (w danych klienta 48 z 66 DT nie ma godziny)
+
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
+- **11 — PIERWSZE w poniedziałek**: instrukcja podpięcia domeny
+  (`docs/15_DOMENA_I_WDROZENIE.md`) — DNS propaguje się godzinami, a certbot nie
+  wystawi certyfikatu, zanim domena nie wskaże serwera
 - **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
   formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
 - **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)
