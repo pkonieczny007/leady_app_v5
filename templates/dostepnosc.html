@@ -39,9 +39,14 @@
       {{ grid.n_wpisow }} deklaracji ·
       <b class="alert">{{ grid.n_niedostepnych }} dni niedostępności</b>
     </span>
+    {# Tylko koordynator — serwer i tak odmawia pozostałym (`api_dostepnosc_demo`
+       jest w TYLKO_KOORDYNATOR), a przycisk, który zawsze kończy się odmową,
+       to obietnica bez pokrycia. #}
+    {% if edycja_wszystkich %}
     <button class="btn btn-secondary btn-sm" id="btn-av-demo" data-m="{{ month }}"
       title="Wypełnia miesiąc przykładowym wzorem — tylko do pokazania, jak ekran działa">
       Wypełnij przykładem (demo)</button>
+    {% endif %}
   </div>
 </div>
 
@@ -74,18 +79,78 @@
                    Przełącz chip na „N nazwisko”, żeby szukać tylko po nazwisku.') }}
 </form>
 
+{#
+  TRYB ZAZNACZANIA — z uwagi trenera po teście z telefonu 09.08:
+  „wypełnianie jest nieintuicyjne".
+
+  Wcześniej jedyną drogą było klikanie komórka po komórce (i przeładowanie
+  strony po każdej) albo formularz zakresu na dole, oderwany od kalendarza.
+  Trener myśli tygodniami, nie pojedynczymi dniami, więc dostaje tryb, w którym
+  zaznacza dni palcem — a gotowe godziny zastępują wpisywanie z klawiatury.
+
+  Domyślnie tryb jest WYŁĄCZONY: kliknięcie komórki dalej otwiera edytor
+  pojedynczego dnia, bo to nadal najczęstsza poprawka („w tę środę wyjątkowo
+  do 12"). Zaznaczanie włącza się świadomie jednym przyciskiem.
+#}
+{% if moj_wiersz or edycja_wszystkich %}
+<div class="av-tryb">
+  <button type="button" class="btn btn-primary btn-sm" id="btn-av-tryb"
+          data-trener="{{ moj_wiersz or '' }}"
+          aria-pressed="false">✎ Zaznaczaj dni</button>
+  <span class="muted small" id="av-tryb-opis">
+    kliknij komórkę, żeby wpisać lub poprawić dostępność pojedynczego dnia
+  </span>
+</div>
+
+{# Pasek akcji dla zaznaczonych dni. Ten sam wzorzec co „zaznacz i przypisz"
+   na /baza — koordynatorka i trener znają go z listy szkół.
+   Gotowe godziny zamiast wpisywania: na telefonie to największa różnica. #}
+<div class="av-pasek" id="av-pasek" hidden>
+  <span class="av-pasek-n"><b id="av-n">0</b> <span id="av-n-opis">dni zaznaczonych</span></span>
+  <span class="av-pasek-kto" id="av-pasek-kto"></span>
+  <span class="av-pasek-grupa">
+    <button type="button" class="btn btn-secondary btn-sm" data-av="caly">cały dzień</button>
+    {% for od, do in [('08:00','12:00'), ('08:00','16:00'), ('12:00','16:00')] %}
+    <button type="button" class="btn btn-secondary btn-sm" data-av="okno"
+            data-od="{{ od }}" data-do="{{ do }}">{{ od[:5] }}–{{ do[:5] }}</button>
+    {% endfor %}
+    <span class="av-wlasne">
+      <input class="input input-auto" type="time" id="av-od" value="09:00">–<input
+        class="input input-auto" type="time" id="av-do" value="15:00">
+      <button type="button" class="btn btn-secondary btn-sm" data-av="okno">ustaw</button>
+    </span>
+  </span>
+  <span class="av-pasek-grupa">
+    <button type="button" class="btn btn-danger btn-sm" data-av="nie">niedostępny</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-av="usun"
+            title="Kasuje deklarację — dzień wraca do stanu „nie wiadomo”">wyczyść</button>
+    <button type="button" class="btn btn-secondary btn-sm" data-av="odznacz">odznacz</button>
+  </span>
+</div>
+{% else %}
 <p class="muted small" style="margin:-8px 0 var(--space-3)">
-  kliknij komórkę, żeby wpisać lub poprawić dostępność
+  dostępność zmienia trener u siebie albo koordynator
 </p>
+{% endif %}
 
 {# ── wypełnianie zakresu — tak realnie wpisywali: całymi tygodniami ── #}
 <section class="section av-zakres">
   <div class="section-title">Wypełnij zakres <span class="muted small">— istniejących wpisów nie nadpisuje</span></div>
   <div class="av-zakres-form">
+    {# Trener zmienia wyłącznie SWOJĄ dostępność (pilnuje tego serwer), więc
+       lista wszystkich nazwisk była tu zaproszeniem do odmowy: wybór kolegi
+       kończył się komunikatem o braku uprawnień. Trener widzi tylko siebie,
+       z góry wybranego — koordynator dalej ma pełną listę. #}
+    {% if moj_wiersz and not edycja_wszystkich %}
+    <select class="input input-auto" id="az-trener">
+      <option value="{{ moj_wiersz }}" selected>{{ moj_wiersz }}</option>
+    </select>
+    {% else %}
     <select class="input input-auto" id="az-trener">
       <option value="">— trener —</option>
       {% for v in slowniki.get('trener', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
     </select>
+    {% endif %}
     <label class="small muted">od <input class="input input-auto" type="date" id="az-od" value="{{ month }}-01"></label>
     <label class="small muted">do <input class="input input-auto" type="date" id="az-do" value="{{ month }}-28"></label>
     <span class="av-dni">

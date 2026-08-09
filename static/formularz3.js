@@ -242,6 +242,15 @@
     return lista;
   }
 
+  /* Godziny zajęcia. W pliku klienta z 08.08 większość DT nie ma wpisanej
+     godziny (48 z 66 bez początku, 65 bez końca) — pusty nawias wyglądałby
+     jak błąd aplikacji, a to brak w danych. Mówimy o tym wprost, bo dla
+     handlowca umawiającego termin „nie wiadomo o której" to realna informacja. */
+  function godziny(z) {
+    if (!z.godz_od) return "godz. nieustalona";
+    return z.godz_od + (z.godz_do ? "–" + z.godz_do : "");
+  }
+
   function kafelTrenera(k) {
     // wolne okna i zajęcia — serwer je liczy, a v2 wyrzucał do kosza
     var szczegol = "";
@@ -249,8 +258,7 @@
       szczegol = "wolne: " + k.wolne.join(", ");
     } else if (k.zajete && k.zajete.length) {
       szczegol = k.zajete.map(function (z) {
-        return (z.godz_od || "") + (z.godz_do ? "–" + z.godz_do : "") +
-               " " + (z.typ || "") + (z.miasto ? " " + z.miasto : "");
+        return godziny(z) + " " + (z.typ || "") + (z.miasto ? " " + z.miasto : "");
       }).join(" · ");
     } else if (k.powod) {
       szczegol = k.powod;
@@ -339,11 +347,13 @@
       return;
     }
     wpisy.sort(function (a, b) { return (a.godz || "99:99").localeCompare(b.godz || "99:99"); });
+    var bezGodzin = wpisy.filter(function (w) { return !w.godz; }).length;
     $("f3-dzien-tytul").textContent = "Co się dzieje " + data + " — " + wpisy.length + " " +
-      odmiana(wpisy.length, "zajęcie", "zajęcia", "zajęć");
+      odmiana(wpisy.length, "zajęcie", "zajęcia", "zajęć") +
+      (bezGodzin ? " (" + bezGodzin + " bez godziny)" : "");
     $("f3-dzien-tresc").innerHTML = '<ul class="f3-dzien-lista">' + wpisy.map(function (w) {
-      return "<li><span class=\"f3-dzien-godz\">" +
-             esc(w.godz + (w.do ? "–" + w.do : "") || "—") + "</span>" +
+      return "<li><span class=\"f3-dzien-godz" + (w.godz ? "" : " f3-brak-godz") + "\">" +
+             esc(godziny({ godz_od: w.godz, godz_do: w.do })) + "</span>" +
              '<span class="f3-dzien-kto">' + esc(w.trener) + "</span>" +
              '<span class="f3-dzien-gdzie">' + esc(w.typ + " · " + w.szkola +
              (w.miasto ? " · " + w.miasto : "")) + "</span></li>";

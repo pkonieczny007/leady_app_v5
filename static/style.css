@@ -916,6 +916,34 @@ tr.flash td{animation:flash .9s ease-out}
 .av-matrix td.av-niedostepny.cal-out{background:#f3dfdb}
 .av-edytowana{box-shadow:inset 0 0 0 2px var(--accent)}
 
+/* ------------------------------------------------ tryb zaznaczania dni (v5)
+   Trener myśli tygodniami, nie pojedynczymi dniami — zaznacza kilka dni palcem
+   i nadaje im jedną deklarację. Pasek akcji jest tym samym wzorcem, co
+   „zaznacz i przypisz" na /baza, więc nie trzeba uczyć się drugiego. */
+.av-tryb{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin:-4px 0 var(--space-3)}
+/* w trybie zaznaczania kursor mówi, że klik NIE otworzy edytora */
+body.av-tryb-zazn .av-cell{cursor:copy}
+body.av-tryb-zazn .cal-week-head{cursor:copy}
+body.av-tryb-zazn .cal-week-head:hover .cal-week-label{text-decoration:underline}
+.av-zazn{box-shadow:inset 0 0 0 3px var(--accent)!important;background:var(--accent-l)}
+
+.av-pasek{
+  position:sticky;top:57px;z-index:30;
+  display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;
+  background:var(--grad-brand);color:#fff;
+  border:1px solid var(--brand-d);border-radius:var(--radius-md);
+  padding:10px 14px;margin-bottom:var(--space-3);box-shadow:var(--shadow-md);
+}
+.av-pasek .input{min-height:32px;font-size:12.5px}
+.av-pasek-n{font-size:13px;color:#c7d3e3}
+.av-pasek-n b{
+  font-size:17px;color:#fff;font-variant-numeric:tabular-nums;
+  background:rgba(255,255,255,.18);padding:1px 9px;border-radius:20px;
+}
+.av-pasek-kto{font-size:12.5px;color:#fff;font-weight:600}
+.av-pasek-grupa{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.av-wlasne{display:flex;align-items:center;gap:4px;font-size:12px;color:#c7d3e3}
+
 .av-status{display:block;font-size:11.5px;font-weight:700}
 .av-status-ok{color:var(--ok-t)}
 .av-status-nie{color:var(--warn-d);text-transform:uppercase;letter-spacing:.4px}

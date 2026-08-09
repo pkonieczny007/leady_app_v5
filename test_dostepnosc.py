@@ -122,6 +122,56 @@ def main():
     conn.close()
     sprawdz("istniejący wpis 8–12 NIE nadpisany", w["godz_do"] == "12:00")
 
+    # D3b — zaznaczone dni: paczka NADPISUJE (w odróżnieniu od zakresu).
+    # Z uwagi trenera 09.08: „wypełnianie jest nieintuicyjne" — dostał tryb,
+    # w którym zaznacza dni palcem i nadaje im wszystkim jedną deklarację.
+    print("\nD3b — zapis zaznaczonych dni jedną paczką")
+    kod, d = post("/api/dostepnosc/dni", {
+        "trener": T1, "dni": ["2026-09-21", "2026-09-22", "2026-09-23"],
+        "tryb": "okno", "godz_od": "08:00", "godz_do": "12:00"})
+    sprawdz("trzy dni zapisane jednym żądaniem", kod == 200 and d["n"] == 3,
+            str(d)[:80])
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM dostepnosc WHERE trener=? "
+                       "AND data IN ('2026-09-21','2026-09-22','2026-09-23') "
+                       "AND godz_od='08:00'", (T1,)).fetchone()["c"]
+    conn.close()
+    sprawdz("wszystkie trzy mają okno 8–12", ile == 3, "jest %d" % ile)
+
+    kod, d = post("/api/dostepnosc/dni", {
+        "trener": T1, "dni": ["2026-09-21"], "tryb": "nie"})
+    conn = db.get_conn()
+    w = dict(conn.execute("SELECT * FROM dostepnosc WHERE trener=? AND data=?",
+                          (T1, "2026-09-21")).fetchone())
+    conn.close()
+    sprawdz("paczka NADPISUJE istniejący wpis (inaczej niż zakres)",
+            w["niedostepny"] == 1 and w["godz_od"] is None)
+
+    kod, d = post("/api/dostepnosc/dni", {
+        "trener": T1, "dni": ["2026-09-22"], "tryb": "usun"})
+    conn = db.get_conn()
+    zostal = conn.execute("SELECT COUNT(*) c FROM dostepnosc WHERE trener=? AND data=?",
+                          (T1, "2026-09-22")).fetchone()["c"]
+    conn.close()
+    sprawdz("tryb „usuń” kasuje deklarację (dzień wraca do „nie wiadomo”)",
+            kod == 200 and zostal == 0)
+
+    kod, _ = post("/api/dostepnosc/dni", {"trener": T1, "dni": [], "tryb": "caly"})
+    sprawdz("pusta paczka odrzucona", kod == 400)
+    kod, _ = post("/api/dostepnosc/dni", {"trener": T1, "dni": ["2026-09-21"],
+                                          "tryb": "okno"})
+    sprawdz("okno bez godziny początku odrzucone", kod == 400)
+    kod, _ = post("/api/dostepnosc/dni", {"trener": T1, "dni": ["2026-09-21"],
+                                          "tryb": "okno", "godz_od": "14:00",
+                                          "godz_do": "09:00"})
+    sprawdz("koniec przed początkiem odrzucony", kod == 400)
+    kod, _ = post("/api/dostepnosc/dni", {"trener": T1, "dni": ["07.09.2026"],
+                                          "tryb": "caly"})
+    sprawdz("zła data w paczce odrzuca całość", kod == 400)
+    kod, _ = post("/api/dostepnosc/dni", {"trener": "99. Niema Takiego",
+                                          "dni": ["2026-09-21"], "tryb": "caly"})
+    sprawdz("trener spoza słownika odrzucony", kod == 400)
+
     print("\nD4 — ekran: statusy komórek i wolne okna z kalendarza")
     kod, d = post("/api/lead", {"nazwa": "SP Testowa", "miejscowosc": None,
                                 "typ": None})

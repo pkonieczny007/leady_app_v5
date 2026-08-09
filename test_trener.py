@@ -156,9 +156,26 @@ def main():
     r = kl_t.post("/api/dostepnosc/zakres", json={"trener": T2, "od": dni(1),
                                                    "do": dni(5), "godz_od": "08:00"})
     sprawdz("cudzego zakresu nie wypełni", r.status_code == 403)
+    r = kl_t.post("/api/dostepnosc/dni", json={"trener": T2, "dni": [dni(2)],
+                                               "tryb": "caly"})
+    sprawdz("cudzej paczki dni też nie zapisze", r.status_code == 403)
+    r = kl_t.post("/api/dostepnosc/dni", json={"trener": T1, "dni": [dni(2), dni(3)],
+                                               "tryb": "okno", "godz_od": "08:00",
+                                               "godz_do": "12:00"})
+    sprawdz("SWOJĄ paczkę dni zapisuje", r.status_code == 200,
+            str(r.get_json())[:70])
 
     r = kl_t.delete("/api/dostepnosc", json={"trener": T1, "data": dni(3)})
     sprawdz("swój wpis kasuje bez przeszkód", r.status_code == 200)
+
+    # Ekran ma nie proponować tego, czego serwer i tak odmówi.
+    html_t = kl_t.get("/dostepnosc").get_data(as_text=True)
+    wybor = html_t.split('id="az-trener"')[1].split("</select>")[0]
+    sprawdz("trener ma tryb zaznaczania dni", 'id="btn-av-tryb"' in html_t)
+    sprawdz("w formularzu zakresu NIE widzi cudzych nazwisk", T2 not in wybor)
+    sprawdz("i jest w nim z góry wybrany", T1 in wybor and "selected" in wybor)
+    sprawdz("nie widzi przycisku demo (serwer i tak odmawia)",
+            'id="btn-av-demo"' not in html_t)
 
     # ================================= T4 — handlowiec tylko podgląda
     print("\nT4 — handlowiec widzi grafik, ale go nie zmienia")

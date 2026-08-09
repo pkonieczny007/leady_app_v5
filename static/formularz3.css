@@ -75,6 +75,9 @@
 .f3-dzien-kto{font-weight:600;color:var(--ink)}
 .f3-dzien-gdzie{color:var(--muted)}
 .f3-dzien-pusto{font-size:12px;color:var(--muted);margin:8px 0 0}
+/* W pliku klienta większość DT nie ma wpisanej godziny — to brak w danych,
+   nie usterka ekranu, więc mówimy o tym wprost zamiast zostawiać pustkę. */
+.f3-brak-godz{font-weight:400;font-style:italic;color:var(--muted);font-size:11px}
 
 @media (max-width:520px){
   .f3-dzien-lista li{grid-template-columns:78px 1fr}

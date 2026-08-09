@@ -80,7 +80,7 @@ TYLKO_KOORDYNATOR = {
 # DT), ale zmiana cudzego wpisu to decyzja koordynatorki. Trener wolno mu zmieniać
 # WYŁĄCZNIE własny wiersz; pilnuje tego `_wolno_edytowac_dostepnosc`.
 EDYCJA_DOSTEPNOSCI = {"api_dostepnosc_set", "api_dostepnosc_del",
-                      "api_dostepnosc_zakres"}
+                      "api_dostepnosc_zakres", "api_dostepnosc_dni"}
 
 # Trener ma najwęższy dostęp: swoja dostępność i kalendarz. Leadów i danych
 # kontaktowych szkół nie widzi wcale — do swojej pracy ich nie potrzebuje,
@@ -1072,6 +1072,86 @@ def api_dostepnosc_zakres():
     conn.commit()
     conn.close()
     return jsonify(ok=True, n=n)
+
+
+@app.route("/api/dostepnosc/dni", methods=["POST"])
+def api_dostepnosc_dni():
+    """
+    Zapis dostępności dla ZAZNACZONYCH dni — jedna paczka, jedno żądanie.
+
+    Powstało z uwagi trenera po teście z telefonu (09.08): „wypełnianie jest
+    nieintuicyjne". Do tej pory były dwie drogi i obie krzywe — klik w komórkę
+    (jeden dzień, przeładowanie strony po każdym) albo formularz zakresu nad
+    siatką, oderwany od kalendarza i wymagający wpisania dat z klawiatury.
+    Trener myśli „w tym tygodniu jestem rano, w przyszłym mnie nie ma", więc
+    zaznacza dni palcem i nadaje im wszystkim jedną deklarację.
+
+    Różnica wobec `/zakres`: TU NADPISUJEMY. Zakres świadomie nie rusza
+    istniejących wpisów, bo wypełnia hurtem naprzód; tutaj człowiek wskazał
+    konkretne dni palcem i oczekuje, że stanie się dokładnie to, co wybrał.
+
+    Tryb `usun` kasuje deklarację (dzień wraca do stanu „nie wiadomo"), co jest
+    czymś innym niż `nie` — „niedostępny" to informacja, brak wpisu to jej brak.
+    """
+    d = request.get_json(force=True)
+    trener = d.get("trener")
+    conn = get_conn()
+    if not _wolno_edytowac_dostepnosc(trener):
+        conn.close()
+        return jsonify(ok=False, error="Trener zmienia wyłącznie swoją dostępność"), 403
+    blad = _waliduj_trenera(conn, trener)
+    if blad:
+        conn.close(); return jsonify(ok=False, error=blad), 400
+
+    dni = [str(x).strip() for x in (d.get("dni") or []) if str(x).strip()]
+    if not dni:
+        conn.close(); return jsonify(ok=False, error="Nie zaznaczono dni"), 400
+    if len(dni) > 200:
+        conn.close(); return jsonify(ok=False, error="Za dużo dni naraz (maks. 200)"), 400
+    for data in dni:
+        blad = _waliduj_date(data)
+        if blad:
+            conn.close(); return jsonify(ok=False, error=blad), 400
+
+    tryb = (d.get("tryb") or "caly").strip()
+    if tryb not in ("caly", "okno", "nie", "usun"):
+        conn.close(); return jsonify(ok=False, error="Nieznany tryb"), 400
+
+    if tryb == "usun":
+        for data in dni:
+            conn.execute("DELETE FROM dostepnosc WHERE trener=? AND data=?",
+                         (trener, data))
+        zapisz_log(conn, co="dostępność — usunięcie", pole=trener,
+                   po="%d dni" % len(dni))
+        conn.commit(); conn.close()
+        return jsonify(ok=True, n=len(dni), tryb=tryb)
+
+    godz_od = godz_do = None
+    if tryb == "okno":
+        godz_od = (d.get("godz_od") or "").strip() or None
+        godz_do = (d.get("godz_do") or "").strip() or None
+        if not godz_od:
+            conn.close()
+            return jsonify(ok=False, error="Podaj godzinę początku okna"), 400
+        if godz_do and godz_do <= godz_od:
+            conn.close()
+            return jsonify(ok=False, error="Godzina końca musi być późniejsza"), 400
+    niedostepny = 1 if tryb == "nie" else 0
+    uwagi = (d.get("uwagi") or "").strip() or None
+
+    for data in dni:
+        conn.execute(
+            "INSERT INTO dostepnosc (trener, data, godz_od, godz_do, niedostepny, uwagi) "
+            "VALUES (?,?,?,?,?,?) "
+            "ON CONFLICT(trener, data) DO UPDATE SET "
+            "  godz_od=excluded.godz_od, godz_do=excluded.godz_do, "
+            "  niedostepny=excluded.niedostepny, uwagi=excluded.uwagi",
+            (trener, data, godz_od, godz_do, niedostepny, uwagi))
+    zapisz_log(conn, co="dostępność — zaznaczone dni", pole=trener,
+               po="%d dni, tryb %s" % (len(dni), tryb))
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True, n=len(dni), tryb=tryb)
 
 
 @app.route("/api/dostepnosc/demo", methods=["POST"])
