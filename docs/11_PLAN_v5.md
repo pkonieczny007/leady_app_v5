@@ -21,7 +21,8 @@ Odpowiedzi na pytania z sekcji E. Zmieniają zakres etapu 3b i dokładają popra
 |---|---|---|
 | Świeży plik danych | **jest**: `PH PRÓBA Nowy dla handlowców.xlsx` (08.08, 21:15) | blokada etapu 5 zdjęta |
 | Kto przypisuje szkoły | **wyłącznie koordynator handlowców (Kasia)** — handlowiec NIE przypisuje sam | ścieżka „chcę wziąć tę szkołę" **wypada z 3b**; zostaje komunikat „skontaktuj się z koordynatorem" |
-| Auto-zwrot po terminie | automatyczny, bez ręcznego odpinania; zwrócona szkoła ma się **„świecić, że wróciła"** | automat już jest (`zwrot.py`, karencja 2 dni); dochodzi plakietka „wróciła DATA" na `/niewykorzystane` |
+| Auto-zwrot po terminie | automatyczny, bez ręcznego odpinania; zwrócona szkoła ma się **„świecić, że wróciła"** | automat już jest (`zwrot.py`); dochodzi plakietka „wróciła DATA" |
+| **Karencja zwrotu — DECYZJA Przemka 08.08 (późny wieczór)** | zwrot **tak, jak chciała Kasia: od razu po terminie, BEZ karencji po**. Dwa dni zostają, ale jako **ostrzeżenie PRZED terminem**, nie karencja po nim | do zrobienia (etap 3c): `KARENCJA_DNI` 2→**0**, `OSTRZEZENIE_DNI` 3→**2**, poprawka `docker-compose.yml` i testów, które zakładają karencję 2 |
 | Limit zajęć trenera | **4–5 dziennie to norma** (rano przedszkole 2–3 grupy, potem DT albo szkoła) | sprawdzić, że nic nie zakłada max 2; kolizje dalej tylko ostrzegają |
 | Co widzi trener | kalendarz DT + cykliczne **tylko do odczytu**, własna dostępność do edycji, **reszty ma nie widzieć** | zgodne z obecnym stanem — potwierdzić testem |
 | Co widzi handlowiec (PH) | każdy widzi każdego, edytuje swoje | zgodne z obecnym stanem |
@@ -153,6 +154,7 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 6 | **Konta ↔ Słowniki** — dodawanie pracowników działa z obu miejsc | sob 08.08 | **✅** |
 | 3b | **„Przedłuż termin"** masowo (licznik dni, domyślnie 14, ±/wpisanie) + termin przy przypisaniu z góry dziś+14 | sob 08.08 | **✅** |
 | 7 | Plakietka „wróciła do puli" na `/baza` + skok do daty w kalendarzu | sob 08.08 | **✅** |
+| 3c | **Zwrot bez karencji po terminie** (decyzja 08.08): `KARENCJA_DNI=0`, ostrzeżenie **2 dni PRZED terminem** (`OSTRZEZENIE_DNI=2`); dostosować testy Z1–Z4 | nd 09.08, ~0,5h | ⬜ **pierwsze rano** |
 | 8 | **Weryfikacja ścieżek**: testy ✅ (585/585) · **zostaje ręczny test z telefonu**: trener ustawia dostępność, handlowiec formularz→kalendarz | nd 09.08 | ⬜ |
 | 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
 | 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
@@ -390,6 +392,15 @@ Do tego jedna kartka A5 dla handlowca: adres, jak dodać ikonę do ekranu, PIN, 
    kontaktowa, zgoda na salę, sprzęt).
 7. **Osoba będąca i handlowcem, i trenerem** ma dziś dwa konta (różne prefiksy
    w słownikach) — jedno konto czy dwa? **⬜ nadal bez odpowiedzi.**
+8. ~~Karencja auto-zwrotu~~ — **rozstrzygnięte 08.08 (Przemek)**: zwrot od razu
+   po terminie (bez karencji po), 2 dni jako **ostrzeżenie przed terminem**.
+   Zostaje pod-pytanie na wtorek: czy „ruch" handlowca (notatka, zmiana statusu)
+   ma chronić przed zwrotem, czy — jak teraz — chroni wyłącznie umówione DT,
+   a życie leada przedłuża koordynator przyciskiem „Przedłuż termin"? **⬜**
+9. **Minimum tygodniowe na pulpicie** — pojęcie z notatek ze spotkania 24.07
+   („STATUS — minimum na tydzień", k.1 p.4); wartość **5 DT/tydzień to nasze
+   założenie robocze** (`CEL_TYGODNIOWY`), pytanie A4 z `07_PYTANIA` wciąż bez
+   odpowiedzi. Jaka ma być realna liczba? **⬜ na wtorek.**
 
 ---
 
