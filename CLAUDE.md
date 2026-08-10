@@ -353,19 +353,60 @@ Trzy pułapki znalezione przy pisaniu instrukcji, wszystkie naprawione:
 za późno), `git pull`, przebudowa, sprawdzenie, że aplikacja odpowiada.
 Próba backup → przywracanie przeszła lokalnie na `test` (545 leadów po odtworzeniu).
 
-### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
-- **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
-  formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
-- **2b** — PWA: manifest i ikony **są w repo** (`static/manifest.webmanifest`,
-  `narzedzia/ikony.py` robi kafelki z `logo.png`, `start_url=/formularz`,
-  **bez service workera** — offline to temat po wtorku i cache pokazywałby
-  wczorajszy ekran). Do sprawdzenia na iPhonie dopiero po HTTPS z etapu 4:
-  przeglądarki czytają manifest wyłącznie z bezpiecznego połączenia
-- **4** — VPS wg `docs/15`: rekordy DNS **jako pierwsza czynność poniedziałku**
-  (propagacja idzie godzinami), potem demo, potem prod; cron kopii o 6:00
-- **5** — import realnych danych do profilu `prod`, próba na sucho z telefonu po LTE
-- RSPO: wniosek o API w poniedziałek + CSV z wyszukiwarki (eksport potwierdzony);
-  propozycja w `docs/12_RSPO.md`, szczegóły z klientem we wtorek
+## 8b. Stan na 10.08.2026 (poniedziałek) — PRODUKCJA DZIAŁA
+
+`https://ph.silesia3d.site` — 545 placówek, 545 leadów, 65 DT, 21 trenerów
+z rejonami, **49 kont z PIN-ami**. Certyfikat Let's Encrypt do 08.11.2026.
+`https://demo-ph.silesia3d.site` — poligon na profilu `test`.
+Katalog na serwerze: `/home/ubuntu/apps/ph.silesia3d.site`.
+
+**Baza produkcyjna powstała LOKALNIE i pojechała gotowym plikiem** — nie przez
+ekran „Import" na serwerze. Powód: ten importer już raz zaskoczył (165 placówek
+zamiast 545, zmieniona nazwa zakładki). Poprawianie kodu na produkcji przy
+czekających ludziach to nie jest plan. Ta kolejność ma zostać.
+
+**Konta wielorolowe.** Osoba bywa jednocześnie handlowcem, trenerem
+i koordynatorem — wtedy dostaje osobne konto z dopiskiem roli w nazwie
+(`03. Małolepsza (koordynator)`). Decyzja Przemka 10.08. Koordynatorzy na
+produkcji: `01. Sacawa (koordynator)` (to jest Kasia), `03. Małolepsza`,
+`05. Młynarczyk`, `Przemek`, plus awaryjne konto `Koordynator`.
+
+### Naprawione 10.08 — wszystko wyszło z pytań, nie z testów
+- **układ na telefonie** — arkusz nie miał ŻADNEGO progu `@media`; `.brand` nie
+  daje się ścisnąć, więc `.nav` zawijał się w pionie w kilkanaście wierszy
+  i wypychał stronę w bok. Nawigacja ma teraz własny wiersz i przewija się
+  poziomo; tabele przewijają się same
+- ⚠️ **zajęcia cykliczne były NIEWIDOCZNE w kalendarzu** — openpyxl oddaje datę
+  jako `datetime`, więc wyliczona data pierwszych zajęć szła do bazy jako
+  `2026-09-22T00:00:00`; `date.fromisoformat` to odrzuca, a kalendarz robił
+  `continue` i pomijał wpis BEZ ŚLADU. Naprawione z obu stron (importer + odporny
+  kalendarz), dane w `prod` i `test` poprawione. Test S16
+- ⚠️ **zajęcia bez prowadzącego znikały z macierzy, a licznik je liczył** —
+  wiersze to trenerzy, więc event bez osoby nie miał gdzie trafić: 56 pokazanych
+  z 61 zapowiedzianych. Doszedł bursztynowy wiersz „— bez prowadzącego —" (zawsze
+  pierwszy) i liczniki braków w nagłówku. Test S17
+- kalendarzyk przeglądarki otwierał się na dziś zamiast na oglądanym miesiącu
+
+### Kopie zapasowe — trzy warstwy
+1. **VPS, cron 6:00** — `.db` + `.xlsx` do `/data/kopie` w wolumenie, retencja 30 dni
+2. **Mac mini (Debian!)** — ciągnie codziennie timerem systemd z `Persistent=true`.
+   Ciągnie, a nie serwer pcha: przy przejęciu VPS-a pchanie skasowałoby też kopie
+3. **Z ręki** — `narzedzia/kopia_z_serwera.ps1` (Windows) i
+   `narzedzia/kopia_na_maca.sh --cel …` (Debian)
+
+Oba skrypty **sprawdzają pobrane bazy** (`integrity_check` + liczba placówek) —
+plik o poprawnej nazwie i rozmiarze to jeszcze nie kopia. Instrukcja odtwarzania:
+`docs/17_KOPIE_NA_MACU.md`; ścieżka przećwiczona na demo (545 → 0 → 545).
+**Kopii bazy NIE wkładamy na GitHub** — dane osobowe w historii, której git nie
+zapomina. Kod tak, dane nie.
+
+### Zostało do wtorku
+- **8** — ręczny test z telefonu **po LTE, na produkcji**: logowanie PIN-em,
+  ikona na ekranie początkowym (PWA — teraz zadziała, HTTPS jest),
+  formularz → kalendarz (nacisk Kasi)
+- wydruk kart dostępu (`dostepy/karta_dostepu_prod_*.pdf`) i kartki A5
+  (`docs/16_KARTKA_HANDLOWCA.html`, Ctrl+P) — **wpisać numer telefonu**
+- RSPO: rozmowa z Wojtkiem, warianty zakresu z `docs/12_RSPO.md`
 
 ### ⚠️ Bez tego NIE wolno wystawiać na VPS
 Wszystkie trzy siedzą w `.env` na serwerze (wzór: `.env.example`, plik jest

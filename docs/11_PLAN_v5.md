@@ -427,7 +427,28 @@ Dwie rzeczy, które trzeba dopowiedzieć, bo inaczej to zaboli ludzi:
 
 To wymaga potwierdzenia u klienta — pytania na końcu dokumentu.
 
-## Poniedziałek 10.08 — plan godzinowy
+## Poniedziałek 10.08 — ZAMKNIĘTY, produkcja działa
+
+**Stan na koniec dnia:** `https://ph.silesia3d.site` z 545 placówkami i 49
+kontami z PIN-ami, certyfikat do 08.11.2026, cron kopii sprawdzony w środowisku
+crona (nie tylko „z ręki"), kopie ściągnięte na Mac mini i zweryfikowane.
+Odtwarzanie przećwiczone na demo: 545 → 0 → 545 z rejonami i eventami.
+
+| punkt | stan |
+|---|---|
+| 2 — baza prod z Excela + rejony | ✅ 545/545/65, 21 trenerów z rejonami |
+| 3 — produkcja na serwerze | ✅ nginx + certbot + kontener + podmiana bazy |
+| 6 — karty dostępu | ✅ wygenerowane, **zostaje wydruk** |
+| 4 — kopie: cron 6:00 + próba odtworzenia | ✅ plus warstwa na Mac mini |
+| 5 — PWA | ✅ w repo, **do sprawdzenia na iPhonie** |
+| 7 — wzorce `stan.sh` | ✅ przy okazji próby odtwarzania |
+| 8 — ścieżka z telefonu po LTE na produkcji | ⬜ **zostaje na wieczór/wtorek rano** |
+
+Trzy usterki naprawione po drodze — wszystkie wyszły z pytań Przemka, nie
+z testów: układ na telefonie, niewidoczne zajęcia cykliczne, znikające
+z macierzy zajęcia bez prowadzącego. Opisy w commitach i w `CLAUDE.md` 8b.
+
+### Poprzedni plan godzinowy (do wglądu)
 
 **Stan na wieczór 09.08:** DNS gotowy (`ph` i `demo-ph` → `57.128.241.52`),
 **demo działa na HTTPS** (certyfikat do 07.11.2026), porty nie wyciekają na
