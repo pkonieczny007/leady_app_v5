@@ -61,9 +61,14 @@
 
   </div>
   <div class="head-actions">
+    {# Liczniki braków obok liczby spotkań. Nie ostrzeżenie, tylko lista rzeczy
+       do dokończenia — w danych klienta 45 z 61 wystąpień września nie ma
+       godziny, więc czerwony alarm na to byłby szumem, który się ignoruje. #}
     <span class="muted small nums">
       {{ cal.n_events }} spotkań ·
       <b class="alert">{{ cal.n_kolizji }} w kolizji</b>
+      {% if cal.n_bez_trenera %} · <b class="uwaga">{{ cal.n_bez_trenera }} bez prowadzącego</b>{% endif %}
+      {% if cal.n_bez_godziny %} · {{ cal.n_bez_godziny }} bez godziny{% endif %}
     </span>
     <div class="seg">
       {% for k, ikona, nazwa in [('macierz','▦','Macierz'), ('agenda','☰','Agenda'), ('starty','▤','Starty')] %}
@@ -173,8 +178,10 @@
         </thead>
         <tbody>
           {% for w in t.wiersze %}
-          <tr class="{{ 'cal-row-empty' if not w.ma }}">
-            <td class="cal-trener">{{ dot(w.kolor) }}{{ w.trener }}
+          {# Wiersz „bez prowadzącego" wygląda inaczej, bo nie jest jednym
+             z trenerów — to lista zajęć czekających na przypisanie. #}
+          <tr class="{{ 'cal-row-empty' if not w.ma }}{{ ' cal-row-brak' if w.brak_trenera }}">
+            <td class="cal-trener">{% if not w.brak_trenera %}{{ dot(w.kolor) }}{% endif %}{{ w.trener }}
               {% if w.n %}<span class="muted small nums">({{ w.n }})</span>{% endif %}
             </td>
             {% for cell in w.cells %}

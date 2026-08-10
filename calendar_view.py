@@ -283,6 +283,15 @@ def available_months(conn):
     return sorted(set(mies))
 
 
+# Wiersz macierzy dla zajęć, którym nikt jeszcze nie został przypisany.
+# Bez niego takie zajęcia NIE MAJĄ GDZIE SIĘ POKAZAĆ — wiersze to trenerzy —
+# więc znikają z widoku domyślnego, a licznik u góry i tak je liczy. Na danych
+# klienta było to 5 z 61 wystąpień września: kalendarz twierdził, że pokazuje
+# komplet. To ten sam błąd, przed którym kod broni się przy kolizjach:
+# najgorsze, co ta aplikacja może zrobić, to schować coś po cichu.
+BEZ_TRENERA = "— bez prowadzącego —"
+
+
 def roster_trenerow(conn, evs):
     """
     Wiersze macierzy: pełna lista trenerów ze słownika (żeby widać było też wolnych —
@@ -323,9 +332,14 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
     komorki = {}
     for e in evs:
         e["kolizja"] = e["_key"] in kolizje
-        komorki.setdefault((e["trener"], e["data"]), []).append(e)
+        komorki.setdefault((e["trener"] or BEZ_TRENERA, e["data"]), []).append(e)
 
     trenerzy = roster_trenerow(conn, evs)
+    # Wiersz „bez prowadzącego" tylko wtedy, gdy jest co w nim pokazać, i ZAWSZE
+    # na górze: to nie jest jeden z trenerów, tylko lista rzeczy do przypisania.
+    n_bez_trenera = sum(1 for e in evs if not e.get("trener"))
+    if n_bez_trenera:
+        trenerzy = [BEZ_TRENERA] + trenerzy
     kolory = trener_colors(conn)
 
     tygodnie = []
@@ -341,6 +355,7 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
             if tylko_zajete and not ma:
                 continue
             wiersze.append({"trener": tr, "kolor": kolory.get(tr, "#9b9797"),
+                            "brak_trenera": tr == BEZ_TRENERA,
                             "cells": cells, "ma": ma,
                             "n": sum(len(c) for c in cells)})
         n_ev = sum(w["n"] for w in wiersze)
@@ -352,6 +367,8 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
 
     return {"tygodnie": tygodnie, "trenerzy": trenerzy, "kolory": kolory,
             "n_events": len(evs), "n_kolizji": _ile_kolizji(evs, kolizje),
+            "n_bez_trenera": n_bez_trenera,
+            "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "month": month, "month_label": month_label(month)}
 
 
@@ -383,8 +400,10 @@ def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
                     "dzis": d == dt.date.today(), "eventy": lista, "n": len(lista)})
 
     return {"dni": dni, "kolory": kolory, "n_events": sum(d["n"] for d in dni),
-            "n_kolizji": _ile_kolizji(evs, kolizje), "month": month,
-            "month_label": month_label(month)}
+            "n_kolizji": _ile_kolizji(evs, kolizje),
+            "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
+            "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
+            "month": month, "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ widok STARTY
@@ -432,8 +451,10 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
         })
 
     return {"tygodnie": tygodnie, "kolory": kolory, "n_events": len(evs),
-            "n_kolizji": _ile_kolizji(evs, kolizje), "month": month,
-            "month_label": month_label(month)}
+            "n_kolizji": _ile_kolizji(evs, kolizje),
+            "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
+            "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
+            "month": month, "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ metryki

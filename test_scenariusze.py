@@ -447,6 +447,35 @@ def main():
     sprawdz("każde wystąpienie ma czystą datę",
             all(len(e["data"]) == 10 for e in wrzesien + pazdziernik))
 
+    print("\nS17 — Zajęcia bez prowadzącego są WIDOCZNE w macierzy (regresja 10.08)")
+    #
+    # Wiersze macierzy to trenerzy, więc zajęcia bez przypisanej osoby nie miały
+    # gdzie się pokazać i znikały z widoku domyślnego — a licznik u góry i tak
+    # je liczył. Na danych klienta: 56 pokazanych z 61 zapowiedzianych.
+    # To ten sam błąd, przed którym kod broni się przy kolizjach: schowanie
+    # czegoś po cichu jest gorsze niż pokazanie brzydko.
+    conn = db.get_conn()
+    lid2 = conn.execute("SELECT id FROM leady LIMIT 1").fetchone()[0]
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-09-17', '09:00')", (lid2,))   # bez trenera
+    conn.commit()
+    mx = cal.build_matrix(conn, "2026-09", tylko_zajete=True)
+    ile_w_macierzy = sum(len(cc) for t in mx["tygodnie"]
+                         for w in t["wiersze"] for cc in w["cells"])
+    conn.close()
+    sprawdz("macierz pokazuje tyle, ile zapowiada licznik",
+            ile_w_macierzy == mx["n_events"],
+            "%d pokazanych / %d w liczniku" % (ile_w_macierzy, mx["n_events"]))
+    sprawdz("jest wiersz zbiorczy dla braku prowadzącego",
+            cal.BEZ_TRENERA in mx["trenerzy"])
+    sprawdz("i stoi na samej górze, nie między trenerami",
+            mx["trenerzy"][0] == cal.BEZ_TRENERA)
+    sprawdz("licznik braków trafia do widoku", mx["n_bez_trenera"] >= 1,
+            "%d bez prowadzącego, %d bez godziny"
+            % (mx["n_bez_trenera"], mx["n_bez_godziny"]))
+    sprawdz("wiersz jest oznaczony flagą, nie samą nazwą",
+            any(w.get("brak_trenera") for t in mx["tygodnie"] for w in t["wiersze"]))
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]
