@@ -1,10 +1,17 @@
 #!/bin/bash
 #
-# Ściąganie kopii z VPS na Mac mini. Uruchamiany automatycznie przez launchd.
+# Ściąganie kopii z VPS na Mac mini (Debian). Automatycznie przez timer systemd
+# albo z ręki, kiedy chcesz.
 #
-#     ./kopia_na_maca.sh              # sama baza aplikacji
-#     ./kopia_na_maca.sh --librus     # dołóż zrzut wolumenu librusa
-#     ./kopia_na_maca.sh --kod        # odśwież lustro repozytorium
+#     ./kopia_na_maca.sh                        # sama baza, katalog domyślny
+#     ./kopia_na_maca.sh --librus               # dołóż zrzut wolumenu librusa
+#     ./kopia_na_maca.sh --kod                  # odśwież lustro repozytorium
+#     ./kopia_na_maca.sh --cel ~/kopia_reczna_vps --librus --kod
+#
+# `--cel` służy do uruchomień z ręki, obok automatu: automat pisze do
+# ~/Backups/leady, a Ty możesz zrzucić komplet gdzie indziej, nie mieszając
+# w tym, co pilnuje timer. Każdy katalog ma własny log i własny znacznik
+# ostatniego udanego przebiegu.
 #
 # PO CO
 # Kopia leżąca na tym samym serwerze co oryginał chroni przed pomyłką człowieka,
@@ -30,21 +37,28 @@ set -uo pipefail
 SERWER="ubuntu@57.128.241.52"
 KONTENER="leady_app_v5"
 PRZEJSCIOWY="~/kopie-vps"
-CEL="$HOME/Backups/leady"
-LUSTRO="$HOME/Backups/leady_app_v5.git"
 REPO="https://github.com/pkonieczny007/leady_app_v5.git"
-LOG="$CEL/kopia.log"
-ZNACZNIK="$CEL/OSTATNIA_UDANA.txt"
 
+CEL="$HOME/Backups/leady"
 LIBRUS=0
 KOD=0
-for a in "$@"; do
-    case "$a" in
+while [ $# -gt 0 ]; do
+    case "$1" in
         --librus) LIBRUS=1 ;;
         --kod)    KOD=1 ;;
-        *) echo "Nieznany argument: $a"; exit 2 ;;
+        --cel)    shift; CEL="${1:-}"
+                  [ -n "$CEL" ] || { echo "--cel wymaga katalogu"; exit 2; } ;;
+        -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "Nieznany argument: $1"; exit 2 ;;
     esac
+    shift
 done
+
+# Log, znacznik i lustro idą do katalogu docelowego — dzięki temu uruchomienie
+# z ręki do innego katalogu nie nadpisuje śladu po automacie i odwrotnie.
+LOG="$CEL/kopia.log"
+ZNACZNIK="$CEL/OSTATNIA_UDANA.txt"
+LUSTRO="$CEL/leady_app_v5.git"
 
 mkdir -p "$CEL"
 log() { echo "$(date '+%Y-%m-%d %H:%M')  $*" >> "$LOG"; echo "$*"; }
@@ -54,10 +68,18 @@ log() { echo "$(date '+%Y-%m-%d %H:%M')  $*" >> "$LOG"; echo "$*"; }
 SSH="ssh -o BatchMode=yes -o ConnectTimeout=15"
 
 if ! $SSH "$SERWER" "echo ok" >/dev/null 2>&1; then
-    # Serwer nieosiągalny albo Mac bez sieci. To NIE jest awaria warstwy
-    # awaryjnej — wychodzimy spokojnie, żeby launchd nie zgłaszał błędu przy
-    # każdym przebudzeniu poza biurem. Ślad w logu zostaje.
+    # Serwer nieosiągalny, brak sieci ALBO brak klucza SSH. To NIE jest awaria
+    # warstwy awaryjnej — wychodzimy spokojnie, żeby timer nie świecił się na
+    # czerwono po każdym przebiegu bez łączności. Ślad w logu zostaje.
     log "POMINIETE: brak polaczenia z $SERWER"
+    if [ ! -f "$HOME/.ssh/id_ed25519" ] && [ ! -f "$HOME/.ssh/id_rsa" ]; then
+        # Najczęstsza przyczyna przy pierwszym uruchomieniu: klucza po prostu
+        # nie ma. `ssh-copy-id` mówi wtedy „No identities found", co brzmi jak
+        # problem z serwerem, a jest brakiem klucza po naszej stronie.
+        log "PRZYCZYNA: nie ma klucza SSH. Zrob:"
+        log "   ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519"
+        log "   ssh-copy-id $SERWER"
+    fi
     exit 0
 fi
 

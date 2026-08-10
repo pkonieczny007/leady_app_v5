@@ -452,7 +452,9 @@ apple'owego.
 sudo apt install rsync sqlite3 git
 
 # 1. klucz SSH: Z MACA NA SERWER, nigdy odwrotnie
-ssh-keygen -t ed25519                                 # jeśli jeszcze nie masz
+#    -N '' czyli BEZ hasła do klucza — inaczej timer stanie i będzie czekał,
+#    aż ktoś je wpisze, a nie ma komu. Klucz chroni wtedy uprawnieniami pliku.
+ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519 -C "mac-mini kopie"
 ssh-copy-id ubuntu@57.128.241.52
 ssh -o BatchMode=yes ubuntu@57.128.241.52 echo ok     # ma odpowiedzieć „ok" bez pytania o hasło
 
@@ -534,6 +536,22 @@ tail -20 ~/Backups/leady/kopia.log
 Brak sieci albo wyłączony serwer to dla skryptu **nie jest błąd** — wpisuje
 „POMINIETE" do logu i kończy się spokojnie, żeby `systemctl --user status` nie
 świecił się na czerwono po każdym przebiegu bez łączności.
+
+⚠️ Przy pierwszym uruchomieniu „POMINIETE" najczęściej znaczy **brak klucza SSH**,
+nie problem z serwerem — `ssh-copy-id` mówi wtedy „No identities found", co brzmi
+myląco. Skrypt sam to rozpoznaje i dopisuje do logu, co zrobić.
+
+### Uruchomienie z ręki, obok automatu
+
+```bash
+~/bin/kopia_na_maca.sh --cel ~/kopia_reczna_vps --librus --kod
+```
+
+Automat pisze do `~/Backups/leady`, `--cel` pozwala zrzucić komplet gdzie indziej,
+nie mieszając w tym, co pilnuje timer. Każdy katalog dostaje własny `kopia.log`,
+własny `OSTATNIA_UDANA.txt` i własne lustro repozytorium — dzięki temu data
+w katalogu automatu zawsze mówi prawdę o automacie, a nie o Twoim ostatnim
+ręcznym uruchomieniu.
 
 Kopie NIE są kasowane po stronie Maca (`rsync` bez `--delete`). Na serwerze
 retencja usuwa je po 30 dniach; tutaj chcemy trzymać dłużej, inaczej lustro
