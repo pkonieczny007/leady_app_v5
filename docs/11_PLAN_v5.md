@@ -222,9 +222,9 @@ zapisać bez zmiany schematu. Decyzja po wtorku, jeśli będą potrzebne w aplik
 
 ### Kolumna „Uwagi" kontra dostęp do „karta →" (10.08, do rozwiązania po wtorku)
 
-**To nie jest problem szerokości kolumny.** Próba poprawki i jej cofnięcie tego
-samego dnia dały pełny obraz, więc zapisuję go w całości — żeby nikt nie zaczął
-od ponownego poszerzania.
+**Kolumna faktycznie jest za wąska — ale samo poszerzenie tworzy gorszy problem.**
+Próba poprawki i jej cofnięcie tego samego dnia dały pełny obraz, więc zapisuję
+go w całości; rozwiązanie musi załatwić OBIE strony naraz.
 
 | Stan | Co jest nie tak |
 |---|---|
@@ -246,9 +246,10 @@ Kierunki do rozważenia (nie przesądzam, trzeba zobaczyć na realnym ekranie):
   szesnaście kolumn;
 - pasek przewijania **także nad tabelą** — najtańsze, ale leczy objaw, nie przyczynę.
 
-Do tego wraca pytanie z cofniętej poprawki: dymek pokazywał **treść** notatki
-zamiast nazwy pola. To było dobre niezależnie od szerokości i warto wrócić
-z tym osobno.
+**Zrobione osobno 10.08:** dymek pokazuje **treść** notatki zamiast nazwy pola.
+Nie rusza układu, więc weszło od razu — daje dostęp do pełnego tekstu bez
+wchodzenia w kartę. Nie zastępuje rozwiązania powyżej (na telefonie dymka nie
+ma), ale zdejmuje najpilniejszą część bólu przy pracy na komputerze.
 
 **Stan na sobotę 08.08 późny wieczór.** Rdzeń v5 zamknięty, poprawki 6, 3b i 7
 zrobione tego samego wieczora. Testy: **585 sprawdzeń w 9 plikach**, komplet OK.

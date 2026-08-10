@@ -100,8 +100,15 @@
          data-field="{{ klucz }}" data-prev="{{ wartosc if wartosc is not none else '' }}"
          value="{{ wartosc if wartosc is not none else '' }}" title="{{ lab }}">
 {%- else -%}
+  {# W dymku pokazujemy też TREŚĆ, nie samą nazwę pola. Kolumna „Uwagi" jest
+     węższa niż zdanie, które handlowiec wpisał („wstępne zainteresowanie,
+     dyrektor prosi o telefon we wrześniu”), a poszerzyć jej nie możemy —
+     tabela robi się wtedy szersza od ekranu i „karta →" wypada poza widok
+     (patrz docs/11_PLAN_v5.md). Dymek daje dostęp do treści bez ruszania
+     układu: najechanie kursorem zamiast wchodzenia w kartę leada. #}
   <input type="text" class="{{ wsp }}" data-api="{{ api }}" data-id="{{ rid }}"
-         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}" title="{{ lab }}">
+         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}"
+         title="{{ lab }}{{ ': ' ~ wartosc if wartosc else '' }}">
 {%- endif -%}
 {% endmacro %}
 
