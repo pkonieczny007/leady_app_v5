@@ -177,7 +177,13 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
         if typy and e["typ"] not in typy:
             continue
         try:
-            d0 = dt.date.fromisoformat(e["data"])
+            # Obcięcie do 10 znaków jest celowe. W bazie potrafi wylądować pełny
+            # znacznik czasu („2026-09-22T00:00:00") — tak zapisywał daty pierwszych
+            # zajęć importer, zanim to poprawiono. `date.fromisoformat` odrzuca taki
+            # zapis, a `continue` niżej POMIJAŁO wpis bez śladu: zajęcia cykliczne
+            # siedziały w bazie i nie pokazywały się w żadnym miesiącu. Kalendarz ma
+            # być odporny na to, co już leży w danych, nie tylko na nowe importy.
+            d0 = dt.date.fromisoformat(str(e["data"])[:10])
         except (ValueError, TypeError):
             continue
 

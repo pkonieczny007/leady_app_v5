@@ -414,6 +414,40 @@ def main():
         sprawdz("otwiera się %s" % s, KL.get(s).status_code == 200)
 
     # -----------------------------------------------------------------
+    print("\nS16 — Zajęcia cykliczne widać w kalendarzu (regresja 10.08)")
+    #
+    # Na produkcji dwa jedyne wpisy cykliczne były NIEWIDOCZNE w każdym miesiącu.
+    # Przyczyna: openpyxl oddaje komórkę z datą jako `datetime`, więc wyliczona
+    # data pierwszych zajęć trafiała do bazy jako „2026-09-22T00:00:00".
+    # `date.fromisoformat` odrzuca taki zapis, a kalendarz robił wtedy `continue`
+    # — czyli pomijał wpis BEZ ŚLADU. Test pilnuje obu stron naprawy: importer
+    # ma zapisywać samą datę, a kalendarz ma sobie radzić z tym, co już leży
+    # w danych (na produkcji nie zrobimy importu od nowa).
+    import calendar_view as cal
+    import importer as imp
+
+    d = imp._pierwsza_data_dnia("wtorek", dt.datetime(2026, 9, 15, 0, 0))
+    sprawdz("wyliczona data to data, nie znacznik czasu",
+            isinstance(d, dt.date) and not isinstance(d, dt.datetime), repr(d))
+    sprawdz("i wypada we właściwym dniu tygodnia", d.weekday() == 1, str(d))
+
+    conn = db.get_conn()
+    lid = conn.execute("SELECT id FROM leady LIMIT 1").fetchone()[0]
+    # celowo w starym, zepsutym formacie — tak wygląda to na produkcji
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, cykl_dzien, godz_od) "
+                 "VALUES (?, 'CYKLICZNE', '2026-09-22T00:00:00', 'wtorek', '13:30')", (lid,))
+    conn.commit()
+    wrzesien = cal.events_for_month(conn, "2026-09", typy=("CYKLICZNE",))
+    pazdziernik = cal.events_for_month(conn, "2026-10", typy=("CYKLICZNE",))
+    conn.close()
+    sprawdz("kalendarz nie pomija wpisu ze znacznikiem czasu",
+            len(wrzesien) >= 1, "%d wystąpień we wrześniu" % len(wrzesien))
+    sprawdz("cykl rozwija się na kolejny miesiąc",
+            len(pazdziernik) >= 3, "%d wystąpień w październiku" % len(pazdziernik))
+    sprawdz("każde wystąpienie ma czystą datę",
+            all(len(e["data"]) == 10 for e in wrzesien + pazdziernik))
+
+    # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]
     print("\n" + "=" * 62)

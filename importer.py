@@ -521,9 +521,13 @@ def _pierwsza_data_dnia(dzien, po_dacie=None):
     idx = _DNI_IDX.get(dzien)
     if idx is None:
         return None
-    baza = po_dacie
-    if isinstance(baza, str):
-        baza = P.parse_date(baza)
+    # `po_dacie` to surowa wartość z arkusza — openpyxl oddaje komórkę z datą
+    # jako `datetime`, nie `date`. Bez sprowadzenia do daty wynik dodawania też
+    # jest `datetime` i ląduje w bazie jako „2026-09-22T00:00:00", a kalendarz
+    # takiego zapisu nie parsuje i CICHO POMIJA wpis: zajęcia cykliczne były
+    # w bazie, ale nie pokazywały się w żadnym miesiącu. `parse_date` przyjmuje
+    # datetime, date, tekst i liczbę serialną Excela — jedno wejście na wszystko.
+    baza = P.parse_date(po_dacie)
     if not baza:
         dzisiaj = dt.date.today()
         rok = dzisiaj.year if dzisiaj.month >= 9 else dzisiaj.year - 1

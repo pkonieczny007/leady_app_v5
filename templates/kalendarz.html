@@ -92,10 +92,22 @@
   {# Skok do daty (08.08): handlowiec wpisuje datę i ląduje w tygodniu, w którym
      ona leży — trafiony tydzień jest podświetlony i przewinięty na ekran.
      min/max: literówka w roku („0002") przenosiła kalendarz w rok 2 n.e.,
-     a lista miesięcy ma tylko te z danymi, więc nie było czym wrócić. #}
-  <input type="date" class="input input-auto" name="d" value="{{ dzien }}"
+     a lista miesięcy ma tylko te z danymi, więc nie było czym wrócić.
+
+     Wartość domyślna = pierwszy dzień OGLĄDANEGO miesiąca (zgłoszone 10.08).
+     Puste pole daty otwiera kalendarzyk przeglądarki na dziś, więc przy
+     wybranym wrześniu wyskakiwał sierpień i trzeba było przewijać miesiąc
+     w tę i z powrotem. Przeglądarka nie ma atrybutu „otwórz na tym miesiącu" —
+     jedyne, co steruje widokiem, to wartość pola.
+
+     Dlatego atrybut `name` pojawia się DOPIERO po zmianie wartości: bez tego
+     podstawiona data jechałaby z każdym innym filtrem i sama podświetlała
+     pierwszy tydzień, choć nikt o to nie prosił. #}
+  <input type="date" class="input input-auto" value="{{ dzien or month ~ '-01' }}"
+         {% if dzien %}name="d"{% endif %}
          min="{{ data_min }}" max="{{ data_max }}"
-         title="Skocz do tygodnia z tą datą" onchange="this.form.submit()">
+         title="Skocz do tygodnia z tą datą"
+         onchange="this.name='d'; this.form.submit()">
 
   <select class="input input-auto" name="typ" onchange="this.form.submit()">
     <option value="">— DT i cykliczne —</option>
