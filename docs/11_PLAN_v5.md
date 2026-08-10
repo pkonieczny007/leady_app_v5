@@ -218,6 +218,37 @@ zapisać bez zmiany schematu. Decyzja po wtorku, jeśli będą potrzebne w aplik
 | Usterki z `docs/14` (pasek koordynatora u handlowca, limit 60 w wyszukiwarce, `/api/pin` bez właściciela) | po wtorku | żadna nie blokuje pracy |
 | ~~Układ rozjeżdża się na telefonie~~ — **naprawione 10.08 rano**, sprawdzone na demo | zrobione | iPhone 11 / Safari (375 px): brak jakiegokolwiek progu `@media` dla telefonu. `.brand` nie daje się ścisnąć, więc `.nav` zawijał się w pionie w kilkanaście wierszy i wypychał stronę w bok. Nawigacja ma teraz własny wiersz i przewija się poziomo jako jeden rząd. Przy okazji: tabele przewijają się same, dwa paski przestały bić się o `top:0`, `.bulkbar`/`.av-pasek` bez pustki 57 px |
 | Dalsze polerowanie widoku na telefonie (jeśli coś jeszcze wyjdzie w użyciu) | po wtorku | to, co zgłoszone, jest poprawione; reszta dopiero z realnej pracy handlowców |
+| **Kolumna „Uwagi" kontra dostęp do „karta →"** — opis niżej | po wtorku | próba poprawki 10.08 (`62ed120`) **cofnięta** (`5f173a7`): rozwiązała jedno, zepsuła drugie |
+
+### Kolumna „Uwagi" kontra dostęp do „karta →" (10.08, do rozwiązania po wtorku)
+
+**To nie jest problem szerokości kolumny.** Próba poprawki i jej cofnięcie tego
+samego dnia dały pełny obraz, więc zapisuję go w całości — żeby nikt nie zaczął
+od ponownego poszerzania.
+
+| Stan | Co jest nie tak |
+|---|---|
+| **wąskie uwagi** (obecnie) | mieści się „wstę", „zain", „dyre". Nie da się przeczytać ani wygodnie wpisać zdania — a to jedyne pole, w którym handlowiec pisze zdaniami |
+| **szerokie uwagi** (240 px, cofnięte) | tabela robi się szersza od ekranu, więc **„karta →" wypada poza widok**. Żeby ją kliknąć, trzeba przewinąć w bok — a poziomy pasek przewijania jest na DOLE tabeli. Przy 100 placówkach na stronie trzeba zjechać na sam dół, przewinąć w bok, wrócić do góry |
+
+Sedno: **poziomy pasek przewijania na dole długiej tabeli jest w praktyce
+niedostępny.** Poszerzenie czegokolwiek w tej tabeli uderza w ostatnią kolumnę,
+a ostatnia kolumna to jedyne wejście do karty leada.
+
+Kierunki do rozważenia (nie przesądzam, trzeba zobaczyć na realnym ekranie):
+- **przykleić kolumnę „karta →" do prawej krawędzi** (`position:sticky; right:0`)
+  — wtedy szerokość tabeli przestaje decydować o tym, czy da się wejść w lead.
+  Wzór jest już w projekcie: `cal-matrix` przykleja pierwszą kolumnę z trenerem;
+- **uwagi poza wiersz** — druga linia pod nazwą placówki (tak już działa plakietka
+  `cykl ×1`) albo rozwijany wiersz. Tekst dostaje całą szerokość tabeli, a liczba
+  kolumn nie rośnie;
+- **osobny, szerszy widok** dla pracy z notatkami, zamiast wciskania ich między
+  szesnaście kolumn;
+- pasek przewijania **także nad tabelą** — najtańsze, ale leczy objaw, nie przyczynę.
+
+Do tego wraca pytanie z cofniętej poprawki: dymek pokazywał **treść** notatki
+zamiast nazwy pola. To było dobre niezależnie od szerokości i warto wrócić
+z tym osobno.
 
 **Stan na sobotę 08.08 późny wieczór.** Rdzeń v5 zamknięty, poprawki 6, 3b i 7
 zrobione tego samego wieczora. Testy: **585 sprawdzeń w 9 plikach**, komplet OK.
