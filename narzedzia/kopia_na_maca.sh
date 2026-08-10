@@ -16,13 +16,13 @@
 # potrafi dosięgnąć — przy pchaniu skasowałby także kopie tutaj. Klucz SSH idzie
 # Z MACA NA SERWER, nigdy odwrotnie.
 #
-# DLACZEGO launchd, A NIE cron
-# Cron nie nadrabia pominiętych uruchomień: jeśli Mac spał albo był wyłączony
-# o 6:30, zadanie po prostu przepada do jutra. launchd z `StartCalendarInterval`
-# odpala je przy najbliższym przebudzeniu — a przy maszynie, która „bywa
-# wyłączona", to jest cała różnica między kopią co dzień a kopią co czasem.
-# Do tego od macOS Catalina cron wymaga ręcznego nadania „Pełnego dostępu do
-# dysku", o czym nikt nie pamięta, dopóki nie zacznie cicho nie działać.
+# DLACZEGO TIMER systemd, A NIE cron
+# Maszyna to Mac mini, ale system to Debian. Cron nie nadrabia pominiętych
+# uruchomień: jeśli o 6:30 komputer był wyłączony, zadanie przepada do jutra.
+# Timer systemd z `Persistent=true` odpala je przy najbliższym starcie — a przy
+# maszynie, która bywa wyłączona, to jest różnica między kopią co dzień a kopią
+# co czasem. Nawet z UPS-em: restart po aktualizacji jądra wystarczy, żeby
+# trafić w tę jedną minutę.
 #
 # INSTALACJA — patrz docs/15_DOMENA_I_WDROZENIE.md punkt 9b.
 set -uo pipefail
@@ -104,9 +104,19 @@ fi
 
 # --------------------------------------------------------------- kontrola
 # Plik o poprawnej nazwie i rozmiarze to jeszcze nie kopia. Kopią jest coś,
-# co daje się otworzyć i policzyć. sqlite3 jest w macOS od zawsze.
+# co daje się otworzyć i policzyć.
+#
+# Na Debianie sqlite3 nie jest instalowany domyślnie. Brak narzędzia NIE jest
+# powodem, żeby przerwać kopiowanie — pliki już są ściągnięte i to jest
+# najważniejsze. Ale mówimy o tym głośno, bo niesprawdzona kopia to kopia,
+# w którą się wierzy, a nie taka, o której się wie.
 ZLE=0
+if ! command -v sqlite3 >/dev/null 2>&1; then
+    log "UWAGA: brak sqlite3 — kopie sciagniete, ale NIESPRAWDZONE."
+    log "       Instalacja:  sudo apt install sqlite3"
+fi
 for db in "$DZIS"/*.db; do
+    command -v sqlite3 >/dev/null 2>&1 || break
     [ -e "$db" ] || continue
     STAN=$(sqlite3 "file:$db?mode=ro" "PRAGMA integrity_check;" 2>/dev/null | head -1)
     PLAC=$(sqlite3 "file:$db?mode=ro" "SELECT COUNT(*) FROM placowki;" 2>/dev/null)

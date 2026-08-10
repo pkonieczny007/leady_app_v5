@@ -431,7 +431,7 @@ budynkiem.
 | gdzie | co | jak często | stan |
 |---|---|---|---|
 | VPS, wolumen dockera | `.db` + `.xlsx` | 6:00 codziennie | ✅ działa |
-| Mac mini (biuro) | to samo, ściągane | 6:30 codziennie | ⬜ |
+| Mac mini w biurze (Debian) | to samo, ściągane | 6:30 codziennie | ⬜ |
 | dysk Przemka / zewnętrzny | co jakiś czas | ręcznie | ⬜ |
 
 ### Dlaczego Mac CIĄGNIE, a serwer nie PCHA
@@ -443,67 +443,88 @@ i nie ma jak tam sięgnąć. Klucz SSH idzie **z Maca na serwer**, nigdy odwrotn
 
 ### Nasza aplikacja
 
-Gotowy skrypt: **`narzedzia/kopia_na_maca.sh`** (bash, bez zależności — `rsync`,
-`sqlite3` i `git` są w macOS z pudełka).
+Gotowy skrypt: **`narzedzia/kopia_na_maca.sh`**. Maszyna to Mac mini, ale system
+to **Debian** — więc zwykły bash, `rsync`, `ssh` i `systemd`, bez niczego
+apple'owego.
 
 ```bash
+# 0. czego brakuje na świeżym Debianie
+sudo apt install rsync sqlite3 git
+
 # 1. klucz SSH: Z MACA NA SERWER, nigdy odwrotnie
-ssh-keygen -t ed25519            # jeśli jeszcze nie masz
+ssh-keygen -t ed25519                                 # jeśli jeszcze nie masz
 ssh-copy-id ubuntu@57.128.241.52
-ssh -o BatchMode=yes ubuntu@57.128.241.52 echo ok    # ma odpowiedzieć „ok" bez pytania o hasło
+ssh -o BatchMode=yes ubuntu@57.128.241.52 echo ok     # ma odpowiedzieć „ok" bez pytania o hasło
 
-# 2. skrypt na miejsce
+# 2. skrypt na miejsce (repozytorium jest prywatne, więc przez klon albo scp)
+git clone https://github.com/pkonieczny007/leady_app_v5.git ~/src/leady_app_v5
 mkdir -p ~/bin ~/Backups/leady
-curl -o ~/bin/kopia_na_maca.sh https://raw.githubusercontent.com/pkonieczny007/leady_app_v5/main/narzedzia/kopia_na_maca.sh
+cp ~/src/leady_app_v5/narzedzia/kopia_na_maca.sh ~/bin/
 chmod +x ~/bin/kopia_na_maca.sh
-~/bin/kopia_na_maca.sh --librus --kod        # pierwsze uruchomienie z ręki
+~/bin/kopia_na_maca.sh --librus --kod                 # pierwsze uruchomienie z ręki
 ```
 
-Repozytorium jest prywatne, więc `curl` nie pobierze pliku bez tokenu —
-najprościej sklonować repo na Maca albo skopiować sam plik przez `scp`.
+`sqlite3` nie jest na Debianie domyślnie, a bez niego skrypt **ściągnie kopie,
+ale ich nie sprawdzi** — powie o tym wprost w logu. Niesprawdzona kopia to kopia,
+w którą się wierzy, a nie taka, o której się wie.
 
-### Uruchamianie automatyczne: launchd, NIE cron
+### Uruchamianie automatyczne: timer systemd, nie cron
 
-**Cron nie nadrabia pominiętych uruchomień.** Jeśli Mac spał albo był wyłączony
-o 6:30, zadanie przepada do jutra — a Mac mini właśnie „bywa wyłączony", więc
-przy cronie kopia robiłaby się „co czasem". `launchd` z `StartCalendarInterval`
-odpala zadanie **przy najbliższym przebudzeniu**. Do tego od macOS Catalina cron
-wymaga ręcznego nadania „Pełnego dostępu do dysku", o czym nikt nie pamięta,
-dopóki nie zacznie cicho nie działać.
+Mówisz, że maszyna chodzi ciągle i ma UPS — mimo to **nie cron**. Cron nie
+nadrabia pominiętych uruchomień: wystarczy restart po aktualizacji jądra
+o niewłaściwej porze i kopia z tego dnia przepada bez śladu. Timer systemd
+z `Persistent=true` uruchomi zaległe zadanie przy najbliższym starcie.
 
-Plik `~/Library/LaunchAgents/site.silesia3d.kopia.plist`:
+`~/.config/systemd/user/kopia-leady.service`:
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>              <string>site.silesia3d.kopia</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/bash</string>
-    <string>-lc</string>
-    <string>$HOME/bin/kopia_na_maca.sh --librus --kod</string>
-  </array>
-  <key>StartCalendarInterval</key>
-  <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>30</integer></dict>
-  <key>StandardOutPath</key>    <string>/tmp/kopia_leady.out</string>
-  <key>StandardErrorPath</key>  <string>/tmp/kopia_leady.err</string>
-</dict>
-</plist>
+```ini
+[Unit]
+Description=Kopia bazy leadów z VPS
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/kopia_na_maca.sh --librus --kod
+```
+
+`~/.config/systemd/user/kopia-leady.timer`:
+
+```ini
+[Unit]
+Description=Codzienna kopia bazy leadów
+
+[Timer]
+OnCalendar=*-*-* 06:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
 ```
 
 ```bash
-launchctl load ~/Library/LaunchAgents/site.silesia3d.kopia.plist
-launchctl start site.silesia3d.kopia        # próba od razu, nie czekając do 6:30
+systemctl --user daemon-reload
+systemctl --user enable --now kopia-leady.timer
+sudo loginctl enable-linger $USER      # bez tego timer stoi, dopóki się nie zalogujesz
+systemctl --user start kopia-leady     # próba od razu, nie czekając do 6:30
+```
+
+`loginctl enable-linger` jest **konieczne**: usługi użytkownika bez tego działają
+tylko, gdy ktoś jest zalogowany, a serwer kopii ma pracować sam. To najczęstszy
+powód, dla którego „timer jest włączony, a nic się nie dzieje".
+
+Podgląd:
+
+```bash
+systemctl --user list-timers kopia-leady    # kiedy następne, kiedy ostatnie
+journalctl --user -u kopia-leady -n 30      # co się działo
 ```
 
 ### Jak sprawdzić, że warstwa awaryjna żyje
 
 Skrypt zapisuje `~/Backups/leady/OSTATNIA_UDANA.txt` z datą ostatniego udanego
 przebiegu i dopisuje wszystko do `~/Backups/leady/kopia.log`. **To nie jest
-ozdoba** — wyłączony Mac nie zgłasza błędu, więc bez tego pliku nie da się
-odróżnić „kopie się robią" od „nie robią się od miesiąca".
+ozdoba** — maszyna, która nie robi kopii, wygląda dokładnie tak samo jak ta,
+która je robi. Skoro deklarujesz codzienne zaglądanie, to są dwie komendy:
 
 ```bash
 cat ~/Backups/leady/OSTATNIA_UDANA.txt
@@ -511,14 +532,14 @@ tail -20 ~/Backups/leady/kopia.log
 ```
 
 Brak sieci albo wyłączony serwer to dla skryptu **nie jest błąd** — wpisuje
-„POMINIETE" do logu i kończy się spokojnie, żeby launchd nie zgłaszał awarii
-przy każdym przebudzeniu poza biurem.
+„POMINIETE" do logu i kończy się spokojnie, żeby `systemctl --user status` nie
+świecił się na czerwono po każdym przebiegu bez łączności.
 
 Kopie NIE są kasowane po stronie Maca (`rsync` bez `--delete`). Na serwerze
 retencja usuwa je po 30 dniach; tutaj chcemy trzymać dłużej, inaczej lustro
 skasowałoby to samo co serwer i cała warstwa straciłaby sens.
 
-**Mac bywa wyłączony i to jest w porządku** — to warstwa awaryjna, nie
+**Mac chodzi ciągle i ma UPS, ale i tak zakładamy, że bywa niedostępny** — to warstwa awaryjna, nie
 podstawowa. Cron po prostu nie odpali się tego dnia, próbuje przy każdym
 kolejnym. Ale jest w tym pułapka: **wyłączony Mac nie zgłasza błędu**. Jeśli
 przestanie się budzić na miesiąc, nic o tym nie powie, a Ty będziesz przekonany,
