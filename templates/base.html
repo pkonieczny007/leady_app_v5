@@ -11,6 +11,59 @@
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+{# ---------------------------------------------------------------------------
+   DODANIE DO EKRANU POCZĄTKOWEGO (PWA — tylko manifest, bez service workera)
+
+   Po co: handlowiec pracuje na telefonie, stojąc na szkolnym korytarzu. Adres
+   `ph.silesia3d.site` wpisywany kciukiem albo szukany w zakładkach to za każdym
+   razem kilkanaście sekund i okazja do pomyłki. Ikona na ekranie początkowym
+   otwiera aplikację jednym tapnięciem, od razu na formularzu i BEZ paska adresu
+   — a ten pasek zjada na iPhonie 11 spory kawałek i tak niedużego ekranu.
+
+   `start_url` to `/formularz`, bo to jedyny ekran, którego handlowiec używa
+   w terenie (dlatego pasek nawigacji jest tam schowany, patrz komentarz niżej,
+   i dlatego `_po_zalogowaniu` w app.py też tam go odsyła). Gdyby sesja wygasła,
+   `/formularz` odeśle na logowanie — czyli w najgorszym razie ikona wpuszcza
+   przez PIN, a nie donikąd.
+
+   ŚWIADOMIE NIE MA SERVICE WORKERA. Praca offline to osobny temat po wtorku,
+   a byle jaki cache pokazałby handlowcowi wczorajszą wersję ekranu i nikt by
+   nie zgadł, dlaczego poprawka „nie weszła".
+
+   MANIFESTU NIE OBSŁUGUJE ŻADNA NASZA TRASA — leży w `static/`, a `.webmanifest`
+   ma poprawny typ `application/manifest+json` już w module `mimetypes`
+   biblioteki standardowej, więc Flask odda go z właściwym nagłówkiem.
+   Wejście jest jawne (`JAWNE` w app.py przepuszcza `/static/`), a to warunek
+   konieczny — manifest pobiera przeglądarka bez ciastka sesji.
+
+   ⚠️ Wszystko to zadziała DOPIERO po HTTPS (etap 4, `docs/15`): Safari i Chrome
+   czytają manifest tylko z bezpiecznego połączenia. Na `http://127.0.0.1:5301`
+   też działa (localhost jest traktowany jako bezpieczny), ale na `http://IP` już nie.
+   --------------------------------------------------------------------------- #}
+<link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+
+{# Kolor paska stanu telefonu. #1d4757 to `--brand-l` ze style.css — jaśniejszy
+   koniec gradientu `--grad-brand`, od którego zaczyna się pasek górny. Dzięki
+   temu pasek stanu wygląda jak przedłużenie nagłówka, a nie jak obca kreska. #}
+<meta name="theme-color" content="#1d4757">
+
+{# --- Safari na iPhonie: manifestu prawie nie czyta, potrzebuje swoich metatagów ---
+   `apple-mobile-web-app-capable` (nie `display:standalone` z manifestu) decyduje
+   o starcie bez paska adresu; `mobile-web-app-capable` to jego dzisiejszy
+   odpowiednik, którego oczekuje Chrome. Tytuł BEZ „System" — pod ikoną mieści
+   się kilkanaście znaków, dłuższa nazwa i tak zostałaby przycięta wielokropkiem.
+   Pasek stanu `black`: nasz nagłówek jest ciemny, a biały pasek nad nim wyglądał
+   jak niedokończone tło. `black-translucent` odpada — wpuszczałby treść pod
+   zegarek, a nagłówek nie ma marginesu na `safe-area-inset-top`. #}
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Leady">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+{# Osobny plik, nie `ikona-192`: iOS zaokrągla róg sam i podkłada CZARNYM
+   wszystko, co przezroczyste — kafelek z gotowymi zaokrągleniami dostałby
+   czarne narożniki. `apple-touch-icon.png` jest pełnym kwadratem bez alfy. #}
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">

@@ -159,7 +159,7 @@ Kolejność jest celowa: najpierw to, bez czego handlowiec nie ruszy.
 | 11 | **Instrukcja podpięcia domeny** → `docs/15_DOMENA_I_WDROZENIE.md` (DNS, nginx, certbot, kolejność, checklista) | nd 09.08 wieczorem | **✅** |
 | 10 | Wdrażanie wersji: `wdroz.sh [demo\|prod]` — kopia przed aktualizacją, `git pull`, przebudowa, sprawdzenie odpowiedzi | nd 09.08 wieczorem | **✅** |
 | 9 | Próba backup → przywracanie **na profilu test przeszła** (0,4 MB `.db` + `.xlsx`, 545 leadów po odtworzeniu); zostaje cron 6:00 na VPS | nd 09.08 / pon 10.08 | 🟡 |
-| 2b | PWA — ikona na ekranie telefonu | pon 10.08 (po HTTPS) | ⬜ |
+| 2b | PWA — ikona na ekranie telefonu: manifest + ikony + metatagi Safari **kodowo gotowe** (`static/manifest.webmanifest`, `narzedzia/ikony.py`, głowa `base.html`, `start_url=/formularz`, bez service workera). Zostaje **sprawdzenie na iPhonie po HTTPS** — przeglądarki czytają manifest tylko z bezpiecznego połączenia | pon 10.08 (po HTTPS) | 🟡 |
 | 4 | VPS: **demo** (subdomena, profile pusta/test) → potem prod; HTTPS, cron kopii, `SECRET_KEY` | pon 10.08, ~4h | ⬜ |
 | 5 | Import `PH PRÓBA Nowy dla handlowców.xlsx` do prod + przejście na sucho po LTE | pon wieczór, ~2h | ⬜ |
 

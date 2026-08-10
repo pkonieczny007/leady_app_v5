@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>SILESIA 3D — kartka handlowca (A5)</title>
+<!--
+  KARTKA A5 DLA HANDLOWCA — do wydruku z przeglądarki (Ctrl+P → A5, marginesy
+  domyślne, „Grafika tła" włączona).
+
+  Rozdaje się ją we wtorek 11.08 razem z kartą dostępu. Ma leżeć w kieszeni
+  marynarki i dawać odpowiedź w pięć sekund na szkolnym korytarzu — dlatego
+  jest jednostronicowa, bez żargonu i bez rzeczy, których handlowiec nie robi
+  (import, słowniki, panel koordynatora).
+
+  PIN-u tu NIE DRUKUJEMY. Adres i PIN na jednej kartce znaczyłyby, że zgubiona
+  kartka = gotowe wejście do bazy z danymi dyrektorów szkół. PIN idzie osobno,
+  kartą dostępu (`narzedzia/karta_dostepu.py`), a tutaj jest tylko ramka do
+  wpisania go długopisem.
+
+  Zero zewnętrznych plików i zero bibliotek — zgodnie z konwencją projektu
+  (bez buildu, bez CDN). Kartka ma się otworzyć z pendrive'a i wydrukować.
+-->
+<style>
+  @page { size: A5; margin: 10mm; }
+
+  /* Tła i ramki muszą wyjść na papierze — bez tego przeglądarka zjada
+     wypełnienia i zostają same napisy. */
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    /* 10 pt to dolna granica czytelności ustalona dla tej kartki — jeśli
+       cokolwiek przestanie się mieścić, tniemy treść, nie czcionkę. */
+    font-size: 10pt;
+    line-height: 1.25;
+    color: #111;
+  }
+
+  /* Podgląd na ekranie ma wyglądać jak kartka, żeby było widać, czy się mieści. */
+  @media screen {
+    body { background: #e9eaee; padding: 16px; }
+    .kartka {
+      width: 148mm; min-height: 210mm; margin: 0 auto; padding: 10mm;
+      background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+  }
+  @media print { .kartka { width: auto; padding: 0; } }
+
+  h1 { font-size: 12pt; margin: 0; letter-spacing: .01em; }
+  h2 {
+    font-size: 9.5pt; margin: 1.6mm 0 .7mm; text-transform: uppercase;
+    letter-spacing: .06em; color: #444;
+    border-bottom: .6pt solid #bbb; padding-bottom: .6mm;
+  }
+  p { margin: 0 0 1mm; }
+  b { font-weight: 700; }
+
+  .naglowek {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 4mm; border-bottom: 1.4pt solid #111; padding-bottom: 1.4mm;
+  }
+  .naglowek .podtytul { font-size: 8.5pt; color: #555; }
+
+  /* ------------------------------------------------------------- adres */
+  .adres {
+    margin-top: 2mm; text-align: center;
+    border: 1.2pt solid #111; border-radius: 2mm; padding: 1.8mm 2mm;
+  }
+  .adres .etykieta { font-size: 8pt; text-transform: uppercase; letter-spacing: .08em; color: #555; }
+  .adres .www {
+    font-size: 15pt; font-weight: 700; letter-spacing: -.01em; margin-top: .4mm;
+    word-break: break-all;
+  }
+
+  /* --------------------------------------------------- dwie kolumny obok */
+  .dwie { display: flex; gap: 3mm; }
+  .dwie > div { flex: 1 1 0; border: .6pt solid #bbb; border-radius: 1.5mm; padding: 1.4mm 2mm; }
+  .dwie h3 { font-size: 9pt; margin: 0 0 1mm; }
+  .dwie ol { margin: 0; padding-left: 4.5mm; }
+  .dwie li { margin-bottom: .5mm; }
+
+  /* ---------------------------------------------------------- logowanie */
+  .logowanie { display: flex; gap: 3mm; align-items: center; }
+  .logowanie .tresc { flex: 1 1 auto; }
+  .pin-ramka { flex: 0 0 auto; text-align: center; }
+  .pin-ramka .opis { font-size: 7.5pt; color: #555; margin-bottom: .8mm; }
+  .kratki { display: flex; gap: 1.4mm; }
+  .kratki span {
+    display: block; width: 7mm; height: 9mm;
+    border: 1pt solid #111; border-radius: 1mm; background: #fafafa;
+  }
+
+  /* -------------------------------------------------------------- kroki */
+  ol.kroki { margin: 0; padding: 0; list-style: none; counter-reset: k; }
+  ol.kroki > li {
+    counter-increment: k; position: relative;
+    padding-left: 7mm; margin-bottom: 1mm;
+  }
+  ol.kroki > li::before {
+    content: counter(k); position: absolute; left: 0; top: .2mm;
+    width: 5mm; height: 5mm; border-radius: 50%;
+    background: #111; color: #fff;
+    font-size: 8pt; font-weight: 700; line-height: 5mm; text-align: center;
+  }
+  /* Tytuł kroku i treść w jednym akapicie — osobny wiersz na sam tytuł to
+     cztery stracone wiersze, a kartka ma się zmieścić na jednej stronie. */
+  ol.kroki .tytul { font-weight: 700; }
+
+  /* ------------------------------------------------------------ pamiętaj */
+  ul.pamietaj { margin: 0; padding-left: 4mm; }
+  ul.pamietaj li { margin-bottom: .9mm; }
+
+  .mini { font-size: 8.5pt; color: #555; }
+
+  /* --------------------------------------------------------------- stopka */
+  .stopka {
+    margin-top: 2.6mm; border: 1.2pt solid #111; border-radius: 2mm;
+    padding: 1.8mm 2.6mm; display: flex; align-items: baseline; gap: 2.5mm;
+  }
+  .stopka .haslo { font-size: 11pt; font-weight: 700; white-space: nowrap; }
+  .stopka .miejsce {
+    flex: 1 1 auto; border-bottom: 1pt dashed #111; height: 6mm;
+  }
+  .stopka .podpis { font-size: 7.5pt; color: #555; }
+</style>
+</head>
+<body>
+<div class="kartka">
+
+  <div class="naglowek">
+    <h1>SILESIA 3D — System Leadów</h1>
+    <span class="podtytul">kartka do kieszeni</span>
+  </div>
+
+  <div class="adres">
+    <div class="etykieta">Wpisz w przeglądarce telefonu</div>
+    <div class="www">ph.silesia3d.site</div>
+  </div>
+
+  <h2>Ikona na ekranie telefonu</h2>
+  <div class="dwie">
+    <div>
+      <h3>iPhone (Safari)</h3>
+      <ol>
+        <li>Otwórz adres w <b>Safari</b>.</li>
+        <li>Dotknij kwadratu ze strzałką.</li>
+        <li>„Do ekranu początkowego” → <b>Dodaj</b>.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Android (Chrome)</h3>
+      <ol>
+        <li>Otwórz adres w <b>Chrome</b>.</li>
+        <li>Dotknij trzech kropek u góry.</li>
+        <li>„Dodaj do ekranu głównego” → <b>Dodaj</b>.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>Logowanie</h2>
+  <div class="logowanie">
+    <div class="tresc">
+      <p>Wybierz siebie z listy i wystukaj <b>czterocyfrowy PIN</b>. Telefon
+      zapamięta Cię na <b>30 dni</b>.</p>
+      <p class="mini">PIN dostajesz na karcie dostępu. Zapomniany — resetuje koordynator.</p>
+    </div>
+    <div class="pin-ramka">
+      <div class="opis">Wpisz swój PIN:</div>
+      <div class="kratki"><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <h2>Formularz w szkole — cztery kroki</h2>
+  <ol class="kroki">
+    <li>
+      <span class="tytul">Szkoła.</span>
+      Miejscowość, potem placówka — Twoje szkoły są na górze listy, z gwiazdką.
+      Nie ma jej? „Dodaj nową placówkę”. Popraw telefon i mail.
+    </li>
+    <li>
+      <span class="tytul">Dzień Technologii.</span>
+      Data i godzina, potem prowadzący — zobaczysz, kto jest wolny i kto jeździ po
+      tym mieście. Do tego liczba klas 1–4, liczba dzieci i wiadomość do rodziców.
+    </li>
+    <li>
+      <span class="tytul">Zajęcia cykliczne.</span>
+      Dzień tygodnia, godzina, sala, sprzęt. Nic nie ustaliliście — pomiń.
+    </li>
+    <li>
+      <span class="tytul">Sprawdź i zapisz.</span>
+      Przeczytaj podsumowanie na głos i naciśnij <b>Zapisz</b>. Znak ✓ z nazwą
+      szkoły i datą DT znaczy, że poszło.
+    </li>
+  </ol>
+
+  <h2>Trzy rzeczy warte zapamiętania</h2>
+  <ul class="pamietaj">
+    <li><b>Ostrzeżenie to nie blokada.</b> Zajęty trener albo wsteczna data dadzą
+    uwagę — zapis i tak przejdzie. Wpisuj to, co realnie ustaliłeś.</li>
+    <li><b>Zerwane połączenie niczego nie gubi.</b> Wyskoczy ramka „Formularz NIE
+    został wysłany” — naciśnij „Ponów wysyłkę”, gdy wróci zasięg. Dubla nie będzie.</li>
+    <li><b>Szkoła po terminie wraca do puli.</b> Ostrzeżenie widzisz 2 dni wcześniej
+    u góry formularza. Notatki i kontakty zostają — wraca samo przypisanie.</li>
+  </ul>
+
+  <div class="stopka">
+    <span class="haslo">Nie działa? Dzwoń: Przemek —</span>
+    <span class="miejsce"></span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -342,7 +342,11 @@ Próba backup → przywracanie przeszła lokalnie na `test` (545 leadów po odtw
 ### Zostało do wtorku (plan dzienny w `docs/11_PLAN_v5.md` sekcja B)
 - **8** — ręczny test z telefonu: trener ustawia dostępność, handlowiec
   formularz→kalendarz (praca formularz→kalendarz musi być sprawna — nacisk Kasi)
-- **2b** — PWA: manifest i ikona (wymaga HTTPS, więc razem z etapem 4)
+- **2b** — PWA: manifest i ikony **są w repo** (`static/manifest.webmanifest`,
+  `narzedzia/ikony.py` robi kafelki z `logo.png`, `start_url=/formularz`,
+  **bez service workera** — offline to temat po wtorku i cache pokazywałby
+  wczorajszy ekran). Do sprawdzenia na iPhonie dopiero po HTTPS z etapu 4:
+  przeglądarki czytają manifest wyłącznie z bezpiecznego połączenia
 - **4** — VPS wg `docs/15`: rekordy DNS **jako pierwsza czynność poniedziałku**
   (propagacja idzie godzinami), potem demo, potem prod; cron kopii o 6:00
 - **5** — import realnych danych do profilu `prod`, próba na sucho z telefonu po LTE
