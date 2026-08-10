@@ -443,15 +443,80 @@ i nie ma jak tam sięgnąć. Klucz SSH idzie **z Maca na serwer**, nigdy odwrotn
 
 ### Nasza aplikacja
 
-Na Macu, w `crontab -e` (wymaga wcześniej `ssh-copy-id ubuntu@57.128.241.52`):
+Gotowy skrypt: **`narzedzia/kopia_na_maca.sh`** (bash, bez zależności — `rsync`,
+`sqlite3` i `git` są w macOS z pudełka).
 
 ```bash
-30 6 * * * ssh ubuntu@57.128.241.52 'mkdir -p ~/kopie-vps && docker cp leady_app_v5:/data/kopie/. ~/kopie-vps/ && rm -f ~/kopie-vps/*-shm ~/kopie-vps/*-wal && chmod 600 ~/kopie-vps/*' && rsync -az ubuntu@57.128.241.52:~/kopie-vps/ ~/Backups/leady/ && ssh ubuntu@57.128.241.52 'rm -rf ~/kopie-vps'
+# 1. klucz SSH: Z MACA NA SERWER, nigdy odwrotnie
+ssh-keygen -t ed25519            # jeśli jeszcze nie masz
+ssh-copy-id ubuntu@57.128.241.52
+ssh -o BatchMode=yes ubuntu@57.128.241.52 echo ok    # ma odpowiedzieć „ok" bez pytania o hasło
+
+# 2. skrypt na miejsce
+mkdir -p ~/bin ~/Backups/leady
+curl -o ~/bin/kopia_na_maca.sh https://raw.githubusercontent.com/pkonieczny007/leady_app_v5/main/narzedzia/kopia_na_maca.sh
+chmod +x ~/bin/kopia_na_maca.sh
+~/bin/kopia_na_maca.sh --librus --kod        # pierwsze uruchomienie z ręki
 ```
 
-Bez `--delete` w `rsync` — na serwerze retencja kasuje kopie po 30 dniach,
-a na Macu chcemy trzymać dłużej. Inaczej lustro skasowałoby u nas to samo,
-co serwer, i cała warstwa straciłaby sens.
+Repozytorium jest prywatne, więc `curl` nie pobierze pliku bez tokenu —
+najprościej sklonować repo na Maca albo skopiować sam plik przez `scp`.
+
+### Uruchamianie automatyczne: launchd, NIE cron
+
+**Cron nie nadrabia pominiętych uruchomień.** Jeśli Mac spał albo był wyłączony
+o 6:30, zadanie przepada do jutra — a Mac mini właśnie „bywa wyłączony", więc
+przy cronie kopia robiłaby się „co czasem". `launchd` z `StartCalendarInterval`
+odpala zadanie **przy najbliższym przebudzeniu**. Do tego od macOS Catalina cron
+wymaga ręcznego nadania „Pełnego dostępu do dysku", o czym nikt nie pamięta,
+dopóki nie zacznie cicho nie działać.
+
+Plik `~/Library/LaunchAgents/site.silesia3d.kopia.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>              <string>site.silesia3d.kopia</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>$HOME/bin/kopia_na_maca.sh --librus --kod</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key>    <string>/tmp/kopia_leady.out</string>
+  <key>StandardErrorPath</key>  <string>/tmp/kopia_leady.err</string>
+</dict>
+</plist>
+```
+
+```bash
+launchctl load ~/Library/LaunchAgents/site.silesia3d.kopia.plist
+launchctl start site.silesia3d.kopia        # próba od razu, nie czekając do 6:30
+```
+
+### Jak sprawdzić, że warstwa awaryjna żyje
+
+Skrypt zapisuje `~/Backups/leady/OSTATNIA_UDANA.txt` z datą ostatniego udanego
+przebiegu i dopisuje wszystko do `~/Backups/leady/kopia.log`. **To nie jest
+ozdoba** — wyłączony Mac nie zgłasza błędu, więc bez tego pliku nie da się
+odróżnić „kopie się robią" od „nie robią się od miesiąca".
+
+```bash
+cat ~/Backups/leady/OSTATNIA_UDANA.txt
+tail -20 ~/Backups/leady/kopia.log
+```
+
+Brak sieci albo wyłączony serwer to dla skryptu **nie jest błąd** — wpisuje
+„POMINIETE" do logu i kończy się spokojnie, żeby launchd nie zgłaszał awarii
+przy każdym przebudzeniu poza biurem.
+
+Kopie NIE są kasowane po stronie Maca (`rsync` bez `--delete`). Na serwerze
+retencja usuwa je po 30 dniach; tutaj chcemy trzymać dłużej, inaczej lustro
+skasowałoby to samo co serwer i cała warstwa straciłaby sens.
 
 **Mac bywa wyłączony i to jest w porządku** — to warstwa awaryjna, nie
 podstawowa. Cron po prostu nie odpali się tego dnia, próbuje przy każdym
