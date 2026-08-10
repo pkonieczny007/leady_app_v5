@@ -526,13 +526,6 @@ select.lead-cell{cursor:pointer;min-width:104px;max-width:240px;text-overflow:el
 .td-tak-nie select.lead-cell{min-width:92px;max-width:112px}
 .kv-v select.lead-cell,.kv-v input.lead-cell{max-width:none;width:100%}
 input.lead-cell[type=date],input.lead-cell[type=time]{max-width:150px}
-/* Uwagi to jedyne pole, w którym handlowiec pisze zdaniami — a przy 16 kolumnach
-   dostawało resztę szerokości po listach rozwijanych (te mają własne minimum),
-   czyli kilkadziesiąt pikseli. Efekt: „wstę", „zain", „dyre" i brak miejsca na
-   pisanie. Minimum na komórce, nie na kolumnie: przy `table-layout:auto` to
-   zawartość wymusza szerokość, a `min-width` na `<col>` przeglądarka zignoruje.
-   Tabela i tak przewija się w `.table-scroll`, więc nie ma czego rozpychać. */
-input.lead-cell[data-field=uwagi]{min-width:240px}
 
 .cell-overdue{
   background:var(--overdue)!important;color:var(--warn-d);font-weight:600;
