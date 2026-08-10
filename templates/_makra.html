@@ -100,8 +100,13 @@
          data-field="{{ klucz }}" data-prev="{{ wartosc if wartosc is not none else '' }}"
          value="{{ wartosc if wartosc is not none else '' }}" title="{{ lab }}">
 {%- else -%}
+  {# W dymku pokazujemy też TREŚĆ, nie samą nazwę pola. W tabeli pole tekstowe
+     jest węższe niż zdanie, które handlowiec wpisał („wstępne zainteresowanie,
+     dyrektor prosi o telefon we wrześniu”) — bez tego trzeba wchodzić w kartę
+     albo przewijać kursorem wewnątrz pola, żeby przeczytać własną notatkę. #}
   <input type="text" class="{{ wsp }}" data-api="{{ api }}" data-id="{{ rid }}"
-         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}" title="{{ lab }}">
+         data-field="{{ klucz }}" data-prev="{{ wartosc or '' }}" value="{{ wartosc or '' }}"
+         title="{{ lab }}{{ ': ' ~ wartosc if wartosc else '' }}">
 {%- endif -%}
 {% endmacro %}
 
