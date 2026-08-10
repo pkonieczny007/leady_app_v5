@@ -377,9 +377,41 @@ to bardzo.
 **Ściągaj kopie z serwera raz w tygodniu na swój dysk.** Serwer może paść
 w całości razem z wolumenem; kopia leżąca obok oryginału to nie jest kopia.
 
-```powershell
-scp "ubuntu@57.128.241.52:~/apps/ph.silesia3d.site/kopie/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+**Dwa kroki, nie jeden — i to nie jest niepotrzebna ceremonia.** Kopie leżą
+w wolumenie dockera (`/var/lib/docker/volumes/…`), a ten katalog ma prawa
+`drwx--x---` i należy do `root`. Użytkownik `ubuntu` — czyli także `scp`
+i eksplorator plików w VS Code — dostaje tam „Permission denied". Trzeba
+najpierw wyłożyć pliki tam, gdzie sięga, dopiero potem je ściągać:
+
+```bash
+# 1. na serwerze — wyjmij kopie z wolumenu
+mkdir -p ~/kopie-vps && docker cp leady_app_v5:/data/kopie/. ~/kopie-vps/
+rm -f ~/kopie-vps/*.db-shm ~/kopie-vps/*.db-wal     # pliki towarzyszące SQLite, tylko mylą
+chmod 700 ~/kopie-vps && chmod 600 ~/kopie-vps/*
+ls -lh ~/kopie-vps
 ```
+
+```powershell
+# 2. u siebie — dopiero teraz scp cokolwiek zobaczy
+scp "ubuntu@57.128.241.52:~/kopie-vps/*" C:\XEN\AI-szkolenie\SIERPIEN2026\kopie_vps\
+```
+
+```bash
+# 3. na serwerze — sprzątnij, to są telefony i maile dyrektorów oraz skróty PIN-ów
+rm -rf ~/kopie-vps
+```
+
+⚠️ **Poprzednia wersja tej instrukcji celowała w `~/apps/ph.silesia3d.site/kopie/`
+i była błędna** — tego katalogu nie ma, kopie idą do wolumenu. `scp` zwracał
+„No such file or directory" i nie ściągał nic. Gdyby ktoś odhaczał cotygodniowe
+ściąganie bez patrzenia na wynik, przez miesiąc byłby przekonany, że ma kopie
+u siebie. Znalezione 10.08 przy pierwszym realnym użyciu.
+
+**Po wtorku warto to uprościć**: podmontować `./kopie` z katalogu aplikacji na
+`/data/kopie` w kontenerze (bind mount obok wolumenu). Kopie lądowałyby wtedy
+wprost w `~/apps/ph.silesia3d.site/kopie/`, czytelne dla `ubuntu` i dla VS Code,
+a `scp` byłby jednym poleceniem. Nie robimy tego przed startem — zmiana dotyka
+`docker-compose.yml` produkcji, a zysk jest wygodowy, nie krytyczny.
 
 Próbę **przywracania** trzeba przejść zanim ruszy produkcja (etap 9) — kopia,
 której nigdy nie odtworzono, jest tylko nadzieją:
@@ -429,6 +461,12 @@ jest to już rozdzielone; nie scalaj tych wolumenów.
 **`docker compose exec` bez `-T` w cronie.** Patrz punkt 9.
 
 **Kolejny błąd nginx kładzie cudze aplikacje.** Zawsze `nginx -t` przed `reload`.
+
+**Do wolumenu dockera nie zajrzysz jako `ubuntu`.** `/var/lib/docker` ma prawa
+`drwx--x---` i należy do `root`, więc ani `scp`, ani eksplorator plików w VS Code
+nic tam nie zobaczą — a komunikat („Permission denied", „No such file") łatwo
+wziąć za „nie ma kopii". Pliki są; trzeba je wyłożyć przez `docker cp`. Patrz
+punkt 9.
 
 **`grep -r` nie wchodzi w dowiązania.** `sites-enabled` to same dowiązania do
 `sites-available`, więc `grep -rn "librus" /etc/nginx/sites-enabled/` nic nie
