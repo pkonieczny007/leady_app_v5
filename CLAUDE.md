@@ -196,6 +196,20 @@ komunikacie zawierającym „→".
 **Polskie cudzysłowy „…” w stringach Pythona.** Zamykający `"` kończy string
 i psuje składnię. Używać `„…”` (oba typograficzne) albo apostrofów.
 
+**Skrypt `.ps1` bez BOM-u nie parsuje się w PowerShellu 5.1.** Plik zapisany
+jako UTF-8 bez znacznika kolejności bajtów jest czytany jako ANSI, polskie znaki
+w komentarzach rozpadają się na sekwencje, a te potrafią rozwalić parsowanie
+łańcuchów **kilkadziesiąt linii dalej** — komunikat wskazuje wtedy zdrową linię
+(u nas: „token '&&' nie jest poprawnym separatorem" przy linii, w której `&&`
+siedziało w środku stringa). Po zapisaniu `.ps1` narzędziem Write trzeba dodać
+BOM:
+```powershell
+$t = [IO.File]::ReadAllText($p, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText($p, $t, [Text.UTF8Encoding]::new($true))
+```
+Uwaga: ponowny zapis narzędziem Write znów usunie BOM — do poprawek w takim
+pliku używać Edit, nie Write.
+
 **Heredoc w Bashu psuje się na cudzysłowach w SVG.** Do dłuższych plików używać
 narzędzia Write, nie `cat << EOF`.
 

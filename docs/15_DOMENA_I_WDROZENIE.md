@@ -421,6 +421,120 @@ docker compose exec -T leady_v5_demo python narzedzia/baza.py przywroc \
   --profil test --z /data/kopie/test_2026-08-10_0600.db
 ```
 
+## 9b. Kopie poza serwerem — Mac mini (do zrobienia po wtorku)
+
+Kopia leżąca na tym samym serwerze co oryginał **nie jest kopią zapasową** —
+jest zabezpieczeniem przed pomyłką człowieka, nie przed awarią maszyny. Reguła,
+którą chcemy osiągnąć, to 3-2-1: trzy kopie, dwa różne nośniki, jedna poza
+budynkiem.
+
+| gdzie | co | jak często | stan |
+|---|---|---|---|
+| VPS, wolumen dockera | `.db` + `.xlsx` | 6:00 codziennie | ✅ działa |
+| Mac mini (biuro) | to samo, ściągane | 6:30 codziennie | ⬜ |
+| dysk Przemka / zewnętrzny | co jakiś czas | ręcznie | ⬜ |
+
+### Dlaczego Mac CIĄGNIE, a serwer nie PCHA
+
+To nie jest szczegół techniczny. Gdyby VPS został przejęty, atakujący ma dostęp
+do wszystkiego, co ten serwer potrafi dosięgnąć — przy pchaniu skasowałby także
+kopie na Macu. Przy ciąganiu serwer nie zna żadnych danych logowania do Maca
+i nie ma jak tam sięgnąć. Klucz SSH idzie **z Maca na serwer**, nigdy odwrotnie.
+
+### Nasza aplikacja
+
+Na Macu, w `crontab -e` (wymaga wcześniej `ssh-copy-id ubuntu@57.128.241.52`):
+
+```bash
+30 6 * * * ssh ubuntu@57.128.241.52 'mkdir -p ~/kopie-vps && docker cp leady_app_v5:/data/kopie/. ~/kopie-vps/ && rm -f ~/kopie-vps/*-shm ~/kopie-vps/*-wal && chmod 600 ~/kopie-vps/*' && rsync -az ubuntu@57.128.241.52:~/kopie-vps/ ~/Backups/leady/ && ssh ubuntu@57.128.241.52 'rm -rf ~/kopie-vps'
+```
+
+Bez `--delete` w `rsync` — na serwerze retencja kasuje kopie po 30 dniach,
+a na Macu chcemy trzymać dłużej. Inaczej lustro skasowałoby u nas to samo,
+co serwer, i cała warstwa straciłaby sens.
+
+**Mac bywa wyłączony i to jest w porządku** — to warstwa awaryjna, nie
+podstawowa. Cron po prostu nie odpali się tego dnia, próbuje przy każdym
+kolejnym. Ale jest w tym pułapka: **wyłączony Mac nie zgłasza błędu**. Jeśli
+przestanie się budzić na miesiąc, nic o tym nie powie, a Ty będziesz przekonany,
+że masz kopie. Jedyną obroną jest patrzenie na DATĘ najnowszego pliku —
+`narzedzia\kopia_z_serwera.ps1` wypisuje ją przy każdym uruchomieniu i krzyczy,
+gdy przekroczy tydzień.
+
+### Ręcznie, z komputera Przemka
+
+```powershell
+.\narzedzia\kopia_z_serwera.ps1              # sama baza
+.\narzedzia\kopia_z_serwera.ps1 -Librus -Kod # plus librus i lustro repozytorium
+```
+
+Skrypt wykłada kopie z wolumenu, ściąga je do `kopie_vps\<data>\`, sprząta
+katalog przejściowy na serwerze i **sprawdza, czy pobrane bazy dają się otworzyć**
+(`PRAGMA integrity_check` plus liczba placówek). Sam fakt, że plik ma poprawną
+nazwę i rozmiar, nie znaczy nic — kopia jest kopią dopiero wtedy, gdy da się
+z niej policzyć rekordy.
+
+Po zrobieniu bind mountu `./kopie` (patrz punkt 9) całość upraszcza się do
+samego `rsync` — `docker cp` i sprzątanie znikają.
+
+### Librus — ta sama maszyna, to samo ryzyko
+
+`librus.silesia3d.site` stoi na tym samym VPS-ie i dziś **nie ma żadnej kopii,
+o której byśmy wiedzieli**. Jeśli serwer padnie, przepada razem z naszą bazą.
+Nie jest to nasza aplikacja, więc niczego w niej nie zmieniamy — ale kopia
+wolumenu jest operacją wyłącznie do odczytu i nie wymaga wchodzenia w jej kod.
+
+Najpierw rozpoznanie, bo nie wiemy, co i gdzie ta aplikacja trzyma:
+
+```bash
+docker inspect librus_raport_app \
+  --format '{{range .Mounts}}{{.Type}} {{.Name}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+```
+
+Potem zrzut wolumenu przez jednorazowy kontener (działa niezależnie od tego,
+co jest w środku — to kopia na poziomie plików):
+
+```bash
+docker run --rm -v <NAZWA_WOLUMENU>:/v -v ~/kopie-vps:/out alpine \
+  tar czf /out/librus_$(date +%F).tar.gz -C /v .
+```
+
+⚠️ **Zastrzeżenie, którego nie wolno pominąć:** kopia na poziomie plików
+z DZIAŁAJĄCEJ bazy potrafi złapać stan niespójny — w połowie zapisu. U nas
+`baza.py` używa `sqlite .backup`, który jest na to odporny; przy librusie nie
+wiemy, czym jest jego baza. Jeśli to SQLite, właściwym rozwiązaniem jest ten sam
+mechanizm; jeśli Postgres — `pg_dump`. Dopóki tego nie ustalimy, tar jest lepszy
+niż nic, ale **nie należy go nazywać sprawdzoną kopią**, dopóki raz nie odtworzymy
+z niego działającej aplikacji.
+
+### Kopia awaryjna KODU
+
+Kod ma główną kopię na GitHubie (repozytorium prywatne) i to jest właściwe
+miejsce. Na Macu robimy **lustro**, nie zwykły klon — z gałęziami, tagami
+i całą historią:
+
+```bash
+git clone --mirror https://github.com/pkonieczny007/leady_app_v5.git ~/Backups/leady_app_v5.git
+cd ~/Backups/leady_app_v5.git && git remote update --prune     # z crona, raz w tygodniu
+```
+
+### Czego NIE wkładamy na GitHub
+
+**Kopii bazy.** Trzy powody, każdy wystarczający: (1) w środku są telefony
+i maile dyrektorów szkół, a git **nigdy nie zapomina** — skasowanie pliku nie
+usuwa go z historii, więc żądanie usunięcia danych wymagałoby przepisania całego
+repozytorium; (2) `.db` to binarium, którego git nie różnicuje — każda dzienna
+kopia to 450 kB na zawsze, po roku 160 MB nieusuwalnych blobów; (3) kto dostanie
+dostęp do repozytorium, dostaje wszystkie dane historyczne. Kopia bazy ma być
+plikiem, który da się skasować; kod ma mieć historię. To dwie różne rzeczy.
+
+### Luka, o której się zapomina
+
+**`.env` nie jest w gicie i nie będzie** — siedzą w nim `SECRET_KEY` i PIN
+koordynatora. Mając kopię kodu i kopię danych, wciąż **nie mamy kopii
+konfiguracji**. Nie kładziemy jej na dysku obok kopii; zawartość `.env` wpisujemy
+do menedżera haseł. To jedyne miejsce zrobione do trzymania takich rzeczy.
+
 ## 10. Wdrożenie nowej wersji
 
 ```bash

@@ -218,6 +218,8 @@ zapisać bez zmiany schematu. Decyzja po wtorku, jeśli będą potrzebne w aplik
 | Usterki z `docs/14` (pasek koordynatora u handlowca, limit 60 w wyszukiwarce, `/api/pin` bez właściciela) | po wtorku | żadna nie blokuje pracy |
 | ~~Układ rozjeżdża się na telefonie~~ — **naprawione 10.08 rano**, sprawdzone na demo | zrobione | iPhone 11 / Safari (375 px): brak jakiegokolwiek progu `@media` dla telefonu. `.brand` nie daje się ścisnąć, więc `.nav` zawijał się w pionie w kilkanaście wierszy i wypychał stronę w bok. Nawigacja ma teraz własny wiersz i przewija się poziomo jako jeden rząd. Przy okazji: tabele przewijają się same, dwa paski przestały bić się o `top:0`, `.bulkbar`/`.av-pasek` bez pustki 57 px |
 | Dalsze polerowanie widoku na telefonie (jeśli coś jeszcze wyjdzie w użyciu) | po wtorku | to, co zgłoszone, jest poprawione; reszta dopiero z realnej pracy handlowców |
+| **Kopie poza serwerem: Mac mini + lustro repozytorium** — przepis w `docs/15` pkt 9b, obejmuje też **librusa**, który dziś nie ma żadnej kopii | środa 12.08, ~40 min | kopia na tym samym serwerze co oryginał chroni przed pomyłką człowieka, nie przed awarią maszyny. Mac ciągnie (nie serwer pcha), bo przy przejęciu VPS-a pchanie skasowałoby także kopie |
+| Bind mount `./kopie` na `/data/kopie` — kopie wprost w katalogu aplikacji, `scp` jednym poleceniem | po wtorku, ~15 min | zmiana dotyka `docker-compose.yml` produkcji, a zysk jest wygodowy, nie krytyczny |
 | **Kolumna „Uwagi" kontra dostęp do „karta →"** — opis niżej | po wtorku | próba poprawki 10.08 (`62ed120`) **cofnięta** (`5f173a7`): rozwiązała jedno, zepsuła drugie |
 
 ### Kolumna „Uwagi" kontra dostęp do „karta →" (10.08, do rozwiązania po wtorku)
