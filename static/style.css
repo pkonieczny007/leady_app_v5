@@ -236,6 +236,68 @@ main{padding-bottom:var(--space-8)}
 .topbar-right .btn-secondary:hover{background:rgba(255,255,255,.17);color:#fff}
 .topbar-right .btn.on{background:var(--accent-d)}
 
+/* --- pasek górny na telefonie -------------------------------------------
+   Zgłoszone 10.08 z iPhone'a 11 w Safari (375 px): „nagłówki zakładek się
+   rozjeżdżają, baner zabiera pół ekranu". Jedna przyczyna dla obu objawów —
+   arkusz nie miał ŻADNEGO progu dla telefonu, więc pasek liczył się jak na
+   monitorze: `.brand` ma `white-space:nowrap` i nie daje się ścisnąć, więc
+   `.nav` zawijał się w wąskiej resztce miejsca w kilkanaście wierszy w pionie
+   (stąd „pół ekranu"), a i tak nie mieścił się w szerokości — przez co CAŁA
+   strona przewijała się w bok (stąd „rozjeżdża się").
+
+   Rozwiązanie: nawigacja dostaje własny wiersz na pełną szerokość i przewija
+   się poziomo jako JEDEN rząd zakładek — wzorzec, który na telefonie jest
+   odruchowy, a nagłówek zostaje wysoki na dwa wiersze zamiast dwunastu. */
+@media (max-width:700px){
+  .topbar-in{flex-wrap:wrap;gap:8px;padding:6px 12px;min-width:0}
+  .brand{flex:1 1 auto;min-width:0;gap:7px}
+  .brand-txt{font-size:14px}
+  /* „demo · zamiast arkusza" to ozdoba — na 375 px odbiera miejsce nazwie */
+  .brand-tag{display:none}
+  .brand-logo{width:38px;height:33px}
+  .topbar-right{flex:0 0 auto;margin-left:auto}
+
+  .nav{
+    order:3;flex:1 0 100%;              /* własny wiersz pod nazwą */
+    flex-wrap:nowrap;                   /* jeden rząd, nie dwanaście */
+    overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    /* ujemny margines = przewijanie od krawędzi do krawędzi ekranu,
+       inaczej ostatnia zakładka chowa się pod paddingiem i wygląda na uciętą */
+    margin:0 -12px;padding:2px 12px;
+  }
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{padding:7px 10px;font-size:13px}   /* cel dla kciuka, nie dla kursora */
+
+  /* Dwa elementy `position:sticky; top:0` biją się o to samo miejsce: przy
+     przewijaniu pasek profilu (z-index 60) nakrywał górę nagłówka. Na telefonie
+     wygrywa pasek profilu — jego jedyną rolą jest ostrzegać ZAWSZE. Nawigacja
+     odjeżdża z treścią, co na telefonie jest zachowaniem naturalnym. */
+  .topbar{position:static}
+  .pasek-profilu{padding:4px 10px;font-size:11px;letter-spacing:.04em}
+
+  .wrap{padding:0 12px}
+
+  /* `top:57px` to wysokość paska górnego na monitorze. Skoro na telefonie
+     pasek nie jest już przyklejony, ta wartość zostawiałaby 57 px pustki
+     nad paskiem akcji — wygląda jak zepsuty odstęp. */
+  .bulkbar,.av-pasek{top:0}
+}
+
+/* Tabele na telefonie: własne przewijanie poziome zamiast rozpychania strony.
+   Bez tego szeroka tabela leadów wypycha `body` i w bok jedzie CAŁY ekran —
+   razem z nagłówkiem i formularzem, co wygląda jak zepsuty układ, a jest
+   jedną tabelą za szeroką. Robimy to arkuszem, nie opakowaniem w 14 szablonach. */
+@media (max-width:700px){
+  .table,.tabela{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Przy `overflow-x:auto` przeglądarka robi z tabeli własny kontener
+     przewijania także w pionie, więc `position:sticky` na nagłówku przestaje
+     się odnosić do ekranu — nagłówek zawisłby w losowym miejscu tabeli.
+     Lepiej, żeby po prostu odjechał z treścią, niż żeby wyglądał na zepsuty. */
+  .table th{position:static}
+}
+
 /* ------------------------------------------------------------------ przyciski */
 
 .btn{
