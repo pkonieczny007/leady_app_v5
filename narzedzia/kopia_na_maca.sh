@@ -99,18 +99,45 @@ $SSH "$SERWER" "rm -rf $PRZEJSCIOWY && mkdir -p $PRZEJSCIOWY \
 
 # --------------------------------------------------------------- librus
 if [ "$LIBRUS" = "1" ]; then
-    WOL=$($SSH "$SERWER" "docker inspect librus_raport_app --format '{{range .Mounts}}{{if eq .Type \"volume\"}}{{.Name}} {{end}}{{end}}'" | tr -d '[:space:]')
-    if [ -z "$WOL" ]; then
-        log "librus: brak nazwanego wolumenu — pomijam"
-    else
-        TAR="librus_$(date '+%Y-%m-%d').tar.gz"
-        # Kopia na poziomie plików z DZIAŁAJĄCEJ bazy może złapać stan
-        # niespójny. Dopóki raz jej nie odtworzymy, to jest „lepsze niż nic",
-        # a nie sprawdzona kopia — tak też jest opisane w docs/15.
-        $SSH "$SERWER" "docker run --rm -v $WOL:/v -v $PRZEJSCIOWY:/out alpine tar czf /out/$TAR -C /v . && chmod 600 $PRZEJSCIOWY/$TAR" \
-            && log "librus: spakowany $TAR" \
-            || log "BLAD: zrzut librusa sie nie udal"
+    # Librus może trzymać dane na dwa sposoby i oba trzeba obsłużyć:
+    #   volume — nazwany wolumen dockera, dostępny tylko przez kontener,
+    #   bind   — zwykły katalog na hoście podmontowany do kontenera.
+    # Pierwsza wersja tego skryptu pytała wyłącznie o nazwane wolumeny i przez
+    # to milcząco pomijała całą aplikację („brak nazwanego wolumenu — pomijam”).
+    # Cicha odmowa zrobienia kopii jest gorsza niż jej brak, bo wygląda jak
+    # decyzja, a nie jak luka.
+    FMT='{{range .Mounts}}{{.Type}}|{{.Name}}|{{.Source}}|{{.Destination}}{{"\n"}}{{end}}'
+    MONTY=$($SSH "$SERWER" "docker inspect librus_raport_app --format '$FMT'" 2>/dev/null)
+    if [ -z "$MONTY" ]; then
+        log "librus: nie znalazlem kontenera librus_raport_app — pomijam"
     fi
+    LNR=0
+    echo "$MONTY" | while IFS='|' read -r TYP NAZWA ZRODLO DOCEL; do
+        [ -n "${TYP:-}" ] || continue
+        LNR=$((LNR + 1))
+        TAR="librus_$(date '+%Y-%m-%d')_$LNR.tar.gz"
+        # Kopia na poziomie plików z DZIAŁAJĄCEJ bazy może złapać stan
+        # niespójny. Dopóki raz jej nie odtworzymy, to jest „lepsze niż nic”,
+        # a nie sprawdzona kopia — tak samo opisane w docs/15.
+        case "$TYP" in
+            volume)
+                $SSH "$SERWER" "docker run --rm -v $NAZWA:/v -v $PRZEJSCIOWY:/out alpine tar czf /out/$TAR -C /v . && chmod 600 $PRZEJSCIOWY/$TAR" \
+                    && log "librus: wolumen $NAZWA ($DOCEL) -> $TAR" \
+                    || log "BLAD: nie udalo sie spakowac wolumenu $NAZWA"
+                ;;
+            bind)
+                # Katalog na hoście — pakujemy wprost, bez uruchamiania
+                # kontenera. Jeśli należy do roota, tar odmówi i tak ma być:
+                # wolę czytelny błąd niż niepełne archiwum udające komplet.
+                $SSH "$SERWER" "tar czf $PRZEJSCIOWY/$TAR -C '$ZRODLO' . && chmod 600 $PRZEJSCIOWY/$TAR" \
+                    && log "librus: katalog $ZRODLO ($DOCEL) -> $TAR" \
+                    || log "BLAD: nie udalo sie spakowac $ZRODLO (prawa dostepu?)"
+                ;;
+            *)
+                log "librus: pomijam montowanie typu '$TYP' ($DOCEL)"
+                ;;
+        esac
+    done
 fi
 
 # --------------------------------------------------------------- pobranie
