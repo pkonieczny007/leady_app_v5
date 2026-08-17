@@ -35,7 +35,8 @@ import zwrot
 from db import (get_conn, wszystkie_slowniki, slownik, slownik_values, trener_colors,
                 zapisz_log, LEAD_FIELDS, JULIA_FIELDS, EVENT_FIELDS, PLACOWKA_FIELDS,
                 LEAD_KEYS, EVENT_KEYS, PLACOWKA_KEYS, SLOWNIK_RODZAJE, SLOWNIK_KLUCZE,
-                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy, opis_profilu, pl_fold)
+                INT_KEYS, STATUS_SUKCES_PREFIX, kolor_z_nazwy, opis_profilu, pl_fold,
+                TYPY_CYKLICZNE)
 from seed import bootstrap
 
 app = Flask(__name__)
@@ -545,6 +546,47 @@ def _chipy_grafiku(args):
     return ch
 
 
+# --------------------------------------------------------- filtr typu w kalendarzu
+#
+# JEDNO źródło dla adresu i dla listy na ekranie. Wcześniej lista pozycji siedziała
+# w szablonie, a rozpoznawanie wartości w tej funkcji — dołożenie typu wymagało
+# pamiętania o obu miejscach, a rozjechanie się ich znaczyło pozycję na liście,
+# która nic nie filtruje (albo wręcz odwrotnie: filtruje na pusto).
+#
+# Rozdzielamy PRZECINKIEM, nie plusem. W adresie `+` to zakodowana spacja, więc
+# `typ=DT+CYKLICZNE` wpisane z palca albo wklejone z notatki przyszłoby jako
+# „DT CYKLICZNE" i cicho wpadło w gałąź „nieznana wartość" — czyli filtr
+# przestawałby działać dokładnie wtedy, gdy ktoś podaje link dalej.
+#
+# Kolejność: najpierw wszystko, potem pojedyncze typy, na końcu pary. Lista,
+# w której pary i pojedyncze wartości się przeplatają, wymaga czytania całej,
+# żeby znaleźć swoją pozycję.
+FILTRY_TYPU = [
+    ("",                         "— wszystko —",                 None),
+    ("DT",                       "tylko DT",                     ("DT",)),
+    ("CYKLICZNE",                "tylko CYKLICZNE",              ("CYKLICZNE",)),
+    ("CYKLICZNE-PRZEDSZKOLE",    "tylko CYKLICZNE-PRZEDSZKOLE",  ("CYKLICZNE-PRZEDSZKOLE",)),
+    ("DT,CYKLICZNE",             "DT i CYKLICZNE",               ("DT", "CYKLICZNE")),
+    ("DT,CYKLICZNE-PRZEDSZKOLE", "DT i CYKLICZNE-PRZEDSZKOLE",   ("DT", "CYKLICZNE-PRZEDSZKOLE")),
+]
+FILTRY_TYPU_MAPA = {klucz: typy for klucz, _, typy in FILTRY_TYPU}
+
+
+def _typy_kalendarza(args):
+    """
+    (klucz filtra, lista typów albo None) z parametru `typ`.
+
+    Wartość spoza listy traktujemy jak „wszystko" — stara zakładka z czasów,
+    gdy `CYKLICZNE` znaczyło oba warianty cyklu, ma dalej otwierać kalendarz,
+    a nie pusty ekran.
+    """
+    klucz = (args.get("typ") or "").strip()
+    if klucz not in FILTRY_TYPU_MAPA:
+        klucz = ""
+    typy = FILTRY_TYPU_MAPA[klucz]
+    return klucz, (list(typy) if typy else None)
+
+
 @app.route("/kalendarz")
 def kalendarz():
     conn = get_conn()
@@ -563,8 +605,7 @@ def kalendarz():
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
-    typ = request.args.get("typ", "")          # '' | DT | CYKLICZNE
-    typy = [typ] if typ in ("DT", "CYKLICZNE") else None
+    typ, typy = _typy_kalendarza(request.args)
     ch = _chipy_grafiku(request.args)
 
     if widok == "agenda":
@@ -582,6 +623,7 @@ def kalendarz():
     ctx = {
         "cal": cal, "widok": widok, "month": month, "miesiace": miesiace,
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
+        "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
         "today": dzis(), "dzien": dzien,
@@ -1410,6 +1452,33 @@ def formularz_v3():
     return render_template("formularz3.html", **ctx)
 
 
+@app.route("/formularz/cykliczne")
+def formularz_cykliczne():
+    """
+    WARIANT CYKLICZNY — v3 plus realne planowanie zajęć powtarzalnych.
+
+    Powód: do tej pory cykl zapisywał się WYŁĄCZNIE jako reguła „co wtorek,
+    od pierwszych zajęć, w nieskończoność". Dla szkoły to działa — grupa idzie
+    do czerwca. Dla przedszkola nie: tam umawia się PAKIET, np. pięć spotkań,
+    a daty wypadają jak wypadają, bo w międzyczasie jest przerwa świąteczna,
+    bal karnawałowy i wyjazd grupy.
+
+    Stąd dwa sposoby wpisania cyklu w jednym formularzu:
+      · REGUŁA   — dzień tygodnia + co ile tygodni (jak dotąd, nic nie zmieniamy),
+      · TERMINY  — data pierwszych zajęć + ilość, a aplikacja proponuje resztę
+                   i pozwala każdą datę poprawić z kalendarza.
+
+    Wybór typu (CYKLICZNE / CYKLICZNE-PRZEDSZKOLE) tylko USTAWIA DOMYŚLNY sposób,
+    nie zabiera drugiego. Przedszkole zaczyna od terminów, szkoła od reguły —
+    ale przedszkole, które faktycznie ma „co wtorek do czerwca", nie musi
+    wyklikiwać trzydziestu dat.
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
+    conn.close()
+    return render_template("formularz4.html", **ctx)
+
+
 @app.route("/api/placowki")
 def api_placowki():
     """
@@ -1483,6 +1552,51 @@ def _int_lub_none(v):
         return int(str(v).strip())
     except (TypeError, ValueError):
         return None
+
+
+#: ile najwyżej terminów przyjmiemy w jednym pakiecie. Nie jest to ograniczenie
+#: dziedziny (przedszkola umawiają 4–10), tylko bezpiecznik: pole „ilość zajęć"
+#: przyjmuje liczbę od człowieka, a wpisane 500 zrobiłoby 500 wierszy i kalendarz
+#: nie do przewinięcia. Powyżej tej wartości ODMAWIAMY zamiast obciąć po cichu —
+#: cicha obcinka wygląda jak zapisane, a nie jest.
+MAX_TERMINOW_CYKLU = 60
+
+
+def _terminy_cyklu(blok):
+    """
+    Lista konkretnych dat zajęć z formularza → wiersze do `terminy_cyklu`.
+
+    Odsiewamy puste i zdublowane daty. Duble biorą się z realnego zachowania:
+    handlowiec zmienia trzeci termin na datę czwartego i chwilę ma dwa te same.
+    Zapis dwóch zajęć tego samego dnia o tej samej godzinie byłby fałszem
+    w kalendarzu, więc zostaje pierwsze wystąpienie.
+
+    Kolejność (`nr`) liczymy PO posortowaniu dat, a nie z kolejności pól —
+    „zajęcia nr 3" mają znaczyć trzecie w czasie, bo tak je liczy i rodzic,
+    i koordynatorka rozliczająca pakiet.
+    """
+    surowe = blok.get("terminy")
+    if not isinstance(surowe, list):
+        return []
+    widziane, czyste = set(), []
+    for poz in surowe[:MAX_TERMINOW_CYKLU + 2]:
+        if not isinstance(poz, dict):
+            continue
+        data = (poz.get("data") or "").strip()[:10]
+        if not data or data in widziane:
+            continue
+        try:
+            dt.date.fromisoformat(data)
+        except ValueError:
+            continue                       # literówka w dacie nie wywraca zapisu
+        widziane.add(data)
+        czyste.append({"data": data,
+                       "godz_od": (poz.get("godz_od") or "").strip() or None,
+                       "godz_do": (poz.get("godz_do") or "").strip() or None})
+    czyste.sort(key=lambda t: t["data"])
+    for i, t in enumerate(czyste, 1):
+        t["nr"] = i
+    return czyste
 
 
 @app.route("/api/formularz", methods=["POST"])
@@ -1593,10 +1707,30 @@ def api_formularz():
         blok = d.get(pole_bloku) or {}
         if not blok:
             continue
-        # DT bez daty nie ma sensu; cykl bez dnia tygodnia też nie
+
+        # Wariant cyklu wybiera formularz („zwykły" albo przedszkolny). Bierzemy
+        # go z bloku, ale przez słownik `typ_eventu` — inaczej wystarczyłaby
+        # literówka w JS, żeby do bazy wjechał typ, którego kalendarz nie zna,
+        # a wpis zniknąłby po cichu.
+        if typ == "CYKLICZNE":
+            zadany = (blok.get("typ") or "").strip()
+            if zadany:
+                if zadany not in TYPY_CYKLICZNE:
+                    return blad("Nieznany typ zajęć cyklicznych: %s" % zadany)
+                typ = zadany
+
+        # Terminy z listy — pakiet konkretnych dat zamiast reguły „co wtorek".
+        terminy = _terminy_cyklu(blok) if typ in TYPY_CYKLICZNE else []
+        if len(terminy) > MAX_TERMINOW_CYKLU:
+            return blad("Za dużo terminów w pakiecie (%d, najwyżej %d). "
+                        "Podziel zajęcia na dwa wpisy."
+                        % (len(terminy), MAX_TERMINOW_CYKLU))
+
+        # DT bez daty nie ma sensu; cykl bez dnia tygodnia I bez listy dat też nie
         if typ == "DT" and not (blok.get("data") or "").strip():
             continue
-        if typ == "CYKLICZNE" and not (blok.get("cykl_dzien") or "").strip():
+        if typ in TYPY_CYKLICZNE and not (blok.get("cykl_dzien") or "").strip() \
+                and not terminy:
             continue
 
         dane = {"typ": typ}
@@ -1611,16 +1745,28 @@ def api_formularz():
             if v not in (None, ""):
                 dane[k] = v
 
+        # Pierwszy termin z listy jest jednocześnie `data` eventu. Nie jest to
+        # duplikat dla wygody: cała reszta aplikacji (kalendarz, sortowania,
+        # statystyki, `WHERE e.data IS NOT NULL`) opiera się na tej kolumnie
+        # i pakiet bez niej byłby wpisem bez daty — czyli niewidocznym.
+        if terminy and not (dane.get("data") or "").strip():
+            dane["data"] = terminy[0]["data"]
+
         kolumny = ", ".join(["lead_id"] + list(dane.keys()))
         znaki = ", ".join(["?"] * (len(dane) + 1))
         cur = conn.execute("INSERT INTO eventy (%s) VALUES (%s)" % (kolumny, znaki),
                            [lead_id] + list(dane.values()))
         eid = cur.lastrowid
-        utworzone.append({"id": eid, "typ": typ})
+        for t in terminy:
+            conn.execute("INSERT OR REPLACE INTO terminy_cyklu "
+                         "(event_id, nr, data, godz_od, godz_do) VALUES (?,?,?,?,?)",
+                         (eid, t["nr"], t["data"], t["godz_od"], t["godz_do"]))
+        utworzone.append({"id": eid, "typ": typ, "terminy": len(terminy)})
         zapisz_log(conn, lead_id=lead_id, event_id=eid, kto=handlowiec or "formularz",
                    co="formularz terenowy", pole=typ,
-                   po="%s %s" % (dane.get("data") or dane.get("cykl_dzien") or "",
-                                 dane.get("godz_od") or ""))
+                   po="%s %s%s" % (dane.get("data") or dane.get("cykl_dzien") or "",
+                                   dane.get("godz_od") or "",
+                                   " · %d terminów z listy" % len(terminy) if terminy else ""))
         if typ == "DT":
             conn.execute("UPDATE leady SET status_realizacji=?, dt=?, "
                          "updated_at=datetime('now') WHERE id=?",
@@ -1941,6 +2087,11 @@ def inject_nav():
     return {"nav_active": request.endpoint, "q_all": request.args.to_dict(),
             "ZAKRESY": fl.ZAKRESY, "profil": opis_profilu(),
             "ja": uz.zalogowany(), "csrf": token_csrf(),
+            # Szablony sprawdzają „czy to cykl" w kilku miejscach (kafel, plansza
+            # STARTY, plakietka „cykl #n"). Wpisany na sztywno napis 'CYKLICZNE'
+            # pomijałby wariant przedszkolny — a pominięcie w kalendarzu wygląda
+            # jak brak danych, nie jak brak obsługi.
+            "TYPY_CYKLICZNE": TYPY_CYKLICZNE,
             "serwis_wlaczony": uz.serwis_wlaczony()}
 
 

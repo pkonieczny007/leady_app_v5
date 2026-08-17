@@ -8,6 +8,7 @@ Działa na WŁASNEJ, tymczasowej bazie (nie rusza żadnego profilu z `data/`).
 import datetime as dt
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -190,13 +191,19 @@ def main():
     r = KL.get("/formularz")
     sprawdz("/formularz zwraca 200", r.status_code == 200)
     html = r.get_data(as_text=True)
-    sprawdz("pokazuje TRZY linki, nie kafelki", html.count("fw-link") >= 3)
+    sprawdz("pokazuje linki, nie kafelki", html.count("fw-link") >= 4)
     sprawdz("linki prowadzą do wszystkich wariantów",
             "/formularz/kroki" in html and "/formularz/ciagly" in html
-            and "/formularz/v3" in html)
+            and "/formularz/v3" in html and "/formularz/cykliczne" in html)
+    # Wersaliki „FORMULARZ v1" wyglądały jak wyróżnienie jednego wariantu
+    # przy trzech pisanych normalnie — stąd jednolita pisownia (prośba 17.08).
     sprawdz("nazwy wariantów jak ustalone",
-            "FORMULARZ v1" in html and "Formularz v2" in html
-            and "Formularz v3" in html)
+            "Formularz v1" in html and "Formularz v2" in html
+            and "Formularz v3" in html and "Formularz CYKLICZNE" in html
+            and "FORMULARZ v1" not in html)
+    sprawdz("v3 opisany jako rekomendowany", "Rekomendowany" in html)
+    sprawdz("wariant cykliczny opisany jako testowy",
+            "testowy: CYKLICZNE-PRZEDSZKOLE" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -565,6 +572,181 @@ def main():
                            "handlowiec": H, "deadline": dni(10)})
     html = KL.get("/baza").get_data(as_text=True)
     sprawdz("po przypisaniu plakietka gaśnie", "tag-zwrot" not in html)
+
+    # ================================ FC — wariant CYKLICZNE i pakiety terminów
+    #
+    # Sedno: zajęcia umówione na KONKRETNE daty mają pojawić się w kalendarzu
+    # dokładnie tyle razy, ile ich uzgodniono. Reguła „co wtorek" rozwija się
+    # do horyzontu 40 tygodni — pakiet pięciu spotkań ma się skończyć na piątym.
+    print("\nFC — wariant CYKLICZNE: pakiet konkretnych terminów")
+    import calendar_view as cv
+
+    r = KL.get("/formularz/cykliczne")
+    sprawdz("/formularz/cykliczne zwraca 200", r.status_code == 200)
+    html = r.get_data(as_text=True)
+    sprawdz("ma wybór rodzaju zajęć",
+            'value="CYKLICZNE-PRZEDSZKOLE"' in html and 'name="f4-typ"' in html)
+    sprawdz("ma wybór sposobu ustalania terminów",
+            'value="daty"' in html and 'value="regula"' in html)
+    sprawdz("ma pola startu i ilości zajęć",
+            'id="f4-start"' in html and 'id="f4-ile"' in html)
+    sprawdz("niesie sekcję DT z v3 (nie jest okrojony)", 'id="f3-status"' in html)
+
+    conn = db.get_conn()
+    pid = conn.execute("INSERT INTO placowki (nazwa, miejscowosc) VALUES (?,?)",
+                       ("Przedszkole Testowe", M)).lastrowid
+    l_cykl = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)", (pid,)).lastrowid
+    conn.commit()
+    conn.close()
+
+    # wtorki: 18.08, 25.08, 01.09, 08.09, 15.09 — przykład wprost z ustaleń
+    PAKIET = ["2026-08-18", "2026-08-25", "2026-09-01", "2026-09-08", "2026-09-15"]
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_cykl,
+        "cykl": {"typ": "CYKLICZNE-PRZEDSZKOLE", "godz_od": "09:30",
+                 "cykl_dzien": "wtorek", "numer_sali": "żółta",
+                 "terminy": [{"data": d, "godz_od": "09:30"} for d in PAKIET]}})
+    sprawdz("pakiet zapisuje się jednym żądaniem", kod == 200)
+    sprawdz("odpowiedź podaje, ile terminów zapisano",
+            bool(j) and j["eventy"] and j["eventy"][0].get("terminy") == 5)
+
+    conn = db.get_conn()
+    ev = conn.execute("SELECT * FROM eventy WHERE lead_id=?", (l_cykl,)).fetchone()
+    sprawdz("powstał JEDEN event, nie pięć",
+            conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                         (l_cykl,)).fetchone()["c"] == 1)
+    sprawdz("event ma typ przedszkolny", ev["typ"] == "CYKLICZNE-PRZEDSZKOLE")
+    # `data` eventu to pierwszy termin — na tej kolumnie stoją sortowania,
+    # statystyki i warunek `WHERE e.data IS NOT NULL` w kalendarzu
+    sprawdz("data eventu = pierwsze zajęcia", ev["data"] == PAKIET[0])
+    terminy = conn.execute("SELECT * FROM terminy_cyklu WHERE event_id=? ORDER BY nr",
+                           (ev["id"],)).fetchall()
+    sprawdz("zapisano wszystkie pięć terminów", len(terminy) == 5)
+    sprawdz("terminy ponumerowane po dacie",
+            [t["data"] for t in terminy] == PAKIET and
+            [t["nr"] for t in terminy] == [1, 2, 3, 4, 5])
+
+    sierpien = cv.events_for_month(conn, "2026-08", typy=["CYKLICZNE-PRZEDSZKOLE"])
+    wrzesien = cv.events_for_month(conn, "2026-09", typy=["CYKLICZNE-PRZEDSZKOLE"])
+    pazdziernik = cv.events_for_month(conn, "2026-10", typy=["CYKLICZNE-PRZEDSZKOLE"])
+    sprawdz("kalendarz pokazuje 2 zajęcia w sierpniu", len(sierpien) == 2)
+    sprawdz("kalendarz pokazuje 3 zajęcia we wrześniu", len(wrzesien) == 3)
+    # TO JEST TEN TEST. Reguła „co wtorek" dołożyłaby cztery zajęcia
+    # w październiku, których nikt nie umawiał — pakiet kończy się na piątym.
+    sprawdz("pakiet NIE ciągnie się dalej niż umówiono", len(pazdziernik) == 0)
+    sprawdz("wystąpienia niosą numer zajęć w pakiecie",
+            [e["_cykl_nr"] for e in wrzesien] == [3, 4, 5])
+
+    # Filtr „tylko cykliczne" ma łapać OBA warianty — koordynatorka szukająca
+    # zajęć cyklicznych nie ma wiedzieć, że istnieją dwa typy w bazie.
+    oba = cv.events_for_month(conn, "2026-09", typy=list(db.TYPY_CYKLICZNE))
+    sprawdz("filtr cykliczny łapie wariant przedszkolny", len(oba) >= 3)
+    sprawdz("miesiąc pakietu jest w wyborze miesięcy",
+            "2026-09" in cv.available_months(conn))
+    conn.close()
+
+    # Karta szkoły musi pokazać CAŁY pakiet. Bez tego widać jedną datę
+    # (pierwszą), a pozostałe cztery istnieją wyłącznie w kalendarzu.
+    html = KL.get("/lead/%d" % l_cykl).get_data(as_text=True)
+    sprawdz("karta szkoły wymienia terminy pakietu", "Terminy pakietu" in html)
+    sprawdz("karta pokazuje ostatni termin pakietu", "15.09" in html or PAKIET[-1] in html)
+
+    # --- odsiewanie śmieci -------------------------------------------------
+    conn = db.get_conn()
+    l_smiec = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)", (pid,)).lastrowid
+    conn.commit()
+    conn.close()
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_smiec,
+        "cykl": {"typ": "CYKLICZNE-PRZEDSZKOLE", "godz_od": "10:00",
+                 "terminy": [{"data": "2026-09-01"}, {"data": "2026-09-01"},
+                             {"data": ""}, {"data": "2026-13-45"},
+                             {"data": "2026-08-25"}]}})
+    sprawdz("dubel i śmieć w datach nie wywracają zapisu", kod == 200)
+    sprawdz("zostają dwie sensowne daty, posortowane",
+            bool(j) and j["eventy"][0].get("terminy") == 2)
+    conn = db.get_conn()
+    porz = [t["data"] for t in conn.execute(
+        "SELECT t.data FROM terminy_cyklu t JOIN eventy e ON e.id=t.event_id "
+        "WHERE e.lead_id=? ORDER BY t.nr", (l_smiec,)).fetchall()]
+    sprawdz("pierwszy termin to najwcześniejsza data", porz == ["2026-08-25", "2026-09-01"])
+    conn.close()
+
+    # --- typ spoza słownika ------------------------------------------------
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_smiec,
+        "cykl": {"typ": "CYKLICZNE-ZLOBEK", "terminy": [{"data": "2026-09-02"}]}})
+    sprawdz("typ zajęć spoza słownika ODRZUCONY, nie zapisany po cichu", kod == 400)
+
+    # --- reguła „co wtorek" działa jak dotąd -------------------------------
+    conn = db.get_conn()
+    l_regula = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)", (pid,)).lastrowid
+    conn.commit()
+    conn.close()
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_regula,
+        "cykl": {"typ": "CYKLICZNE", "cykl_dzien": "wtorek", "godz_od": "12:00",
+                 "data": "2026-08-18", "co_ile_tygodni": 1}})
+    sprawdz("stary sposób (reguła) zapisuje się bez zmian", kod == 200)
+    conn = db.get_conn()
+    eid = conn.execute("SELECT id FROM eventy WHERE lead_id=?", (l_regula,)).fetchone()["id"]
+    sprawdz("reguła nie zakłada listy terminów",
+            conn.execute("SELECT COUNT(*) c FROM terminy_cyklu WHERE event_id=?",
+                         (eid,)).fetchone()["c"] == 0)
+    pazdz = [e for e in cv.events_for_month(conn, "2026-10", typy=["CYKLICZNE"])
+             if e["lead_id"] == l_regula]
+    sprawdz("reguła nadal ciągnie się w kolejne miesiące", len(pazdz) >= 4)
+    conn.close()
+
+    # ============================== FD — zajęcia cykliczne BEZ Dnia Technologii
+    #
+    # Cykl umawia się często bez świeżego DT: albo już był (i siedzi w bazie),
+    # albo placówka wchodzi w cykl bez dnia pokazowego. Zapis samego pakietu
+    # nie ma tworzyć zmyślonego DT — wymyślony DT ląduje na grafiku trenera
+    # i ktoś na niego pojedzie.
+    print("\nFD — pakiet zajęć bez Dnia Technologii")
+    html = KL.get("/formularz/cykliczne").get_data(as_text=True)
+    sprawdz("formularz ma wyłącznik DT", 'id="f4-dt-wl"' in html)
+    sprawdz("wyłącznik domyślnie włączony",
+            re.search(r'id="f4-dt-wl"[^>]*checked', html) is not None)
+    sprawdz("wyłączona sekcja tłumaczy, co się stanie", 'id="f4-dt-brak"' in html)
+
+    conn = db.get_conn()
+    l_bezdt = conn.execute("INSERT INTO leady (placowka_id, status_realizacji) "
+                           "VALUES (?,?)", (pid, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+    conn.close()
+
+    # tak wygląda żądanie z wyłączonym DT: bloku `dt` po prostu nie ma
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_bezdt,
+        "cykle": "01. Tak",
+        "cykl": {"typ": "CYKLICZNE-PRZEDSZKOLE", "godz_od": "09:00",
+                 "terminy": [{"data": "2026-09-07"}, {"data": "2026-09-14"},
+                             {"data": "2026-09-21"}]}})
+    sprawdz("zapis bez bloku DT przechodzi", kod == 200)
+    sprawdz("powstały same zajęcia cykliczne",
+            bool(j) and len(j["eventy"]) == 1 and j["eventy"][0]["terminy"] == 3)
+
+    conn = db.get_conn()
+    sprawdz("NIE powstało żadne DT",
+            conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=? AND typ='DT'",
+                         (l_bezdt,)).fetchone()["c"] == 0)
+    # Status „03. DT umówione" ustawia się WYŁĄCZNIE przy tworzeniu DT. Gdyby
+    # skakał też przy samym cyklu, lista „umówione DT" liczyłaby szkoły,
+    # w których nikt DT nie umawiał — a to jest miara pracy handlowców.
+    st = conn.execute("SELECT status_realizacji, dt FROM leady WHERE id=?",
+                      (l_bezdt,)).fetchone()
+    sprawdz("status leada nie skoczył na „DT umówione”",
+            not (st["status_realizacji"] or "").startswith("03. DT"))
+    sprawdz("znacznik DT leada nietknięty", not st["dt"])
+    conn.close()
+
+    # Kalendarz ma pokazać zajęcia mimo braku DT — to jest cały sens zapisu.
+    conn = db.get_conn()
+    wrzesien = [e for e in cv.events_for_month(conn, "2026-09") if e["lead_id"] == l_bezdt]
+    sprawdz("zajęcia bez DT są widoczne w kalendarzu", len(wrzesien) == 3)
+    conn.close()
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

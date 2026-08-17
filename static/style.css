@@ -926,6 +926,25 @@ tr.flash td{animation:flash .9s ease-out}
    błąd. W danych klienta 45 z 61 wystąpień miesiąca nie ma godziny — na czerwono
    byłby to szum, który po dwóch dniach przestaje się czytać. */
 .uwaga{color:var(--amber-d)}
+
+/* Lista terminów pakietu na karcie szkoły (zajęcia cykliczne w przedszkolu).
+   Zajęcia, które już się odbyły, są wyszarzone — koordynatorka szuka na tej
+   liście najbliższego terminu, a nie historii. */
+.event-terminy{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.terminy-lista{
+  list-style:none;margin:6px 0 0;padding:0;
+  display:flex;flex-wrap:wrap;gap:6px;counter-reset:t;
+}
+.terminy-lista li{
+  display:flex;align-items:baseline;gap:6px;
+  padding:3px 9px;border:1px solid var(--line);border-radius:20px;
+  background:var(--panel);font-size:12.5px;
+}
+.terminy-lista li::before{
+  counter-increment:t;content:counter(t) ".";
+  font-weight:700;color:var(--muted-2);font-size:11px;
+}
+.terminy-lista li.minelo{opacity:.5}
 .ok{color:var(--ok)}
 .notice{
   background:var(--amber-l);border:1px solid var(--amber);color:#8a5a08;

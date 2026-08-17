@@ -158,6 +158,20 @@ SLOWNIK_KLUCZE = [r[0] for r in SLOWNIK_RODZAJE]
 STATUS_SUKCES_PREFIX = "03."
 STATUS_ODPADL_PREFIX = "04."
 
+# Typy wpisów, które są zajęciami cyklicznymi. JEDNO miejsce, bo warunek
+# „to jest cykl" siedzi w czterech plikach naraz: kalendarz je rozwija, repo
+# liczy w statystykach i filtruje „Szkoły z cyklami", formularz je zapisuje.
+# Gdy w sierpniu doszedł wariant przedszkolny, rozjechanie się choćby jednego
+# z tych miejsc oznaczałoby wpis siedzący w bazie i NIEWIDOCZNY w kalendarzu —
+# dokładnie ta usterka kosztowała nas 10.08 pół dnia szukania.
+TYPY_CYKLICZNE = ("CYKLICZNE", "CYKLICZNE-PRZEDSZKOLE")
+
+def _lista_sql(wartosci):
+    """('A','B') → \"'A','B'\" — do klauzuli IN w zapytaniach składanych ręcznie."""
+    return ",".join("'%s'" % w.replace("'", "''") for w in wartosci)
+
+SQL_TYPY_CYKLICZNE = _lista_sql(TYPY_CYKLICZNE)
+
 
 # Ogonki → litery bez ogonków. SQLite-owe LIKE ignoruje wielkość liter TYLKO
 # dla ASCII, więc „ŁUKASZ" nie znalazłby się po wpisaniu „łukasz", a „Zemeła"
@@ -248,6 +262,34 @@ def init_db(conn):
           uwagi TEXT,
           UNIQUE(event_id, data)
         );
+
+        -- Konkretne terminy cyklu — gdy grupa NIE jest regułą „co wtorek", tylko
+        -- listą uzgodnionych dat. Wzięło się to z przedszkoli: tam nie umawia się
+        -- zajęć „do odwołania", tylko pakiet (np. 5 spotkań), a daty wypadają jak
+        -- wypadają — święta, wywiadówki, wyjazdy grupy.
+        --
+        -- DLACZEGO OSOBNA TABELA, A NIE PIĘĆ WPISÓW W `eventy`
+        -- Pięć osobnych eventów typu CYKLICZNE kalendarz rozwinąłby jako pięć
+        -- niezależnych reguł co tydzień — 200 zajęć zamiast 5. A pięć wpisów
+        -- jednorazowych zgubiłoby to, że są jedną grupą (ten sam trener, sala,
+        -- sprzęt), więc zmiana prowadzącego wymagałaby pięciu edycji.
+        -- Zostaje: JEDEN event = jedna grupa (tożsamość i wspólne dane),
+        -- a tutaj lista jej terminów.
+        --
+        -- Gdy tabela nie ma wierszy dla eventu, obowiązuje stara reguła
+        -- (dzień tygodnia + co ile tygodni). Dzięki temu wszystko, co już jest
+        -- w bazie, działa bez migracji.
+        CREATE TABLE IF NOT EXISTS terminy_cyklu (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          event_id INTEGER NOT NULL REFERENCES eventy(id) ON DELETE CASCADE,
+          nr INTEGER NOT NULL,        -- które to zajęcia w pakiecie (1..N)
+          data TEXT NOT NULL,
+          godz_od TEXT,
+          godz_do TEXT,
+          UNIQUE(event_id, data)
+        );
+        CREATE INDEX IF NOT EXISTS ix_terminy_event ON terminy_cyklu(event_id);
+        CREATE INDEX IF NOT EXISTS ix_terminy_data ON terminy_cyklu(data);
 
         -- Dostępność trenera. W ich kalendarzu DT jedna komórka trzymała jednocześnie
         -- „DOSTĘPNA 8–12:00" i rezerwację DT — i to jest jedyne wejście do umawiania DT.

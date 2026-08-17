@@ -26,7 +26,8 @@ import calendar as _cal
 import datetime as dt
 import re
 
-from db import trener_colors, slownik_values
+from db import (trener_colors, slownik_values,
+                TYPY_CYKLICZNE, SQL_TYPY_CYKLICZNE)
 from filtry import filtruj_eventy
 
 DNI = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota", "niedziela"]
@@ -130,8 +131,8 @@ JOIN placowki p ON p.id = l.placowka_id
 WHERE e.data IS NOT NULL AND e.data <> ''
 """
 
-# tylko ten typ się powtarza; START to jednorazowa inauguracja grupy
-TYPY_POWTARZALNE = ("CYKLICZNE",)
+# tylko te typy się powtarzają; START to jednorazowa inauguracja grupy
+TYPY_POWTARZALNE = TYPY_CYKLICZNE
 
 
 def _row_to_event(r):
@@ -170,6 +171,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
     ostatni = dt.date(y, m, _cal.monthrange(y, m)[1])
 
     wyjatki = _wyjatki(conn)
+    terminy = _terminy(conn)
     rows = conn.execute(_SQL_EVENTY).fetchall()
     out = []
     for r in rows:
@@ -193,6 +195,36 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
                 x["_key"] = str(e["id"])
                 x["_cykl_nr"] = None
                 _naloz_wyjatek(x, wyjatki.get((e["id"], x["data"])))
+                if not x.get("odwolane"):
+                    out.append(x)
+            continue
+
+        # CYKL Z LISTĄ KONKRETNYCH DAT (przedszkola, pakiety „5 zajęć").
+        # Reguła „co wtorek" tu nie obowiązuje: obowiązuje to, co uzgodniono.
+        # Sprawdzamy to PRZED rozwinięciem reguły, bo event ma jedno i drugie —
+        # `data` to nadal pierwszy termin, żeby wszystkie stare zapytania
+        # (`WHERE e.data`, sortowania, statystyki) działały bez zmian.
+        moje_terminy = terminy.get(e["id"])
+        if moje_terminy:
+            for t in moje_terminy:
+                try:
+                    d = dt.date.fromisoformat(str(t["data"])[:10])
+                except (ValueError, TypeError):
+                    continue
+                if not (pierwszy <= d <= ostatni):
+                    continue
+                x = dict(e)
+                x["data"] = d.isoformat()
+                # Godzina z terminu wygrywa nad godziną reguły — w przedszkolu
+                # jedne zajęcia bywają o innej porze niż reszta pakietu.
+                if t["godz_od"]:
+                    x["godz_od"] = t["godz_od"]
+                if t["godz_do"]:
+                    x["godz_do"] = t["godz_do"]
+                x["_key"] = "%d@%s" % (e["id"], d.isoformat())
+                x["_cykl_nr"] = t["nr"]
+                x["_z_listy"] = True
+                _naloz_wyjatek(x, wyjatki.get((e["id"], d.isoformat())))
                 if not x.get("odwolane"):
                     out.append(x)
             continue
@@ -222,6 +254,31 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
             nr += 1
 
     out.sort(key=lambda e: (e["data"], e["godz_od"] or "99:99", e["trener"] or ""))
+    return out
+
+
+def _terminy(conn):
+    """
+    {event_id: [wiersze terminów po dacie]} — pakiety zajęć umówione na konkretne
+    daty zamiast na regułę „co wtorek".
+
+    Ładujemy WSZYSTKIE naraz, nie po jednym zapytaniu na event: kalendarz
+    przelicza się przy każdym otwarciu, a przy ~30 zajęciach dziennie zapytanie
+    w pętli po eventach to setki zapytań na jeden ekran.
+
+    `try` wokół zapytania jest z tego samego powodu co przy `wyjatki_cyklu`:
+    tabela dochodzi w tej wersji, a kalendarz ma otworzyć się także na bazie
+    sprzed aktualizacji (choćby na przywróconej kopii).
+    """
+    try:
+        rows = conn.execute(
+            "SELECT event_id, nr, data, godz_od, godz_do FROM terminy_cyklu "
+            "ORDER BY event_id, data").fetchall()
+    except Exception:
+        return {}
+    out = {}
+    for r in rows:
+        out.setdefault(r["event_id"], []).append(dict(r))
     return out
 
 
@@ -262,10 +319,20 @@ def available_months(conn):
         "SELECT DISTINCT substr(data,1,7) m FROM eventy "
         "WHERE data IS NOT NULL AND data <> '' ORDER BY m").fetchall()
     mies = [r["m"] for r in rows if r["m"]]
+    # Pakiety na konkretne daty: miesiąc bierze się WPROST z terminu, nie
+    # z rozwijania reguły. Bez tego ostatnie zajęcia z pakietu wpadające
+    # w miesiąc, w którym nie ma nic innego, nie miałyby pozycji w wyborze
+    # miesiąca — czyli byłyby w bazie i nie dałoby się do nich dojechać.
+    try:
+        mies += [r["m"] for r in conn.execute(
+            "SELECT DISTINCT substr(data,1,7) m FROM terminy_cyklu "
+            "WHERE data IS NOT NULL AND data <> ''").fetchall() if r["m"]]
+    except Exception:
+        pass
     # cykle „ciągną się" dalej niż data pierwszych zajęć — dolóż kolejne miesiące
     ma_cykle = conn.execute(
-        "SELECT MIN(data) a, MAX(data) b FROM eventy WHERE typ='CYKLICZNE' "
-        "AND data IS NOT NULL AND data <> ''").fetchone()
+        "SELECT MIN(data) a, MAX(data) b FROM eventy WHERE typ IN (%s) "
+        "AND data IS NOT NULL AND data <> ''" % SQL_TYPY_CYKLICZNE).fetchone()
     if ma_cykle and ma_cykle["a"]:
         try:
             start = dt.date.fromisoformat(ma_cykle["a"])

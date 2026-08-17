@@ -164,21 +164,32 @@ select.f2-pole{
 
 .fw-linki{display:flex;flex-direction:column;gap:12px;width:100%}
 .fw-link{
-  display:block;width:100%;min-height:56px;padding:16px;
+  /* Kolumna, nie blok: plakietka idzie POD nazwą, więc kafelek z plakietką ma
+     tę samą szerokość i to samo wyśrodkowanie co bez niej. Ustalona wysokość
+     wyrównuje wszystkie cztery — różnica wysokości czytała się jak wyróżnienie
+     jednego wariantu, a wyróżnienie ma nieść plakietka, nie geometria. */
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;width:100%;min-height:72px;padding:12px 16px;
   border-radius:var(--radius-md);border:2px solid var(--cyan-d);
   background:var(--panel);color:var(--cyan-t);text-decoration:none;
-  /* ta sama czcionka i wielkość dla obu — żaden wariant nie jest podpowiadany */
   font:600 17px/1.4 "Segoe UI",system-ui,sans-serif;
+  text-align:center;
 }
 .fw-link:hover{background:var(--accent-l)}
+.fw-link-nazwa{display:block}
 
-/* v3 jest wariantem DO TESTÓW nowych funkcji, nie trzecim równorzędnym
-   kandydatem — stąd znacznik. Wygląd samego kafelka zostaje identyczny,
-   żeby nie sugerować wyboru przy porównywaniu v1 i v2. */
+/* Plakietka mówi, CZYM jest wariant — nie zmienia wyglądu samego kafelka.
+   Bursztynowa: wariant testowy. Zielona: ten, który polecamy. */
 .fw-znacznik{
   font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
   background:var(--amber-l);color:var(--fill-t);border:1px solid var(--amber-d);
-  border-radius:20px;padding:1px 8px;margin-left:6px;vertical-align:2px;
+  border-radius:20px;padding:1px 8px;
+  /* Nazwa CYKLICZNE-PRZEDSZKOLE nie mieści się w jednej linii na telefonie
+     i bez tego rozpychała kafelek w bok razem z całą stroną. */
+  max-width:100%;white-space:normal;
+}
+.fw-znacznik-ok{
+  background:var(--ok-l);color:var(--ok-t);border-color:var(--ok);
 }
 
 .fw-nota{

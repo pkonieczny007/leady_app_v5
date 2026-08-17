@@ -135,7 +135,12 @@ DNI_TYG = ["poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"]
 #   DT          — dzień technologiczny (pokazowy) w szkole
 #   START       — pierwsze zajęcia nowej grupy cyklicznej (inauguracja), termin jednorazowy
 #   CYKLICZNE   — zajęcia powtarzalne (reguła: dzień tygodnia + godziny + co ile tygodni)
-TYP_EVENTU = ["DT", "START", "CYKLICZNE", "JEDNORAZÓWKA", "FESTYN", "VR"]
+# CYKLICZNE-PRZEDSZKOLE to NIE jest ozdobnik do rozróżniania w raportach —
+# przedszkola umawiają pakiet konkretnych dat, a szkoły regułę „co wtorek do
+# odwołania". To dwa różne sposoby planowania i koordynatorka musi je odróżniać
+# w kalendarzu, zanim zadzwoni z zastępstwem.
+TYP_EVENTU = ["DT", "START", "CYKLICZNE", "CYKLICZNE-PRZEDSZKOLE",
+              "JEDNORAZÓWKA", "FESTYN", "VR"]
 
 SPRZET = ["01. Sala komputerowa", "02. Nasze laptopy", "03. Chromebooki"]
 
@@ -349,6 +354,9 @@ ALIASY = {
     },
     "typ_eventu": {
         "cykliczne": "CYKLICZNE",
+        "cykliczne-przedszkole": "CYKLICZNE-PRZEDSZKOLE",
+        "cykliczne przedszkole": "CYKLICZNE-PRZEDSZKOLE",
+        "przedszkole": "CYKLICZNE-PRZEDSZKOLE",
         "start": "START",
         "dt": "DT",
         "jednorazówka": "JEDNORAZÓWKA",

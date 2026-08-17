@@ -34,19 +34,37 @@
   <p class="fw-kto-stale">Wypełnia: <b>{{ handlowiec }}</b></p>
   {% endif %}
 
+  {# Każdy kafelek ma DOKŁADNIE tę samą wysokość, ramkę i czcionkę — także ten
+     z plakietką. Gdy jeden wariant wyglądał inaczej (wersaliki w v1, wyższy
+     kafelek v3), czytało się to jak podpowiedź „ten jest ważniejszy", a wybór
+     ma wynikać z opisu pod spodem, nie z wyglądu przycisku. #}
   <nav class="fw-linki">
     <a class="fw-link" href="{{ url_for('formularz_kroki') }}"
-       data-cel="{{ url_for('formularz_kroki') }}">FORMULARZ v1</a>
+       data-cel="{{ url_for('formularz_kroki') }}">
+      <span class="fw-link-nazwa">Formularz v1</span>
+    </a>
     <a class="fw-link" href="{{ url_for('formularz_ciagly') }}"
-       data-cel="{{ url_for('formularz_ciagly') }}">Formularz v2</a>
-    <a class="fw-link fw-link-nowy" href="{{ url_for('formularz_v3') }}"
-       data-cel="{{ url_for('formularz_v3') }}">Formularz v3 <span class="fw-znacznik">nowe</span></a>
+       data-cel="{{ url_for('formularz_ciagly') }}">
+      <span class="fw-link-nazwa">Formularz v2</span>
+    </a>
+    <a class="fw-link" href="{{ url_for('formularz_v3') }}"
+       data-cel="{{ url_for('formularz_v3') }}">
+      <span class="fw-link-nazwa">Formularz v3</span>
+      <span class="fw-znacznik fw-znacznik-ok">Rekomendowany</span>
+    </a>
+    <a class="fw-link" href="{{ url_for('formularz_cykliczne') }}"
+       data-cel="{{ url_for('formularz_cykliczne') }}">
+      <span class="fw-link-nazwa">Formularz CYKLICZNE</span>
+      <span class="fw-znacznik">testowy: CYKLICZNE-PRZEDSZKOLE</span>
+    </a>
   </nav>
 
   <p class="fw-nota">
     Wszystkie zapisują tak samo — różni je tylko sposób wypełniania.
     <br>v1: krok po kroku · v2: wszystko na jednym ekranie (wg makiety z 06.08)
     <br>v3: jak v2, ale widać, kto jest wolny, kto ma kolizję i co się dzieje tego dnia
+    <br>CYKLICZNE: jak v3, ale zajęcia powtarzalne można umówić na konkretne daty
+    (pakiet „5 zajęć"), a nie tylko regułą „co wtorek"
   </p>
 </div>
 {% endblock %}
