@@ -546,6 +546,47 @@ def _chipy_grafiku(args):
     return ch
 
 
+# --------------------------------------------------------- filtr typu w kalendarzu
+#
+# JEDNO źródło dla adresu i dla listy na ekranie. Wcześniej lista pozycji siedziała
+# w szablonie, a rozpoznawanie wartości w tej funkcji — dołożenie typu wymagało
+# pamiętania o obu miejscach, a rozjechanie się ich znaczyło pozycję na liście,
+# która nic nie filtruje (albo wręcz odwrotnie: filtruje na pusto).
+#
+# Rozdzielamy PRZECINKIEM, nie plusem. W adresie `+` to zakodowana spacja, więc
+# `typ=DT+CYKLICZNE` wpisane z palca albo wklejone z notatki przyszłoby jako
+# „DT CYKLICZNE" i cicho wpadło w gałąź „nieznana wartość" — czyli filtr
+# przestawałby działać dokładnie wtedy, gdy ktoś podaje link dalej.
+#
+# Kolejność: najpierw wszystko, potem pojedyncze typy, na końcu pary. Lista,
+# w której pary i pojedyncze wartości się przeplatają, wymaga czytania całej,
+# żeby znaleźć swoją pozycję.
+FILTRY_TYPU = [
+    ("",                         "— wszystko —",                 None),
+    ("DT",                       "tylko DT",                     ("DT",)),
+    ("CYKLICZNE",                "tylko CYKLICZNE",              ("CYKLICZNE",)),
+    ("CYKLICZNE-PRZEDSZKOLE",    "tylko CYKLICZNE-PRZEDSZKOLE",  ("CYKLICZNE-PRZEDSZKOLE",)),
+    ("DT,CYKLICZNE",             "DT i CYKLICZNE",               ("DT", "CYKLICZNE")),
+    ("DT,CYKLICZNE-PRZEDSZKOLE", "DT i CYKLICZNE-PRZEDSZKOLE",   ("DT", "CYKLICZNE-PRZEDSZKOLE")),
+]
+FILTRY_TYPU_MAPA = {klucz: typy for klucz, _, typy in FILTRY_TYPU}
+
+
+def _typy_kalendarza(args):
+    """
+    (klucz filtra, lista typów albo None) z parametru `typ`.
+
+    Wartość spoza listy traktujemy jak „wszystko" — stara zakładka z czasów,
+    gdy `CYKLICZNE` znaczyło oba warianty cyklu, ma dalej otwierać kalendarz,
+    a nie pusty ekran.
+    """
+    klucz = (args.get("typ") or "").strip()
+    if klucz not in FILTRY_TYPU_MAPA:
+        klucz = ""
+    typy = FILTRY_TYPU_MAPA[klucz]
+    return klucz, (list(typy) if typy else None)
+
+
 @app.route("/kalendarz")
 def kalendarz():
     conn = get_conn()
@@ -564,15 +605,7 @@ def kalendarz():
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
-    typ = request.args.get("typ", "")          # '' | DT | CYKLICZNE | CYKLICZNE-PRZEDSZKOLE
-    # „cykliczne" bez dopisku znaczy OBA warianty — koordynatorka szukająca zajęć
-    # cyklicznych chce zobaczyć wszystkie, a nie tylko szkolne.
-    if typ == "CYKLICZNE":
-        typy = list(TYPY_CYKLICZNE)
-    elif typ in ("DT",) + TYPY_CYKLICZNE:
-        typy = [typ]
-    else:
-        typy = None
+    typ, typy = _typy_kalendarza(request.args)
     ch = _chipy_grafiku(request.args)
 
     if widok == "agenda":
@@ -590,6 +623,7 @@ def kalendarz():
     ctx = {
         "cal": cal, "widok": widok, "month": month, "miesiace": miesiace,
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
+        "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
         "today": dzis(), "dzien": dzien,

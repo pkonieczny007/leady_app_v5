@@ -476,6 +476,66 @@ def main():
     sprawdz("wiersz jest oznaczony flagą, nie samą nazwą",
             any(w.get("brak_trenera") for t in mx["tygodnie"] for w in t["wiersze"]))
 
+    # =================================================================
+    # S18 — „chcę zobaczyć DT razem z przedszkolami, ale bez cykli szkolnych"
+    #
+    # Filtr typu miał trzy pozycje i jedna z nich kłamała: „— DT i cykliczne —"
+    # pokazywało WSZYSTKO, łącznie z festynami i wpisami VR. Po dołożeniu
+    # wariantu przedszkolnego doszła potrzeba par (DT + jeden rodzaj cyklu),
+    # bo koordynatorka planuje osobno szkoły i osobno przedszkola.
+    print("\nS18 — filtr typu w kalendarzu: sześć pozycji, każda dosłowna")
+    conn = db.get_conn()
+    pid = conn.execute("INSERT INTO placowki (nazwa, miejscowosc) VALUES (?,?)",
+                       ("Placówka S18", "Gliwice")).lastrowid
+    lid = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)", (pid,)).lastrowid
+    for typ, data in (("DT", "2027-03-02"), ("CYKLICZNE", "2027-03-03"),
+                      ("CYKLICZNE-PRZEDSZKOLE", "2027-03-04"), ("FESTYN", "2027-03-05")):
+        eid = conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener) "
+                           "VALUES (?,?,?,?,?)",
+                           (lid, typ, data, "09:00", "01. Nowak")).lastrowid
+        if typ == "CYKLICZNE-PRZEDSZKOLE":
+            # pakiet jednodniowy — żeby cykl nie rozwinął się na kolejne miesiące
+            conn.execute("INSERT INTO terminy_cyklu (event_id, nr, data) VALUES (?,1,?)",
+                         (eid, data))
+    conn.commit()
+
+    def typy_widoczne(klucz):
+        _, typy = A._typy_kalendarza({"typ": klucz})
+        return sorted({e["typ"] for e in cv.events_for_month(conn, "2027-03", typy=typy)})
+
+    sprawdz("„wszystko” pokazuje też festyn (nazwa nie kłamie)",
+            typy_widoczne("") == ["CYKLICZNE", "CYKLICZNE-PRZEDSZKOLE", "DT", "FESTYN"])
+    sprawdz("tylko DT", typy_widoczne("DT") == ["DT"])
+    # Do 17.08 „CYKLICZNE" znaczyło OBA warianty cyklu. Rozdzielone na prośbę
+    # klienta: szkoły i przedszkola planuje się osobno.
+    sprawdz("tylko CYKLICZNE — bez przedszkoli",
+            typy_widoczne("CYKLICZNE") == ["CYKLICZNE"])
+    sprawdz("tylko CYKLICZNE-PRZEDSZKOLE",
+            typy_widoczne("CYKLICZNE-PRZEDSZKOLE") == ["CYKLICZNE-PRZEDSZKOLE"])
+    sprawdz("DT i CYKLICZNE", typy_widoczne("DT,CYKLICZNE") == ["CYKLICZNE", "DT"])
+    sprawdz("DT i CYKLICZNE-PRZEDSZKOLE",
+            typy_widoczne("DT,CYKLICZNE-PRZEDSZKOLE") == ["CYKLICZNE-PRZEDSZKOLE", "DT"])
+    conn.close()
+
+    # Wartość spoza listy ma otworzyć kalendarz, a nie pusty ekran — stara
+    # zakładka z czasów, gdy filtr miał inne wartości, dalej ma działać.
+    sprawdz("nieznana wartość filtra = wszystko",
+            A._typy_kalendarza({"typ": "COKOLWIEK"}) == ("", None))
+    # W adresie `+` to zakodowana spacja. Gdyby pary rozdzielał plus, link
+    # wklejony z notatki przychodziłby jako „DT CYKLICZNE" i cicho przestawał
+    # filtrować — dlatego rozdziela przecinek.
+    sprawdz("pary rozdziela przecinek, nie plus",
+            all("+" not in k for k in A.FILTRY_TYPU_MAPA))
+
+    r = KL.get("/kalendarz?m=2027-03")
+    html = r.get_data(as_text=True)
+    sprawdz("kalendarz z nowym filtrem otwiera się", r.status_code == 200)
+    sprawdz("wszystkie sześć pozycji jest na liście",
+            all(etykieta in html for _, etykieta, _ in A.FILTRY_TYPU))
+    sprawdz("wybrana pozycja zostaje zaznaczona po przeładowaniu",
+            'value="DT,CYKLICZNE" selected'
+            in KL.get("/kalendarz?m=2027-03&typ=DT,CYKLICZNE").get_data(as_text=True))
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

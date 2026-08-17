@@ -114,14 +114,13 @@
          title="Skocz do tygodnia z tą datą"
          onchange="this.name='d'; this.form.submit()">
 
+  {# Pozycje przychodzą z `FILTRY_TYPU` w app.py — tam siedzi też rozpoznawanie
+     wartości z adresu. Wpisane tutaj z palca rozjeżdżały się z tamtą listą przy
+     pierwszym nowym typie, a rozjazd znaczy pozycję, która nic nie filtruje. #}
   <select class="input input-auto" name="typ" onchange="this.form.submit()">
-    <option value="">— DT i cykliczne —</option>
-    <option value="DT"{{ ' selected' if typ == 'DT' else '' }}>tylko DT</option>
-    {# „tylko cykliczne" znaczy OBA warianty — koordynatorka szukająca zajęć
-       cyklicznych chce zobaczyć wszystkie. Osobna pozycja niżej wyławia same
-       przedszkola, bo tam planuje się pakietami i rozliczenie idzie inaczej. #}
-    <option value="CYKLICZNE"{{ ' selected' if typ == 'CYKLICZNE' else '' }}>tylko cykliczne</option>
-    <option value="CYKLICZNE-PRZEDSZKOLE"{{ ' selected' if typ == 'CYKLICZNE-PRZEDSZKOLE' else '' }}>tylko przedszkola</option>
+    {% for wartosc, etykieta in filtry_typu %}
+    <option value="{{ wartosc }}"{{ ' selected' if typ == wartosc else '' }}>{{ etykieta }}</option>
+    {% endfor %}
   </select>
 
   {# Listy „— wszyscy trenerzy —" już tu nie ma. Działała TYLKO w widoku Agenda,

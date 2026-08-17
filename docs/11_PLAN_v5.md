@@ -619,7 +619,7 @@ zweryfikowane 08.08:
 # G. Gałąź `CYKLICZNE-PRZEDSZKOLE` — zajęcia cykliczne na konkretne daty (17.08)
 
 **Stan: gotowe do klikania, NIE scalone z `main`.** Wszystkie testy przechodzą
-(9 plików Pythona + `node test_cykl.js`); `test_formularz` ma 167 sprawdzeń.
+(9 plików Pythona + `node test_cykl.js`); `test_formularz` ma 167 sprawdzeń, `test_scenariusze` 104.
 
 ## Problem
 
@@ -675,6 +675,33 @@ event DT i status leada NIE skacze na „03. DT umówione"** — inaczej lista
 „umówione DT" liczyłaby szkoły, w których nikt DT nie umawiał, a to jest miara
 pracy handlowców. Zapis z wyłączonym DT i pustą sekcją cykliczną jest blokowany:
 bez tego „Zapisz" nie tworzyłby żadnego spotkania i wyglądałby na zepsuty.
+
+## Filtr typu w kalendarzu — sześć pozycji zamiast trzech
+
+| wartość w adresie | pozycja na liście |
+|---|---|
+| *(pusta)* | `— wszystko —` |
+| `DT` | tylko DT |
+| `CYKLICZNE` | tylko CYKLICZNE |
+| `CYKLICZNE-PRZEDSZKOLE` | tylko CYKLICZNE-PRZEDSZKOLE |
+| `DT,CYKLICZNE` | DT i CYKLICZNE |
+| `DT,CYKLICZNE-PRZEDSZKOLE` | DT i CYKLICZNE-PRZEDSZKOLE |
+
+**Stara pozycja „— DT i cykliczne —" kłamała**: pokazywała wszystko, łącznie
+z festynami i wpisami VR. Nowa nazywa się `— wszystko —` i tym właśnie jest.
+
+**`CYKLICZNE` znaczy teraz WYŁĄCZNIE cykl szkolny** (przez dwa dni znaczyło oba
+warianty). Rozdzielone, bo szkoły i przedszkola planuje się osobno.
+
+**Pary rozdziela PRZECINEK, nie plus.** W adresie `+` to zakodowana spacja, więc
+`typ=DT+CYKLICZNE` wklejone z notatki przyszłoby jako „DT CYKLICZNE" i cicho
+wpadło w gałąź „nieznana wartość" — filtr przestawałby działać dokładnie wtedy,
+gdy ktoś podaje link dalej. Wartość spoza listy = `wszystko`, żeby stara
+zakładka otwierała kalendarz, a nie pusty ekran.
+
+Lista pozycji i rozpoznawanie wartości z adresu siedzą w JEDNYM miejscu
+(`FILTRY_TYPU` w `app.py`); wcześniej lista była w szablonie, a rozpoznawanie
+w routingu — rozjazd znaczyłby pozycję, która nic nie filtruje.
 
 ## Decyzje, których nie widać z kodu
 
