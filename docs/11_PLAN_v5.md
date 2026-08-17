@@ -619,7 +619,7 @@ zweryfikowane 08.08:
 # G. Gałąź `CYKLICZNE-PRZEDSZKOLE` — zajęcia cykliczne na konkretne daty (17.08)
 
 **Stan: gotowe do klikania, NIE scalone z `main`.** Wszystkie testy przechodzą
-(9 plików Pythona + `node test_cykl.js`).
+(9 plików Pythona + `node test_cykl.js`); `test_formularz` ma 167 sprawdzeń.
 
 ## Problem
 
@@ -657,6 +657,24 @@ Każdą wolno poprawić kalendarzem, a wtedy:
 Bez tego rozróżnienia poprawka jednej daty albo rozwalała resztę pakietu, albo
 kazała ręcznie poprawiać wszystkie kolejne. Dzień tygodnia niesie dokładnie tę
 informację, więc zgadywanie jest tanie i trafne.
+
+## Dzień Technologii da się wyłączyć
+
+Przełącznik **„umawiamy"** w nagłówku sekcji DT (domyślnie włączony — najczęstsza
+ścieżka to nadal „DT, a po nim cykl", i ona ma być bez dodatkowego kliknięcia).
+
+Powód: zajęcia cykliczne umawia się **często bez świeżego DT** — albo już był
+i siedzi w bazie, albo placówka wchodzi w cykl bez dnia pokazowego. Formularz
+wymagał daty, godziny, prowadzącego, liczby klas i liczby dzieci, więc żeby
+zapisać sam pakiet, trzeba było **wymyślić DT**. Wymyślony DT trafia na grafik
+trenera i ktoś na niego pojedzie.
+
+Przy wyłączonym DT nie idzie ani blok `dt`, ani pytanie o wiadomość do rodziców
+(dotyczy zapowiedzi dnia pokazowego). Skutek dla danych: **nie powstaje żaden
+event DT i status leada NIE skacze na „03. DT umówione"** — inaczej lista
+„umówione DT" liczyłaby szkoły, w których nikt DT nie umawiał, a to jest miara
+pracy handlowców. Zapis z wyłączonym DT i pustą sekcją cykliczną jest blokowany:
+bez tego „Zapisz" nie tworzyłby żadnego spotkania i wyglądałby na zepsuty.
 
 ## Decyzje, których nie widać z kodu
 

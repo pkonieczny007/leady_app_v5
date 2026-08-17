@@ -8,6 +8,7 @@ Działa na WŁASNEJ, tymczasowej bazie (nie rusza żadnego profilu z `data/`).
 import datetime as dt
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -695,6 +696,56 @@ def main():
     pazdz = [e for e in cv.events_for_month(conn, "2026-10", typy=["CYKLICZNE"])
              if e["lead_id"] == l_regula]
     sprawdz("reguła nadal ciągnie się w kolejne miesiące", len(pazdz) >= 4)
+    conn.close()
+
+    # ============================== FD — zajęcia cykliczne BEZ Dnia Technologii
+    #
+    # Cykl umawia się często bez świeżego DT: albo już był (i siedzi w bazie),
+    # albo placówka wchodzi w cykl bez dnia pokazowego. Zapis samego pakietu
+    # nie ma tworzyć zmyślonego DT — wymyślony DT ląduje na grafiku trenera
+    # i ktoś na niego pojedzie.
+    print("\nFD — pakiet zajęć bez Dnia Technologii")
+    html = KL.get("/formularz/cykliczne").get_data(as_text=True)
+    sprawdz("formularz ma wyłącznik DT", 'id="f4-dt-wl"' in html)
+    sprawdz("wyłącznik domyślnie włączony",
+            re.search(r'id="f4-dt-wl"[^>]*checked', html) is not None)
+    sprawdz("wyłączona sekcja tłumaczy, co się stanie", 'id="f4-dt-brak"' in html)
+
+    conn = db.get_conn()
+    l_bezdt = conn.execute("INSERT INTO leady (placowka_id, status_realizacji) "
+                           "VALUES (?,?)", (pid, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+    conn.close()
+
+    # tak wygląda żądanie z wyłączonym DT: bloku `dt` po prostu nie ma
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_bezdt,
+        "cykle": "01. Tak",
+        "cykl": {"typ": "CYKLICZNE-PRZEDSZKOLE", "godz_od": "09:00",
+                 "terminy": [{"data": "2026-09-07"}, {"data": "2026-09-14"},
+                             {"data": "2026-09-21"}]}})
+    sprawdz("zapis bez bloku DT przechodzi", kod == 200)
+    sprawdz("powstały same zajęcia cykliczne",
+            bool(j) and len(j["eventy"]) == 1 and j["eventy"][0]["terminy"] == 3)
+
+    conn = db.get_conn()
+    sprawdz("NIE powstało żadne DT",
+            conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=? AND typ='DT'",
+                         (l_bezdt,)).fetchone()["c"] == 0)
+    # Status „03. DT umówione" ustawia się WYŁĄCZNIE przy tworzeniu DT. Gdyby
+    # skakał też przy samym cyklu, lista „umówione DT" liczyłaby szkoły,
+    # w których nikt DT nie umawiał — a to jest miara pracy handlowców.
+    st = conn.execute("SELECT status_realizacji, dt FROM leady WHERE id=?",
+                      (l_bezdt,)).fetchone()
+    sprawdz("status leada nie skoczył na „DT umówione”",
+            not (st["status_realizacji"] or "").startswith("03. DT"))
+    sprawdz("znacznik DT leada nietknięty", not st["dt"])
+    conn.close()
+
+    # Kalendarz ma pokazać zajęcia mimo braku DT — to jest cały sens zapisu.
+    conn = db.get_conn()
+    wrzesien = [e for e in cv.events_for_month(conn, "2026-09") if e["lead_id"] == l_bezdt]
+    sprawdz("zajęcia bez DT są widoczne w kalendarzu", len(wrzesien) == 3)
     conn.close()
 
     ok = sum(1 for _, w, _ in WYNIKI if w)

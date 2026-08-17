@@ -713,6 +713,38 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
     if (zmienione) rysujTerminy();
   });
 
+  /* ============================================= WYŁĄCZNIK DNIA TECHNOLOGII
+
+     Zajęcia cykliczne umawia się często bez świeżego DT: albo już był, albo
+     placówka wchodzi w cykl bez dnia pokazowego. Bez tego wyłącznika zapisanie
+     samego pakietu wymagało WYMYŚLENIA daty, godziny i prowadzącego DT —
+     a wymyślony DT ląduje na grafiku trenera i ktoś na niego pojedzie.
+     ========================================================================= */
+
+  var elDtWl = $("f4-dt-wl");
+  var elDtTresc = $("f4-dt-tresc");
+  var elDtBrak = $("f4-dt-brak");
+
+  function czyDT() {
+    return elDtWl.checked;
+  }
+
+  function pokazDT() {
+    var wl = czyDT();
+    elDtTresc.hidden = !wl;
+    elDtBrak.hidden = wl;
+    $("f4-sekcja-dt").classList.toggle("f2-sekcja-wylaczona", !wl);
+    if (!wl) {
+      // Błędy z pól, których już nie widać, zostałyby na ekranie na zawsze —
+      // z czerwoną obwódką pod schowaną sekcją i licznikiem „uzupełnij 5 pól".
+      elDtTresc.querySelectorAll(".f2-blad").forEach(function (e) { e.remove(); });
+      elDtTresc.querySelectorAll(".zly").forEach(function (e) { e.classList.remove("zly"); });
+    }
+    zapiszSzkic();
+  }
+
+  elDtWl.addEventListener("change", pokazDT);
+
   /* ------------------------------------------- przełączanie typu i sposobu */
 
   function wybranyTyp() {
@@ -786,16 +818,29 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
       else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
     }
-    [["f2-dt-data", "Podaj datę DT."],
-     ["f2-dt-od", "Podaj godzinę DT."],
-     ["f2-dt-trener", "Wybierz prowadzącego DT."],
-     ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-     ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-     ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-      .forEach(function (p) {
-        var el = $(p[0]);
-        if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-      });
+    // Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
+    // przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
+    if (czyDT()) {
+      [["f2-dt-data", "Podaj datę DT."],
+       ["f2-dt-od", "Podaj godzinę DT."],
+       ["f2-dt-trener", "Wybierz prowadzącego DT."],
+       ["f2-dt-klas", "Podaj liczbę klas 1–4."],
+       ["f2-dt-dzieci", "Podaj liczbę dzieci."],
+       ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
+        .forEach(function (p) {
+          var el = $(p[0]);
+          if (!String(el.value || "").trim()) braki.push([el, p[1]]);
+        });
+    } else if (!zbierzCykl()) {
+      // DT wyłączony I pusta sekcja cykliczna = zapis, po którym nie powstaje
+      // ŻADNE spotkanie. Przycisk mruga, ekran sukcesu pokazuje samą szkołę
+      // i wygląda to jak zgubiony formularz. Mówimy wprost, czego brakuje.
+      var cel = wybranyTryb() === "daty" ? $("f4-start") : $("f2-cykl-dzien");
+      braki.push([cel, "Bez Dnia Technologii trzeba ustalić zajęcia cykliczne — " +
+                       (wybranyTryb() === "daty"
+                         ? "podaj datę pierwszych zajęć."
+                         : "wybierz dzień tygodnia.")]);
+    }
 
     braki.forEach(function (b) { bladPola(b[0], b[1]); });
     if (braki.length) {
@@ -806,9 +851,18 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       return false;
     }
     // Data w przeszłości to OSTRZEŻENIE, nie blokada — czasem wpisuje się
-    // ustalenia po fakcie.
-    if ($("f2-dt-data").value < root.dataset.dzis) {
+    // ustalenia po fakcie. Przy wyłączonym DT pole jest puste, a pusty tekst
+    // jest „mniejszy" od dzisiejszej daty — bez tego warunku ostrzeżenie
+    // wyskakiwałoby za każdym razem, gdy DT pomijamy.
+    if (czyDT() && $("f2-dt-data").value < root.dataset.dzis) {
       toast("Uwaga: data DT jest w przeszłości — zapisuję tak, jak wpisałeś.");
+    }
+    // Pierwsze zajęcia PRZED Dniem Technologii to prawie zawsze pomyłka
+    // (cykl otwiera się po dniu pokazowym), ale bywa świadome przy szkole,
+    // która już nas zna — więc ostrzegamy, nie blokujemy.
+    if (czyDT() && stan.terminy.length && $("f2-dt-data").value &&
+        stan.terminy[0].data && stan.terminy[0].data < $("f2-dt-data").value) {
+      toast("Uwaga: pierwsze zajęcia cykliczne wypadają przed DT.");
     }
     return true;
   }
@@ -832,18 +886,24 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       telefon: $("f2-telefon").value.trim(),
       mail: $("f2-mail").value.trim()
     };
-    d.mail_rodzice = $("f2-mail-rodzice").value;
     d.cykle = $("f2-cykle").value;
-    d.dt = {
-      data: $("f2-dt-data").value,
-      godz_od: $("f2-dt-od").value,
-      godz_do: $("f2-dt-do").value,
-      trener: selTrener.value,
-      numer_sali: $("f2-dt-sala").value.trim(),
-      ilosc_klas: $("f2-dt-klas").value,
-      ilosc_dzieci: $("f2-dt-dzieci").value,
-      uwagi: $("f2-dt-uwagi").value.trim()
-    };
+    // Przy wyłączonym DT nie wysyłamy ANI bloku `dt`, ani pytania o wiadomość
+    // do rodziców — to pole dotyczy zapowiedzi dnia pokazowego. Serwer
+    // pomijający pusty blok nie utworzy spotkania i nie ruszy statusu leada
+    // na „03. DT umówione".
+    if (czyDT()) {
+      d.mail_rodzice = $("f2-mail-rodzice").value;
+      d.dt = {
+        data: $("f2-dt-data").value,
+        godz_od: $("f2-dt-od").value,
+        godz_do: $("f2-dt-do").value,
+        trener: selTrener.value,
+        numer_sali: $("f2-dt-sala").value.trim(),
+        ilosc_klas: $("f2-dt-klas").value,
+        ilosc_dzieci: $("f2-dt-dzieci").value,
+        uwagi: $("f2-dt-uwagi").value.trim()
+      };
+    }
     d.cykl = zbierzCykl();
     return d;
   }
@@ -924,8 +984,10 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       .forEach(function (el) { el.hidden = true; });
     $("f2-szkic").hidden = true;
     $("f2-sukces-tytul").textContent = "Zapisano: " + j.placowka;
-    var tresc = "DT " + $("f2-dt-data").value + " o " + $("f2-dt-od").value +
-      (selTrener.value ? ", prowadzi " + selTrener.value : "") + ".";
+    var tresc = czyDT()
+      ? ("DT " + $("f2-dt-data").value + " o " + $("f2-dt-od").value +
+         (selTrener.value ? ", prowadzi " + selTrener.value : "") + ".")
+      : "Bez Dnia Technologii — zapisane same zajęcia cykliczne.";
     // Ile terminów naprawdę wylądowało w bazie — z odpowiedzi serwera, nie
     // z tego, co widać na ekranie. Serwer odsiewa daty puste i zdublowane,
     // więc liczba z formularza potrafi być większa niż zapisana.
@@ -979,6 +1041,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
           // uszkodzony właśnie w tej części, dla której ten wariant powstał.
           typCyklu: wybranyTyp(),
           trybCyklu: wybranyTryb(),
+          dtWlaczony: czyDT(),
           terminy: stan.terminy
         }));
         var t = new Date();
@@ -1027,6 +1090,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
     stan.terminy = Array.isArray(s.terminy) ? s.terminy : [];
     ustawTryb(s.trybCyklu === "daty" ? "daty" : "regula");
     rysujTerminy();
+    // Szkice sprzed tej wersji nie mają tego pola — wtedy DT zostaje włączony,
+    // czyli tak, jak było w chwili zapisywania szkicu.
+    if (s.dtWlaczony === false) { elDtWl.checked = false; pokazDT(); }
     if (selMiasto.value) {
       wczytajSzkoly(selMiasto.value, function () {
         if (s.placowka_id && indeks[s.placowka_id]) {
@@ -1077,5 +1143,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
   FxAwaria.pilnujZakonczenia($("f2-zakoncz"), czyCosWpisane);
 
   pokazTryb();
+  pokazDT();
   if (stan.handlowiec) wczytajSzkic();
 })();

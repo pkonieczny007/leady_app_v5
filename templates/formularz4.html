@@ -171,8 +171,21 @@
     </div>
   </section>
 
-  {# =================================================== DZIEŃ TECHNOLOGII #}
-  <section class="f2-sekcja">
+  {# =================================================== DZIEŃ TECHNOLOGII
+
+     DT DA SIĘ WYŁĄCZYĆ — tylko w tym wariancie formularza.
+
+     Powód jest wprost z dziedziny: zajęcia cykliczne umawia się CZĘSTO bez
+     świeżego DT. Albo DT już był (a wtedy jest w bazie i wpisanie go drugi raz
+     tworzy zmyślone spotkanie w kalendarzu), albo placówka wchodzi w cykl bez
+     dnia pokazowego. Do tej pory formularz wymagał daty, godziny, prowadzącego,
+     liczby klas i liczby dzieci — czyli żeby zapisać sam pakiet zajęć, trzeba
+     było wymyślić DT. Wymyślony DT trafia na grafik trenera i ktoś na niego
+     pojedzie.
+
+     Domyślnie WŁĄCZONY. Najczęstsza ścieżka to nadal „DT plus cykl po nim"
+     i to ona ma być bez dodatkowego kliknięcia. #}
+  <section class="f2-sekcja" id="f4-sekcja-dt">
     <h2 class="f2-tytul">
       <span class="f2-ikona">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -180,7 +193,20 @@
         </svg>
       </span>
       Dzień Technologii
+      <label class="f4-wlacznik">
+        <input type="checkbox" id="f4-dt-wl" checked>
+        <span>umawiamy</span>
+      </label>
     </h2>
+
+    {# Wyłączona sekcja mówi, CO SIĘ STANIE — pusty obszar po zniknięciu pól
+       wygląda jak usterka, a nie jak decyzja. #}
+    <p class="f4-wylaczone" id="f4-dt-brak" hidden>
+      Dzień Technologii pominięty — zapiszemy sam pakiet zajęć cyklicznych.
+      Jeśli DT już się odbył, zostaje ten wpisany wcześniej; nowy się nie tworzy.
+    </p>
+
+    <div id="f4-dt-tresc">
 
     <div class="f2-siatka f2-siatka-4">
       <div class="f2-pole-grupa">
@@ -258,6 +284,8 @@
         {% for v in slowniki.tak_nie %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
       </select>
     </div>
+
+    </div>{# /f4-dt-tresc #}
   </section>
 
   {# =================================================== ZAJĘCIA CYKLICZNE #}
