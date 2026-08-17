@@ -10,7 +10,8 @@ z której korzysta i ekran, i eksporter.
 import datetime as dt
 
 import filtry
-from db import STATUS_SUKCES_PREFIX, STATUS_ODPADL_PREFIX, pl_fold
+from db import (STATUS_SUKCES_PREFIX, STATUS_ODPADL_PREFIX, pl_fold,
+                SQL_TYPY_CYKLICZNE)
 
 # Pola, po których wolno sortować — biała lista, bo nazwa kolumny wchodzi do SQL.
 SORT_POLA = {
@@ -58,10 +59,11 @@ SELECT l.*,
           WHERE e.lead_id = l.id AND e.typ='DT' ORDER BY e.data LIMIT 1
        ) AS dt_dzieci,
        (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='DT') AS n_dt,
-       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='CYKLICZNE') AS n_cykl
+       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id
+          AND e.typ IN (%(cykl)s)) AS n_cykl
 FROM leady l
 JOIN placowki p ON p.id = l.placowka_id
-"""
+""" % {"cykl": SQL_TYPY_CYKLICZNE}
 
 
 # ------------------------------------------------------------------ FILTR OSÓB
@@ -203,7 +205,7 @@ def _warunki(f, dzis):
         p.append(STATUS_SUKCES_PREFIX + "%")
     elif z == "cykle":
         w.append("(SELECT COUNT(*) FROM eventy e WHERE e.lead_id=l.id "
-                 "AND e.typ='CYKLICZNE') > 0")
+                 "AND e.typ IN (%s)) > 0" % SQL_TYPY_CYKLICZNE)
     elif z == "pin":
         w.append("l.pin_tydzien IS NOT NULL AND l.pin_tydzien <> ''")
     return w, p
@@ -270,6 +272,16 @@ def lead_szczegoly(conn, lead_id):
     lead["eventy"] = [dict(r) for r in conn.execute(
         "SELECT * FROM eventy WHERE lead_id=? ORDER BY typ, data, godz_od",
         (lead_id,)).fetchall()]
+    # Terminy pakietu (przedszkola). Bez tego karta szkoły pokazywałaby jedną
+    # datę — pierwszą — a pozostałe cztery istniałyby wyłącznie w kalendarzu.
+    # Koordynatorka dzwoniąca w sprawie zastępstwa otwiera właśnie kartę.
+    for e in lead["eventy"]:
+        try:
+            e["terminy"] = [dict(r) for r in conn.execute(
+                "SELECT nr, data, godz_od, godz_do FROM terminy_cyklu "
+                "WHERE event_id=? ORDER BY data", (e["id"],)).fetchall()]
+        except Exception:
+            e["terminy"] = []
     lead["log"] = [dict(r) for r in conn.execute(
         "SELECT * FROM log WHERE lead_id=? ORDER BY kiedy DESC LIMIT 40",
         (lead_id,)).fetchall()]
@@ -295,7 +307,8 @@ def metryki(conn, dzis=None):
                          "AND (status_realizacji IS NULL OR status_realizacji NOT LIKE ?)",
                          (dzis, STATUS_SUKCES_PREFIX + "%")),
         "eventy_dt": q("SELECT COUNT(*) FROM eventy WHERE typ='DT'"),
-        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ='CYKLICZNE'"),
+        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ IN (%s)"
+                         % SQL_TYPY_CYKLICZNE),
     }
 
 

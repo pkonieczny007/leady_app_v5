@@ -17,7 +17,7 @@
 #}
 
 {% macro kafel(e, kolor) %}
-<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ == 'CYKLICZNE' }}"
+<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}"
      style="--ev-color:{{ kolor or '#9b9797' }}"
      title="{{ e.placowka }} · {{ e.miejscowosc|bez_prefiksu }}{{ ' · ' ~ e.adres if e.adres }}
 {{ e.typ }}{{ ' ' ~ e.godz_od if e.godz_od }}{{ '–' ~ e.godz_do if e.godz_do }}
@@ -29,7 +29,7 @@
   {% if e.ilosc_klas or e.ilosc_dzieci %}
   <span class="ev-meta nums">{{ e.ilosc_klas ~ ' klas' if e.ilosc_klas }}{{ ' · ' if e.ilosc_klas and e.ilosc_dzieci }}{{ e.ilosc_dzieci ~ ' dz.' if e.ilosc_dzieci }}</span>
   {% endif %}
-  {% if e.typ == 'CYKLICZNE' and e['_cykl_nr'] %}<span class="ev-nr">cykl #{{ e['_cykl_nr'] }}</span>{% endif %}
+  {% if e.typ in TYPY_CYKLICZNE and e['_cykl_nr'] %}<span class="ev-nr">cykl #{{ e['_cykl_nr'] }}</span>{% endif %}
   {% if e.kolizja %}<span class="tag tag-solid-2 ev-kol">kolizja</span>{% endif %}
   {# Szukana osoba jest tu, ale NIE jako prowadząca — czyli wpis siedzi w cudzym
      wierszu. Bez tego podpisu wygląda na pomyłkę filtra („czemu Olszewska
@@ -117,7 +117,11 @@
   <select class="input input-auto" name="typ" onchange="this.form.submit()">
     <option value="">— DT i cykliczne —</option>
     <option value="DT"{{ ' selected' if typ == 'DT' else '' }}>tylko DT</option>
+    {# „tylko cykliczne" znaczy OBA warianty — koordynatorka szukająca zajęć
+       cyklicznych chce zobaczyć wszystkie. Osobna pozycja niżej wyławia same
+       przedszkola, bo tam planuje się pakietami i rozliczenie idzie inaczej. #}
     <option value="CYKLICZNE"{{ ' selected' if typ == 'CYKLICZNE' else '' }}>tylko cykliczne</option>
+    <option value="CYKLICZNE-PRZEDSZKOLE"{{ ' selected' if typ == 'CYKLICZNE-PRZEDSZKOLE' else '' }}>tylko przedszkola</option>
   </select>
 
   {# Listy „— wszyscy trenerzy —" już tu nie ma. Działała TYLKO w widoku Agenda,
@@ -234,7 +238,7 @@
           <a class="strong" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka }}</a>
           <span class="muted small">· {{ e.miejscowosc|bez_prefiksu }}{% if e.numer_sali %} · sala {{ e.numer_sali }}{% endif %}
             {%- if e.ilosc_klas %} · {{ e.ilosc_klas }} klas{% endif %}</span>
-          {% if e.typ == 'CYKLICZNE' %}<span class="tag tag-accent">cykl{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>{% endif %}
+          {% if e.typ in TYPY_CYKLICZNE %}<span class="tag tag-accent">cykl{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>{% endif %}
           {% if e.kolizja %}<span class="tag tag-solid-2">kolizja</span>{% endif %}
           {% if e['_rola'] %}<span class="tag tag-rola">{{ e['_rola'] }}</span>{% endif %}
           <span class="agenda-trener">{{ e.trener|bez_prefiksu or '— brak trenera —' }}</span>

@@ -613,3 +613,77 @@ zweryfikowane 08.08:
   z wyszukiwarki rspo.gov.pl wgrywane istniejącym importem; **B** (po dostępie
   do API, ~1 dzień pracy) — `narzedzia/rspo.py`, przycisk „Odśwież z RSPO"
   z raportem nowych/zmienionych/zniknięć, flaga „objęta działaniem".
+
+---
+
+# G. Gałąź `CYKLICZNE-PRZEDSZKOLE` — zajęcia cykliczne na konkretne daty (17.08)
+
+**Stan: gotowe do klikania, NIE scalone z `main`.** Wszystkie testy przechodzą
+(9 plików Pythona + `node test_cykl.js`).
+
+## Problem
+
+Cykl dawało się zapisać jednym sposobem: dzień tygodnia + godzina, czyli regułą
+„co wtorek, od pierwszych zajęć, w nieskończoność". Dla szkoły to prawda —
+grupa rusza i idzie do czerwca. **Dla przedszkola nie**: tam umawia się PAKIET
+(np. pięć spotkań), a daty wypadają jak wypadają, bo w międzyczasie są ferie,
+bal karnawałowy i wyjazd grupy. Wpisanie tego regułą znaczyło albo kłamstwo
+w kalendarzu (zajęcia ciągnące się przez 40 tygodni), albo pięć osobnych wpisów
+bez wspólnej tożsamości — a wtedy zmiana prowadzącego to pięć edycji.
+
+## Co doszło
+
+| | |
+|---|---|
+| ekran | `/formularz/cykliczne` — cały v3 plus przebudowana sekcja cykliczna |
+| typ wpisu | nowy `CYKLICZNE-PRZEDSZKOLE` obok `CYKLICZNE` |
+| tabela | `terminy_cyklu` (event_id, nr, data, godz_od, godz_do) |
+| wybór na ekranie | rodzaj zajęć **i** sposób ustalania terminów (reguła / konkretne daty) |
+
+Wybór rodzaju **ustawia domyślny sposób, ale go nie zabiera**: przedszkole
+zaczyna od dat, szkoła od reguły. Zabranie wyboru zmusiłoby przedszkole
+z prawdziwym „co wtorek do czerwca" do wyklikania trzydziestu dat.
+
+## Zasada przeliczania propozycji
+
+Po wpisaniu startu (np. wtorek 18.08) i ilości (5) aplikacja proponuje daty.
+Każdą wolno poprawić kalendarzem, a wtedy:
+
+| zmiana | co się dzieje | dlaczego |
+|---|---|---|
+| na **ten sam** dzień tygodnia (25.08 → 1.09) | kolejne terminy **przeliczone** | przesunął się cały cykl — „zacznijmy tydzień później" |
+| na **inny** dzień tygodnia (25.08 → 26.08) | kolejne **bez zmian** | wyjątek na jedno spotkanie — „w ten wtorek mamy przedstawienie" |
+
+Bez tego rozróżnienia poprawka jednej daty albo rozwalała resztę pakietu, albo
+kazała ręcznie poprawiać wszystkie kolejne. Dzień tygodnia niesie dokładnie tę
+informację, więc zgadywanie jest tanie i trafne.
+
+## Decyzje, których nie widać z kodu
+
+**Jeden event = jedna grupa, terminy w osobnej tabeli.** Pięć eventów typu
+CYKLICZNE kalendarz rozwinąłby jako pięć niezależnych reguł — 200 zajęć zamiast
+5. Pięć wpisów jednorazowych zgubiłoby wspólnotę grupy.
+
+**`eventy.data` to nadal PIERWSZY termin.** Na tej kolumnie stoją sortowania,
+statystyki i warunek `WHERE e.data IS NOT NULL` w kalendarzu. Pakiet bez niej
+byłby wpisem bez daty — czyli niewidocznym.
+
+**Brak wierszy w `terminy_cyklu` = obowiązuje stara reguła.** Wszystko, co już
+jest w bazie, działa bez migracji; nowa tabela dochodzi przez `CREATE TABLE
+IF NOT EXISTS` przy starcie.
+
+**Warunek „to jest cykl" ma JEDNO źródło** (`db.TYPY_CYKLICZNE`). Rozjechanie
+się choćby jednego z pięciu miejsc, które go sprawdzają (kalendarz, repo,
+szablony, formularz), dałoby wpis siedzący w bazie i niewidoczny w kalendarzu —
+dokładnie usterka, która kosztowała pół dnia 10.08.
+
+**Serwer odsiewa daty puste i zdublowane**, a ekran sukcesu podaje liczbę
+terminów **z odpowiedzi serwera**, nie z formularza — inaczej „zapisano 5"
+mogłoby znaczyć 4 w bazie.
+
+## Do rozstrzygnięcia z klientem
+
+- czy przedszkola mają mieć **własny status realizacji** (dziś dzielą
+  „03b. Grupa cykliczna otwarta" ze szkołami),
+- czy pakiet ma się **rozliczać** (5 z 5 odbytych) — dziś to tylko terminy,
+- czy po wyczerpaniu pakietu aplikacja ma **przypominać o przedłużeniu**.

@@ -64,9 +64,9 @@
   {% if lead.eventy %}
   <div class="eventy">
     {% for e in lead.eventy %}
-    <div class="card event-card{{ ' is-cykl' if e.typ == 'CYKLICZNE' }}" data-event="{{ e.id }}">
+    <div class="card event-card{{ ' is-cykl' if e.typ in TYPY_CYKLICZNE }}" data-event="{{ e.id }}">
       <div class="event-head">
-        {% if e.typ == 'CYKLICZNE' %}<span class="tag tag-accent">CYKLICZNE</span>
+        {% if e.typ in TYPY_CYKLICZNE %}<span class="tag tag-accent">{{ e.typ }}</span>
         {% else %}<span class="tag tag-solid-2">DT</span>{% endif %}
         <span class="strong nums">{{ e.data|pl_data or 'bez daty' }}</span>
         <span class="nums muted">{{ e.godz_od or '' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
@@ -88,6 +88,22 @@
         </div>
         {% endfor %}
       </div>
+      {# Pakiet konkretnych terminów — przedszkola umawiają N spotkań zamiast
+         reguły „co wtorek". Data w nagłówku karty to PIERWSZE zajęcia; bez tej
+         listy reszta pakietu byłaby widoczna wyłącznie w kalendarzu. #}
+      {% if e.terminy %}
+      <div class="event-terminy">
+        <span class="kv-l">Terminy pakietu ({{ e.terminy|length }})</span>
+        <ol class="terminy-lista">
+          {% for t in e.terminy %}
+          <li{{ ' class=minelo'|safe if t.data < today else '' }}>
+            <span class="nums">{{ t.data|pl_data }}</span>
+            <span class="nums muted">{{ t.godz_od or '' }}{{ '–' ~ t.godz_do if t.godz_do }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
       {% if e.link_tinkercad %}
       <div class="start-foot">
         {% if e.kod_tinkercad %}<span class="start-kod">{{ e.kod_tinkercad }}</span>{% endif %}
