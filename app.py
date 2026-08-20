@@ -102,6 +102,60 @@ def _wolno_edytowac_dostepnosc(trener):
     return False                       # handlowiec: tylko podgląd
 
 
+# Pola, których handlowiec nie rusza NIGDY — nawet na własnym leadzie.
+# `handlowiec` to przypisanie szkoły, a to robi koordynator (ustalenie z 08.08:
+# „przypisuje wyłącznie koordynator"). `deadline` to dzień, po którym szkoła
+# wraca do puli. Zostawione do swobodnej edycji znaczyły, że handlowiec sam
+# sobie przypisuje cudzą szkołę i sam sobie przedłuża termin — a w historii
+# zmian wygląda to jak zwykła praca na rekordzie, więc nikt tego nie wyłapie.
+POLA_TYLKO_KOORDYNATOR = {"handlowiec", "deadline"}
+
+
+def _wolno_pisac_do_leada(conn, lead_id):
+    """
+    Czy zalogowany może ZAPISAĆ coś na tym leadzie.
+    Zwraca `None`, gdy wolno, albo parę (komunikat, kod HTTP).
+
+    Zgłoszenie Kasi z 20.08: „Zablokuj PH możliwość edycji danych innego PH, bo
+    teraz mogą zmienić dosłownie wszystko". Blokada w interfejsie owszem była —
+    i to jest dokładnie ten poziom, który niczego nie blokuje, bo zapis idzie
+    zwykłym `fetch`, a adres leada widać w pasku przeglądarki.
+
+    PODGLĄD cudzych rekordów zostaje. Kasia chce widzieć, kto miał szkołę
+    wcześniej i co z nią zrobił — odbieramy zapis, nie widok.
+
+    Szkoła niczyja też jest zablokowana: „chcę wziąć tę szkołę" wypadło
+    z zakresu 08.08, bo przydziela wyłącznie koordynator.
+    """
+    u = uz.zalogowany()
+    if not u:
+        return ("Sesja wygasła — zaloguj się ponownie", 401)
+    if u["rola"] != "handlowiec":
+        return None                    # koordynator; trener tu nie dojdzie
+    row = conn.execute("SELECT handlowiec FROM leady WHERE id=?", (lead_id,)).fetchone()
+    if not row:
+        return ("Nie ma takiego leada", 404)
+    wlasciciel = (row["handlowiec"] or "").strip()
+    if not wlasciciel:
+        return ("Ta szkoła nie jest jeszcze przypisana — przydziela koordynator", 403)
+    if wlasciciel != u["osoba"]:
+        return ("Tę szkołę prowadzi %s. Zmiany na cudzej szkole robi koordynator."
+                % wlasciciel, 403)
+    return None
+
+
+def _wolno_pisac_do_eventu(conn, event_id):
+    """To samo co wyżej, tylko wejściem jest wpis w kalendarzu.
+
+    Osobno, bo bez tego handlowiec mógł skasować cudze DT jednym żądaniem —
+    endpoint kasujący istnieje od dawna, tylko nie było go w menu.
+    """
+    row = conn.execute("SELECT lead_id FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not row:
+        return ("Nie ma takiego wpisu", 404)
+    return _wolno_pisac_do_leada(conn, row["lead_id"])
+
+
 def _po_zalogowaniu(rola):
     """Dokąd trafia człowiek zaraz po zalogowaniu — tam, gdzie ma pracować."""
     if rola == "handlowiec":
@@ -726,6 +780,16 @@ def api_lead_update(lead_id):
     field, value = d.get("field"), d.get("value")
     conn = get_conn()
 
+    # Właściciel PRZED walidacją pola: cudzego rekordu nie komentujemy nawet
+    # komunikatem o błędnej wartości — to też jest informacja o cudzych danych.
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    if field in POLA_TYLKO_KOORDYNATOR and (uz.zalogowany() or {}).get("rola") != "koordynator":
+        conn.close()
+        return jsonify(ok=False, error="Przypisanie szkoły i termin zwrotu "
+                                       "ustala koordynator"), 403
+
     # pola placówki edytujemy z tego samego widoku — rozpoznajemy po nazwie
     if field in PLACOWKA_KEYS:
         value, blad = _walidacja(conn, field, value, PLACOWKA_SLOWNIKI, PLACOWKA_KEYS)
@@ -880,6 +944,11 @@ def api_pin():
     lead_id = d.get("id")
     wlacz = bool(d.get("pin"))
     conn = get_conn()
+    # Plan tygodnia jest własny, ale zapis idzie do wspólnego rekordu — bez tego
+    # handlowiec przypinał sobie cudzą szkołę i zostawiał na niej ślad w historii.
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
     val = poniedzialek() if wlacz else None
     conn.execute("UPDATE leady SET pin_tydzien=?, updated_at=datetime('now') WHERE id=?",
                  (val, lead_id))
@@ -896,6 +965,12 @@ def api_lead_create():
     d = request.get_json(silent=True) or {}
     nazwa = (d.get("nazwa") or "").strip() or "(nowa placówka)"
     conn = get_conn()
+    # Właściciel z SESJI, nie z ciała żądania. Ta zasada obowiązuje w całym
+    # projekcie (formularz tak robi od początku), ale ten endpoint ją omijał:
+    # dało się utworzyć szkołę od razu podpisaną cudzym nazwiskiem.
+    ja = uz.zalogowany() or {}
+    if ja.get("rola") == "handlowiec":
+        d["handlowiec"] = ja["osoba"]
     # Wymuszamy słownik TAK SAMO jak przy edycji — inaczej tworzeniem nowego leada
     # dałoby się wprowadzić wartość spoza listy i bałagan wróciłby tą furtką.
     for pole, mapa in (("typ", PLACOWKA_SLOWNIKI), ("miejscowosc", PLACOWKA_SLOWNIKI),
@@ -943,6 +1018,9 @@ def api_event_create():
     conn = get_conn()
     if not conn.execute("SELECT 1 FROM leady WHERE id=?", (lead_id,)).fetchone():
         conn.close(); return jsonify(ok=False, error="Nie ma takiego leada"), 404
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
 
     dane = {"typ": d.get("typ") or "DT"}
     for k in EVENT_KEYS:
@@ -978,6 +1056,9 @@ def api_event_update(event_id):
     d = request.get_json(force=True)
     field, value = d.get("field"), d.get("value")
     conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
     value, blad = _walidacja(conn, field, value, EVENT_SLOWNIKI, EVENT_KEYS)
     if blad:
         conn.close(); return jsonify(ok=False, error=blad), 400
@@ -997,6 +1078,9 @@ def api_event_update(event_id):
 @app.route("/api/event/<int:event_id>", methods=["DELETE"])
 def api_event_delete(event_id):
     conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
     row = conn.execute("SELECT lead_id FROM eventy WHERE id=?", (event_id,)).fetchone()
     conn.execute("DELETE FROM eventy WHERE id=?", (event_id,))
     if row:
