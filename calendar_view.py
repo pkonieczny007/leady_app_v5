@@ -359,6 +359,23 @@ def available_months(conn):
 BEZ_TRENERA = "— bez prowadzącego —"
 
 
+def tylko_bez_obsady(evs):
+    """
+    Zajęcia, przy których nie ma nikogo prowadzącego (P24, pytanie Zuzi 20.08:
+    „czy można już wyszukiwać bez prowadzącego?").
+
+    Osobno od filtra na chipach, bo tamten szuka WPISANEGO TEKSTU w polach —
+    a „nikogo tu nie ma" to brak wartości, którego żadnym fragmentem tekstu nie
+    da się wyrazić. Licznik w nagłówku pokazywał te zajęcia od 10.08, ale nie
+    dało się do nich dojść inaczej niż przewijając cały miesiąc.
+
+    Liczy się WYŁĄCZNIE `trener`, czyli ten, kto prowadzi. Drugi prowadzący,
+    zastępstwo i drukarz to obsada dodatkowa — zajęcia z samym drukarzem dalej
+    nie mają kto poprowadzić.
+    """
+    return [e for e in evs if not str(e.get("trener") or "").strip()]
+
+
 def roster_trenerow(conn, evs):
     """
     Wiersze macierzy: pełna lista trenerów ze słownika (żeby widać było też wolnych —
@@ -374,7 +391,7 @@ def roster_trenerow(conn, evs):
 # ------------------------------------------------------------------ widok MACIERZ
 
 def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
-                 chipy=(), tryb="lub"):
+                 chipy=(), tryb="lub", bez_obsady=False):
     """
     Bloki tygodniowe jeden pod drugim; każdy blok to tabela trenerzy × dni.
     Tak jak w ich arkuszu, tylko że bloki są POD sobą, a nie obok siebie
@@ -392,9 +409,11 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
     evs = events_for_month(conn, month, typy=typy)
     kolizje = find_collisions(evs)
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
     # przy czynnym filtrze puste wiersze tylko przeszkadzają: skoro pytam „gdzie
     # jest Zemela", nie chcę oglądać 34 pustych wierszy pozostałych trenerów
-    if chipy and any(not c.get("wylaczony") for c in chipy):
+    if bez_obsady or (chipy and any(not c.get("wylaczony") for c in chipy)):
         tylko_zajete = True
     komorki = {}
     for e in evs:
@@ -441,11 +460,14 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
 
 # ------------------------------------------------------------------ widok AGENDA
 
-def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
+def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub",
+                 bez_obsady=False):
     """Dzień po dniu; w dniu spotkania posortowane po godzinie. Puste dni pomijamy."""
     evs = events_for_month(conn, month, typy=typy)
     kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
 
     po_dniach = {}
     for e in evs:
@@ -475,7 +497,7 @@ def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
 
 # ------------------------------------------------------------------ widok STARTY
 
-def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
+def build_starty(conn, month, weekend=False, chipy=(), tryb="lub", bez_obsady=False):
     """
     Plansza całej firmy — odwzorowanie zakładki „STARTY <MIESIĄC>".
     Tygodnie jeden pod drugim, w tygodniu kolumny pon–pt, w kolumnie karty zajęć.
@@ -488,6 +510,8 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
     evs = events_for_month(conn, month)
     kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
     kolory = trener_colors(conn)
     po_dniach = {}
     for e in evs:

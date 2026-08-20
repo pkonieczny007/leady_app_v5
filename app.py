@@ -687,24 +687,32 @@ def kalendarz():
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
+    # P24 (pytanie Zuzi 20.08): „czy można już wyszukiwać bez prowadzącego?".
+    # Osobny przełącznik, a nie chip — chipy szukają wpisanego tekstu w polach,
+    # a tu chodzi o BRAK wartości, którego żadnym fragmentem nie da się wpisać.
+    bez_obsady = request.args.get("bez_obsady") == "1"
     typ, typy = _typy_kalendarza(request.args)
     ch = _chipy_grafiku(request.args)
 
     if widok == "agenda":
         cal = cv.build_agenda(conn, month, weekend=True, typy=typy,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady)
     elif widok == "starty":
         cal = cv.build_starty(conn, month, weekend=weekend,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady)
     else:
         widok = "macierz"
         cal = cv.build_matrix(conn, month, weekend=weekend,
                               tylko_zajete=tylko_zajete, typy=typy,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady)
 
     ctx = {
         "cal": cal, "widok": widok, "month": month, "miesiace": miesiace,
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
+        "bez_obsady": bez_obsady,
         "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),

@@ -67,7 +67,18 @@
     <span class="muted small nums">
       {{ cal.n_events }} spotkań ·
       <b class="alert">{{ cal.n_kolizji }} w kolizji</b>
-      {% if cal.n_bez_trenera %} · <b class="uwaga">{{ cal.n_bez_trenera }} bez prowadzącego</b>{% endif %}
+      {# Licznik jest KLIKALNY (P24). Od 10.08 mówił, ile zajęć nie ma kto
+         poprowadzić, ale nie dało się do nich dojść inaczej niż przewijając
+         cały miesiąc — a to jest lista rzeczy do obsadzenia, czyli robota. #}
+      {% if cal.n_bez_trenera %} · <a class="uwaga"
+         href="{{ url_for('kalendarz', widok=widok, m=month, d=dzien or none, typ=typ or none,
+                          osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
+                          weekend='1' if weekend else none,
+                          zajete='1' if tylko_zajete else '0',
+                          bez_obsady=none if bez_obsady else '1') }}"
+         title="{{ 'Pokaż z powrotem wszystkie zajęcia' if bez_obsady
+                   else 'Pokaż tylko zajęcia bez prowadzącego' }}"><b>{{ cal.n_bez_trenera }}
+         bez prowadzącego</b>{{ ' ✕' if bez_obsady else ' →' }}</a>{% endif %}
       {% if cal.n_bez_godziny %} · {{ cal.n_bez_godziny }} bez godziny{% endif %}
     </span>
     <div class="seg">
@@ -77,7 +88,8 @@
       <a class="seg-opt {{ 'on' if widok == k }}"
          href="{{ url_for('kalendarz', widok=k, m=month, d=dzien or none, typ=typ or none,
                           osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
-                          weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0') }}">{{ ikona }} {{ nazwa }}</a>
+                          weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0',
+                          bez_obsady='1' if bez_obsady else none) }}">{{ ikona }} {{ nazwa }}</a>
       {% endfor %}
     </div>
   </div>
@@ -132,6 +144,13 @@
     {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
   <label class="check"><input type="checkbox" name="zajete" value="1"
     {{ 'checked' if tylko_zajete }} onchange="this.form.submit()"> tylko zajęci trenerzy</label>
+  {# P24. Osobny przełącznik, a nie chip: chipy szukają WPISANEGO TEKSTU
+     w polach wpisu, a „nie ma prowadzącego" to brak wartości — nie da się go
+     wpisać żadnym fragmentem. #}
+  <label class="check"><input type="checkbox" name="bez_obsady" value="1"
+    {{ 'checked' if bez_obsady }} onchange="this.form.submit()"
+    title="Zajęcia, przy których nie ma jeszcze nikogo prowadzącego">
+    bez prowadzącego</label>
 
   <span class="filters-right">
     <span class="muted small">{{ cal.month_label }}</span>

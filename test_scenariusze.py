@@ -577,6 +577,50 @@ def main():
         with KL.session_transaction() as s:
             s.pop("miesiac", None)
 
+    # --- P24: filtr „bez prowadzącego" (pytanie Zuzi 20.08) -----------------
+    #
+    # „czy można już wyszukiwać bez prowadzącego?" — do 20.08 nie. Licznik
+    # w nagłówku pokazywał, ile takich zajęć jest, ale nie dało się do nich
+    # dojść: filtr na chipach szuka WPISANEGO TEKSTU, a brak prowadzącego to
+    # brak wartości, którego żadnym fragmentem nie da się wpisać.
+    print("\n-- P24: filtr „bez prowadzącego” --")
+    sprawdz("sam filtr: zostają tylko wpisy bez prowadzącego",
+            [e["id"] for e in cv.tylko_bez_obsady(
+                [{"id": 1, "trener": "13. Cebula"}, {"id": 2, "trener": ""},
+                 {"id": 3, "trener": None}, {"id": 4, "trener": "   "}])] == [2, 3, 4])
+    sprawdz("drukarz nie zastępuje prowadzącego",
+            len(cv.tylko_bez_obsady([{"trener": "", "drukarz": "04. Zemela"}])) == 1)
+
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES "
+                       "('SP WOLNA do obsadzenia', 'test')")
+    l_wolna = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)",
+                           (cur.lastrowid,)).lastrowid
+    cur = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES "
+                       "('SP OBSADZONA przez trenera', 'test')")
+    l_obsadzona = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)",
+                               (cur.lastrowid,)).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-11-04', '09:00')", (l_wolna,))
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener) "
+                 "VALUES (?, 'DT', '2026-11-05', '09:00', '13. Cebula')", (l_obsadzona,))
+    conn.commit()
+    conn.close()
+
+    for widok in ("macierz", "agenda", "starty"):
+        r = KL.get("/kalendarz?m=2026-11&widok=%s&bez_obsady=1" % widok)
+        html = r.get_data(as_text=True)
+        sprawdz("%s: zostaje szkoła bez prowadzącego" % widok,
+                "SP WOLNA do obsadzenia" in html, "kod %s" % r.status_code)
+        sprawdz("%s: znika szkoła z prowadzącym" % widok,
+                "SP OBSADZONA przez trenera" not in html)
+
+    r = KL.get("/kalendarz?m=2026-11&widok=agenda")
+    html = r.get_data(as_text=True)
+    sprawdz("bez filtra widać obie", "SP WOLNA do obsadzenia" in html
+            and "SP OBSADZONA przez trenera" in html)
+    sprawdz("licznik braków prowadzi do filtra", "bez_obsady=1" in html)
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]
