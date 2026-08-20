@@ -23,7 +23,13 @@ to, co ustalono na tamtym spotkaniu.
 **Termin twardy: wtorek 11.08.2026** — handlowcy mają wtedy zacząć realnie
 pracować na aplikacji. Poprawki dokładamy w biegu.
 
-Repozytorium: `github.com/pkonieczny007/leady_app_v5` (prywatne).
+Repozytorium: `github.com/pkonieczny007/leady_app_v5` — **publiczne**. Decyzja
+z 20.08: na czas rundy poprawek zostaje otwarte, bo tak sprawniej się pracuje;
+prywatne będzie później. Ma to skutek techniczny, o którym łatwo zapomnieć: VPS
+nie ma żadnych poświadczeń do GitHuba, więc `git pull` działa tam **wyłącznie
+dlatego, że repo jest otwarte**. Przełączenie na prywatne położy `wdroz.sh`
+w obu katalogach na serwerze, dopóki nie założymy klucza wdrożeniowego
+(read-only) i nie przestawimy remote na SSH.
 Repo `leady_app_v4` zawiera przez pomyłkę także pracę z v5 — użytkownik świadomie
 zdecydował to zostawić. Punktem odniesienia dla „wersji ze spotkania" jest tag
 `v4.0-spotkanie` w repo v5.
