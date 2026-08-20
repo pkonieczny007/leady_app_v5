@@ -13,14 +13,14 @@ Aktualizować przy każdym domknięciu paczki.
 | | |
 |---|---|
 | Gałąź robocza | `poprawki-2026-08`, wypchnięta na origin |
-| Ostatni commit gałęzi | `459ee88` (przed P08) |
+| Ostatni commit gałęzi | `3aa24b0` (P08 zrobione) |
 | `main` | `b6cf84f` — kod produkcji + dokumentacja + `narzedzia/odswiez_demo.sh` |
 | Punkt powrotu | tag `przed-poprawkami-2026-08-20` (na `b6cf84f`), wypchnięty |
 | **Produkcja** | `6a3e181` — **NIETKNIĘTA**, żadna poprawka tam nie poszła |
 | Demo | osobny katalog, zasiane kopią produkcji (545 placówek / 544 leady) |
-| Testy | **836 sprawdzeń w Pythonie + 17 w node**, komplet przechodzi |
+| Testy | **861 sprawdzeń w Pythonie + 17 w node**, komplet przechodzi |
 
-### Zrobione na gałęzi (9 poprawek)
+### Zrobione na gałęzi (10 poprawek)
 
 | ID | Co | Commit |
 |---|---|---|
@@ -32,6 +32,7 @@ Aktualizować przy każdym domknięciu paczki.
 | P24 | filtr „bez prowadzącego" w kalendarzu | `e8fe068` |
 | P23 | zrobiona szkoła schodzi z planu dnia | `68029c6` |
 | P22 | formularz przyjmuje wizytę bez terminu DT | `cc2c306` |
+| P08 | odwołanie DT ze śladem wprost z grafiku | `3aa24b0` |
 
 Szczegóły i uzasadnienia — w treści commitów. Rejestr stanu:
 `REJESTR_POPRAWEK_2026-08.md`. Projekt całości: `PROJEKT_PRAC_2026-08-20.md`.
@@ -144,7 +145,8 @@ i o konto wspólne dopytać (pytania 8 i 9).
 
 ## 5. Co dalej, w kolejności
 
-1. **P08 — odwołanie i usuwanie DT z kalendarza. W TRAKCIE.** Projekt niżej.
+1. ~~P08~~ — **ZROBIONE** (`3aa24b0`). Projekt i decyzje zostawione niżej jako
+   zapis tego, co zostało rozstrzygnięte i dlaczego.
 2. **P09** — sprzątnięcie DT „Paziewski" i innych wpisów z prezentacji 06.08;
    **najpierw lista do potwierdzenia przez Kasię**, potem usunięcie. Zależy od P08.
 3. **Paczka A na produkcję osobno** — P01+P02 to dziura w uprawnieniach, nie ma

@@ -68,7 +68,7 @@ trener sam mógł takie zajęcia wziąć — czeka na pytanie 1 do Kasi.
 
 | ID | K | Typ | Gdzie | Co robimy | Status | Test |
 |---|---|---|---|---|---|---|
-| P08 | K12 | kod | kalendarz | odwołanie DT ze śladem (powód, kto, kiedy); twarde kasowanie tylko koordynator | nowa | `test_scenariusze` |
+| P08 | K12 | kod | kalendarz + karta leada | odwołanie ze śladem wprost z kafla w grafiku; kasowanie bez śladu przeszło do koordynatora; odwołanie da się cofnąć | **zrobione** | `test_scenariusze` + `test_uprawnienia` — 26 sprawdzeń |
 | P09 | K18 | dane | produkcja | wpisy z prezentacji 06.08 (DT „Paziewski") — lista do potwierdzenia przez Kasię, potem usunięcie | nowa | — |
 | P10 | K13 | kod | grafik | **czeka na pytanie 1** — N wolnych miejsc na evencie zamiast jednego wiersza „bez prowadzącego" | czeka | `test_przydzial` |
 | P11 | K10 | kod | formularz + grafik | **czeka na pytanie 2** — prowadzący praktyki + praktykant, wpis u obu trenerów | czeka | `test_przydzial` |
@@ -81,6 +81,7 @@ trener sam mógł takie zajęcia wziąć — czeka na pytanie 1 do Kasi.
 | P13 | K05 | kod + dane | `placowki`, filtry | kolumna `powiat` + filtr na „Bazie", „Moich szkołach" i w formularzu | czeka | `test_scenariusze` |
 | P12 | K03 | dane | `rspo.py` | import brakujących gmin; **`Nr RSPO` pusty dla 545 rekordów** → dopasowanie po nazwie + mieście, raport do ręcznego przejrzenia | czeka | próba na demo, liczby przed/po |
 | P16 | K14 | kod | placówka | uwagi **trwałe przy placówce** (dziś `uwagi` są na leadzie i znikają przy zwrocie) + „ostatnio prowadził: X, zwrot: data" | czeka | `test_scenariusze` |
+| P26 | notatki Pawła | dane | baza | **wprowadzić listę przedszkoli.** W bazie jest 539 szkół podstawowych i 6 pozycji „Inna" — **ani jednego przedszkola**, choć firma prowadzi w nich zajęcia (jest nawet osobny wariant formularza dla przedszkoli). Wchodzi w zakres importu RSPO i mocno zmienia jego rozmiar, więc idzie razem z pytaniem 4 do Kasi | czeka | — |
 | ~~P15~~ | K06 | — | — | **ODPADA.** „Słowo w nawiasie" to `(twoje: 12)` doklejane przez JS do nazwy miasta, nie wartość w słowniku. Naprawione w P06, słownika miast nie ruszamy | **zamknięte** | — |
 
 ## Paczka E — konta i role
