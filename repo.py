@@ -317,9 +317,16 @@ def metryki(conn, dzis=None):
                          "AND deadline<>'' AND deadline<? "
                          "AND (status_realizacji IS NULL OR status_realizacji NOT LIKE ?)",
                          (dzis, STATUS_SUKCES_PREFIX + "%")),
-        "eventy_dt": q("SELECT COUNT(*) FROM eventy WHERE typ='DT'"),
-        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ IN (%s)"
+        # Odwołane spotkania NIE liczą się do kafelków na pulpicie — inaczej
+        # pulpit pokazywałby 61 DT, a kalendarz 58, i nikt by nie wiedział,
+        # która liczba kłamie (P08).
+        "eventy_dt": q("SELECT COUNT(*) FROM eventy WHERE typ='DT' "
+                       "AND (odwolane IS NULL OR odwolane='')"),
+        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ IN (%s) "
+                         "AND (odwolane IS NULL OR odwolane='')"
                          % SQL_TYPY_CYKLICZNE),
+        "eventy_odwolane": q("SELECT COUNT(*) FROM eventy "
+                             "WHERE odwolane IS NOT NULL AND odwolane<>''"),
     }
 
 

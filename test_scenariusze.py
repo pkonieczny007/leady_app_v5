@@ -667,6 +667,24 @@ def main():
     sprawdz("wpis został w bazie jako dowód", ile == 1)
     sprawdz("powód zapisany przy wpisie", "wycofała" in (powod or ""))
 
+    # Pulpit i kalendarz muszą mówić to samo. Licznik, który liczy odwołane,
+    # a grafik, który ich nie pokazuje, to dwie liczby i żadnej wiadomo, która
+    # kłamie — a to najgorszy rodzaj błędu w tym projekcie.
+    conn = db.get_conn()
+    m = repo.metryki(conn)
+    wszystkich_dt = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE typ='DT'").fetchone()["c"]
+    czynnych_dt = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE typ='DT' "
+        "AND (odwolane IS NULL OR odwolane='')").fetchone()["c"]
+    conn.close()
+    sprawdz("pulpit liczy tylko czynne DT, nie wszystkie wiersze",
+            m["eventy_dt"] == czynnych_dt and czynnych_dt < wszystkich_dt,
+            "pulpit %d, czynnych %d, w bazie %d" % (m["eventy_dt"], czynnych_dt,
+                                                    wszystkich_dt))
+    sprawdz("pulpit pokazuje odwołane osobno", m["eventy_odwolane"] >= 1,
+            "odwołanych: %s" % m["eventy_odwolane"])
+
     kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
     sprawdz("cofnięcie odwołania przechodzi", kod == 200)
     conn = db.get_conn()

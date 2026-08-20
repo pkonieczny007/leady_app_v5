@@ -44,7 +44,8 @@
   </a>
   <a class="metric" href="{{ url_for('kalendarz', m=month) }}">
     <div class="metric-n nums">{{ m.eventy_dt }}</div>
-    <div class="metric-l">spotkań DT<br><span class="muted">{{ m.eventy_cykl }} wpisów cyklicznych</span></div>
+    <div class="metric-l">spotkań DT<br><span class="muted">{{ m.eventy_cykl }} wpisów cyklicznych{% if m.eventy_odwolane %},
+      <b class="uwaga">{{ m.eventy_odwolane }} odwołanych</b>{% endif %}</span></div>
   </a>
   <a class="metric" href="{{ url_for('niewykorzystane') }}">
     <div class="metric-n nums">{{ m.niewykorzystane }}</div>
