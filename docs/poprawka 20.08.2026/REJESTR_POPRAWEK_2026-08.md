@@ -64,6 +64,52 @@ trzymałby szkołę na liście zadań w nieskończoność.
 P24 to pierwsza połowa K13: **widać już, co jest wolne**. Druga połowa — żeby
 trener sam mógł takie zajęcia wziąć — czeka na pytanie 1 do Kasi.
 
+## Lista Zuzi z 20.08 — mapowanie na rejestr
+
+Pełna lista w `ZUZIA_lista_błędów.md`. Dziesięć punktów, z czego **cztery są już
+zrobione**, cztery okazały się jednym problemem z kontem, a dwa są nowe.
+
+| Punkt Zuzi | Stan |
+|---|---|
+| 1. nie da się dodać szkoły bez umówionego DT + statusy pośrednie | **P22 zrobione**, ale brakuje 4 statusów — patrz P25 |
+| 2. nie da się zapisać bez kompletu danych DT (klasy, dzieci, godzina) | **P27 — NOWE, luka w P22** |
+| 3. przez 1 i 2 nie da się wprowadzić zeszłotygodniowej pracy | znika po P22 + P27 |
+| 4. brakuje szkół w mojej bazie (SP5 Piekary) | **P28 — NOWE, przyczyna znaleziona** |
+| 5. wykonana szkoła nie znika z listy zadań | **P23 zrobione** |
+| 6. brak możliwości usuwania leadów | **P29 — NOWE** |
+| 7. mogę edytować szkoły innych handlowców | **P01 zrobione** — ale patrz niżej |
+| 8. mogę przydzielać szkoły innym | **P02 zrobione** — ale patrz niżej |
+| 9. mogę odbierać szkoły innym | już było `TYLKO_KOORDYNATOR` — patrz niżej |
+| 10. mogę przedłużać terminy | już było `TYLKO_KOORDYNATOR` — patrz niżej |
+
+**Punkty 7–10 to jeden problem, i nie jest nim kod.** Przydzielanie, odbieranie
+i przedłużanie **od początku** były zamknięte dla handlowca (`TYLKO_KOORDYNATOR`).
+Skoro Zuzia to robi, znaczy, że **pracuje na koncie z uprawnieniami
+koordynatora** — najpewniej wspólnym koncie `Koordynator`, bo własnego nie ma
+wśród 50 kont. Wtedy P01 i P02 nic u niej nie zmienią, a w historii zmian
+zostaje „Koordynator" zamiast nazwiska. **To trzeba rozstrzygnąć z Kasią przed
+paczką kont** (P03, P17).
+
+| ID | Źródło | Typ | Gdzie | Co robimy | Status | Test |
+|---|---|---|---|---|---|---|
+| P27 | Zuzia p. 2 | kod | formularz | **Luka w P22.** Dziś reguła brzmi „jeśli tknąłeś DT, podaj komplet sześciu pól". Zuzia ma przypadek pośredni: szkoła chce DT, data znana, ale liczba klas, dzieci i godzina będą później. Komplet ma być wymagany dopiero przy statusie „umówione/potwierdzone", nie przy samym dotknięciu sekcji | **nowa — pilne** | `test_formularz` |
+| P28 | Zuzia p. 4 | dane | produkcja | **Przyczyna znaleziona:** placówka 532 „SP 5" ma `miejscowosc = NULL` — jedyna taka w bazie. Wybór szkoły idzie przez miasto, więc ta szkoła jest nieosiągalna z formularza i z „moich szkół". Uzupełnić miejscowość; przy okazji sprawdzić, czy import nie robi takich rekordów seryjnie | **nowa** | — |
+| P29 | Zuzia p. 6 | kod | karta leada | handlowiec nie może kasować leadów (i tak ma zostać), ale potrzebuje „zgłoś do usunięcia / oznacz jako błędny" — dubel, pomyłka, wpis do wyrzucenia. Dziś jedyne wyjście to prosić koordynatorkę mailem | **nowa** | `test_uprawnienia` |
+
+### P25 rośnie — brakujące statusy
+
+Zuzia wymienia osiem statusów pośrednich. W słowniku brakuje **czterech**:
+`ponowić kontakt`, `czekam na decyzję`, `ustalić cykle` oraz osobnego
+`brak próby` z listy Kasi.
+
+⚠️ **Pułapka semantyczna:** „brak kontaktu" **już istnieje**, ale jako
+`04. BRAK KONTAKTU ZE SZKOŁĄ`, a prefiks `04.` znaczy w tej aplikacji
+**odpadł** — lead z takim statusem wypada z „moich szkół" i z listy zadań.
+Zuzia chce tego jako stanu przejściowego („ponowić"), czyli **czegoś dokładnie
+odwrotnego**. Ustawiony bez uprzedzenia sprawi, że szkoła jej zniknie i uzna to
+za kolejny błąd. Do ustalenia z Kasią, zanim ktokolwiek dokłada wartości do
+słownika.
+
 ## Paczka C — kalendarz i obsada DT
 
 | ID | K | Typ | Gdzie | Co robimy | Status | Test |

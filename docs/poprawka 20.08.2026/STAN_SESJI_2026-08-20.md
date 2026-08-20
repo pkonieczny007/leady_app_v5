@@ -13,12 +13,12 @@ Aktualizować przy każdym domknięciu paczki.
 | | |
 |---|---|
 | Gałąź robocza | `poprawki-2026-08`, wypchnięta na origin |
-| Ostatni commit gałęzi | `3aa24b0` (P08 zrobione) |
+| Ostatni commit gałęzi | `387b535` (P08 + poprawka licznika na pulpicie) |
 | `main` | `b6cf84f` — kod produkcji + dokumentacja + `narzedzia/odswiez_demo.sh` |
 | Punkt powrotu | tag `przed-poprawkami-2026-08-20` (na `b6cf84f`), wypchnięty |
 | **Produkcja** | `6a3e181` — **NIETKNIĘTA**, żadna poprawka tam nie poszła |
 | Demo | osobny katalog, zasiane kopią produkcji (545 placówek / 544 leady) |
-| Testy | **861 sprawdzeń w Pythonie + 17 w node**, komplet przechodzi |
+| Testy | **863 sprawdzenia w Pythonie + 17 w node**, komplet przechodzi |
 
 ### Zrobione na gałęzi (10 poprawek)
 
@@ -97,6 +97,29 @@ celowo".
 karcie leada (`templates/lead.html`, obsługa w `static/app.js` ~307). Kasia ma
 rację co do miejsca, nie co do funkcji.
 
+**Zuzia pracuje na koncie z uprawnieniami koordynatora — i to tłumaczy cztery
+punkty z jej listy naraz.** Skarży się, że może przydzielać szkoły, odbierać je
+innym i przedłużać terminy. Wszystkie trzy rzeczy **od początku** były zamknięte
+dla handlowca (`TYLKO_KOORDYNATOR`). Skoro jej się udaje, nie jest handlowcem
+w rozumieniu aplikacji — a własnego konta nie ma wśród 50, więc najpewniej wchodzi
+na wspólne `Koordynator`. Skutek: P01 i P02 nic u niej nie zmienią, a w historii
+zmian zostaje „Koordynator" zamiast człowieka. **Rozstrzygnąć z Kasią przed
+paczką kont.**
+
+**P22 ma lukę i wie o niej tylko Zuzia (punkt 2 jej listy).** Zrobiona reguła
+brzmi: „tknąłeś sekcję DT — podaj komplet sześciu pól". Jej realny przypadek jest
+pośredni: szkoła chce DT, data znana, ale liczba klas, dzieci i godzina będą
+podane później. Dzisiejsza reguła to blokuje. Docelowo komplet ma być wymagany
+dopiero przy statusie „umówione/potwierdzone" (P27).
+
+**„Brak kontaktu" w słowniku znaczy coś innego, niż myśli Zuzia.** Istnieje jako
+`04. BRAK KONTAKTU ZE SZKOŁĄ`, a prefiks `04.` to w tej aplikacji **odpadł** —
+lead wypada z „moich szkół" i z listy zadań. Zuzia chce tego jako stanu
+przejściowego. Ustawiony bez uprzedzenia sprawi, że szkoła jej zniknie.
+
+**Placówka 532 „SP 5" nie ma miejscowości** (jedyna taka w bazie) — a wybór
+szkoły w formularzu idzie przez miasto. Stąd „brakuje szkół w mojej bazie".
+
 **`Nr RSPO` jest pusty dla WSZYSTKICH 545 placówek.** Import z rejestru nie ma po
 czym rozpoznać duplikatu — dopasowanie musi iść po nazwie i miejscowości,
 z raportem do ręcznego przejrzenia. To największe ryzyko paczki bazy.
@@ -147,7 +170,14 @@ i o konto wspólne dopytać (pytania 8 i 9).
 
 1. ~~P08~~ — **ZROBIONE** (`3aa24b0`). Projekt i decyzje zostawione niżej jako
    zapis tego, co zostało rozstrzygnięte i dlaczego.
-2. **P09** — sprzątnięcie DT „Paziewski" i innych wpisów z prezentacji 06.08;
+2. **P27 — pilne.** Luka w P22 znaleziona przez Zuzię: komplet danych DT ma być
+   wymagany dopiero przy statusie „umówione", a nie przy dotknięciu sekcji.
+   Bez tego Zuzia dalej nie wprowadzi zeszłotygodniowej pracy.
+3. **Filtr „odwołane" w kalendarzu** — zaproponowany, czeka na decyzję. Dziś
+   odwołane widać wyłącznie na karcie konkretnej szkoły; nie ma ich listy,
+   a to jest liczba potrzebna do raportu z K15.
+4. **P28** — placówka 532 „SP 5" bez miejscowości (jedno zapytanie na produkcji).
+5. **P09** — sprzątnięcie DT „Paziewski" i innych wpisów z prezentacji 06.08;
    **najpierw lista do potwierdzenia przez Kasię**, potem usunięcie. Zależy od P08.
 3. **Paczka A na produkcję osobno** — P01+P02 to dziura w uprawnieniach, nie ma
    powodu, żeby czekała na resztę listy. `git cherry-pick af345c3` na `main`,
