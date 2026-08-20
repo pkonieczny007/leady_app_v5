@@ -1487,6 +1487,7 @@ def _filtr_pin():
 
 def _pozycja_planu(r, moja):
     """Jedna szkoła na liście „Plan na dziś" — wspólna dla wszystkich wariantów."""
+    status = r["status_realizacji"] or ""
     return {
         "lead_id": r["id"], "placowka_id": r["placowka_id"],
         "nazwa": r["placowka"], "miejscowosc": r["miejscowosc"] or "",
@@ -1494,6 +1495,16 @@ def _pozycja_planu(r, moja):
         "osoba_kontakt": r["osoba_kontakt"] or "", "telefon": r["telefon"] or "",
         "mail": r["mail"] or "", "moja": moja,
         "deadline": r["deadline"] or "", "ma_dt": bool(r["dt_data"]),
+        "status": status,
+        # P23 (zgłoszenie Zuzi 20.08): „dodam jej że byłam i dt ustalone, to ona
+        # z tej listy nie znika, słabo bo nadal widzę że mam do zrobienia 12".
+        #
+        # Do 20.08 „zrobione" brało się WYŁĄCZNIE z datowanego wpisu DT. Kto
+        # domknął szkołę samym statusem na karcie leada — a formularz wymagał
+        # kompletu sześciu pól, więc zdarzało się to często — zostawał z nią na
+        # liście zadań na zawsze. Licznik „12 do zrobienia" liczył wtedy robotę
+        # już wykonaną, czyli kłamał w jedyną stronę, która boli.
+        "zrobione": bool(r["dt_data"]) or status.startswith(STATUS_SUKCES_PREFIX),
         "pin": bool(r["pin_tydzien"]), "wlasciciel": "",
     }
 

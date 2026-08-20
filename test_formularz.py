@@ -850,6 +850,77 @@ def main():
             blok_wyboru(zrodla["formularz2"]) == blok_wyboru(zrodla["formularz3"])
             == blok_wyboru(zrodla["formularz4"]))
 
+    # --- P23: szkoła schodzi z „Planu na dziś" (zgłoszenie Zuzi) -------------
+    #
+    # „dodam jej że byłam i dt ustalone to ona z tej listy nie znika, słabo bo
+    # nadal widzę ze mam do zrobienia 12 na ten tydzień" — Zuzia, 20.08.
+    #
+    # Do teraz „zrobione" brało się WYŁĄCZNIE z datowanego wpisu DT, więc szkoła
+    # domknięta samym statusem wisiała jako zadanie na zawsze, a licznik liczył
+    # robotę już wykonaną.
+    print("\n-- P23: co znika z listy zadań --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 200 zadanie', ?, 'test')", (M,))
+    l_zad = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, deadline, status_realizacji) "
+        "VALUES (?,?,?,?)",
+        (cur.lastrowid, H, "2026-12-01", "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+
+    def pozycja_planu(lead_id):
+        c2 = db.get_conn()
+        kontekst = A._kontekst_formularza(c2, H)
+        c2.close()
+        for p in kontekst["moje"]:
+            if p["lead_id"] == lead_id:
+                return p
+        return None
+
+    conn.close()
+    p = pozycja_planu(l_zad)
+    sprawdz("szkoła bez DT i bez sukcesu jest zadaniem",
+            p is not None and not p["zrobione"], str(p and p["zrobione"]))
+
+    # 1) domknięcie SAMYM STATUSEM, bez terminu DT — to jest sedno zgłoszenia
+    conn = db.get_conn()
+    conn.execute("UPDATE leady SET status_realizacji='03. DT umówione' WHERE id=?",
+                 (l_zad,))
+    conn.commit()
+    conn.close()
+    p = pozycja_planu(l_zad)
+    sprawdz("status sukcesu wystarczy, żeby zeszła z zadań",
+            p is not None and p["zrobione"])
+    sprawdz("ale nadal wiadomo, że nie ma terminu DT",
+            p is not None and not p["ma_dt"])
+
+    # 2) druga droga: datowane DT bez zmiany statusu
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 201 z terminem', ?, 'test')", (M,))
+    l_dt = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, deadline, status_realizacji) "
+        "VALUES (?,?,?,?)",
+        (cur.lastrowid, H, "2026-12-01", "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-12-15', '09:00')", (l_dt,))
+    conn.commit()
+    conn.close()
+    p = pozycja_planu(l_dt)
+    sprawdz("datowane DT też zdejmuje z zadań", p is not None and p["zrobione"])
+
+    plan = open("static/fx_plan.js", encoding="utf-8").read()
+    sprawdz("lista zadań pyta o `zrobione`, nie o sam termin DT",
+            "function zrobione(p)" in plan and "!zrobione(p)" in plan)
+    sprawdz("zrobiona szkoła bez DT nie kłamie napisem „DT umówione”",
+            "function opisZrobionego(p)" in plan)
+    sprawdz("jest wejście do odświeżenia listy bez przeładowania",
+            "window.FX_PLAN_ZROBIONE" in plan)
+    for w in ("formularz", "formularz2", "formularz3", "formularz4"):
+        kod = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: po zapisie zdejmuje szkołę z listy od razu" % w,
+                "FX_PLAN_ZROBIONE(j.lead_id)" in kod)
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

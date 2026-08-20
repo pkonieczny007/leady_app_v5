@@ -579,6 +579,13 @@
       $("fx-sukces-kolizja").hidden = false;
     }
     $("fx-do-leada").href = "/lead/" + j.lead_id;
+    // P23: szkoła schodzi z „Planu na dziś" od razu, bez przeładowania —
+    // ekran sukcesu strony nie odświeża, a licznik „N do zrobienia" musi
+    // odpowiadać na wykonaną pracę, inaczej ludzie przestają na niego patrzeć.
+    if (typeof window.FX_PLAN_ZROBIONE === "function") {
+      window.FX_PLAN_ZROBIONE(j.lead_id);
+    }
+
     $("fx-sukces").hidden = false;
     window.scrollTo(0, 0);
   }
