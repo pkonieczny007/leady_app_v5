@@ -1,9 +1,24 @@
+1. wprowadzic liste przedszkoli!
 
 
 
 
+zapytane
+------------
+do zapytania
 
 
+1. czy mozna bez daty DT wprowadzic?
+
+2. Czy dodane kilku kilku pracownikow, ktorzy beda kierowani przez koordynatora?
+
+3. czy jest mozliwosc usuniecia przez koordynatora z kalendarza? (np prawym przyciskiem usun)
+
+
+
+
+-----------
+ZROBIONE/ZAPYTANE:
 2. czy 
 
 od KASI:
@@ -30,7 +45,3 @@ Następny problem. Jak wybiorę szkołę z przydzielonych przez ciebie, dodam je
 3.  czy mozna juz wyszukiwac bez prowadzącego? 
 
 
-
-------------
-do zapytania
-1. Czy dodane kilku kilku pracownikow, ktorzy beda kierowani przez koordynatora?
