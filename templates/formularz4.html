@@ -121,6 +121,11 @@
       </div>
       <div class="f2-pole-grupa">
         <label class="f2-etykieta" for="f2-szkola">Placówka (szkoła) <span class="f2-wym">*</span></label>
+        {# Wpisywanie zamiast przewijania listy kilkuset szkół kciukiem (P07).
+           Ukryte, dopóki nie ma czego filtrować. #}
+        <input type="search" id="f2-szkola-szukaj" class="f2-pole f2-szukaj"
+               placeholder="Filtruj listę — nazwa albo numer, np. 12"
+               autocomplete="off" hidden>
         <select id="f2-szkola" class="f2-pole" disabled>
           <option value="">Najpierw wybierz miejscowość</option>
         </select>

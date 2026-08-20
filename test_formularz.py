@@ -784,6 +784,72 @@ def main():
             helper(zrodla["formularz2"]) == helper(zrodla["formularz3"])
             == helper(zrodla["formularz4"]))
 
+    # --- P06: lista szkół to CAŁA baza miejscowości (zgłoszenie K04) ---------
+    #
+    # „na liście miast przy wpisywaniu DT katoice pojawiają się tylko jako moje
+    # 12 szkół, nie ma całej listy plaówek" — Kasia, PILNE.
+    #
+    # Lista nigdy nie była zawężona: myliło ją „(twoje: 12)" doklejone do nazwy
+    # miasta, czytane jako liczba szkół w Katowicach. Ten test pilnuje obu stron:
+    # że serwer naprawdę oddaje wszystko i że dopisek nie wrócił.
+    print("\n-- P06: lista szkół nie jest zawężona do własnych --")
+    conn = db.get_conn()
+    for nazwa, wlasciciel in (("SP 100 cudza", None), ("SP 101 cudza", None),
+                              ("SP 102 moja", H)):
+        cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                           "VALUES (?,?,'test')", (nazwa, M))
+        conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                     (cur.lastrowid, wlasciciel))
+    conn.commit()
+    # Liczymy przez to samo złączenie co endpoint: lista wyboru pokazuje LEADY,
+    # a placówka z dwoma leadami wchodzi na nią dwa razy. To osobna sprawa
+    # (w produkcji jest 1:1) i nie mieszamy jej do sprawdzenia zawężania.
+    wszystkich = conn.execute(
+        "SELECT COUNT(*) c FROM leady l JOIN placowki p ON p.id = l.placowka_id "
+        "WHERE p.miejscowosc=?", (M,)).fetchone()["c"]
+    conn.close()
+
+    r = KL.get("/api/placowki?miejscowosc=" + M + "&handlowiec=" + H)
+    poz = (r.get_json() or {}).get("pozycje") or []
+    sprawdz("serwer oddaje WSZYSTKIE szkoły miejscowości, nie tylko moje",
+            len(poz) == wszystkich, "%d z %d" % (len(poz), wszystkich))
+    sprawdz("wśród nich są cudze", any(not p["moja"] for p in poz))
+    sprawdz("własne są oznaczone", any(p["moja"] for p in poz))
+
+    for w, kod in zrodla.items():
+        sprawdz("%s: nie dokleja już „(twoje: N)” do nazwy miasta" % w,
+                '"  (twoje: " + licz[o.value]' not in kod)
+        sprawdz("%s: miasto z własnymi szkołami znaczone gwiazdką" % w,
+                'o.textContent = "★ " + o.textContent' in kod)
+        sprawdz("%s: mówi wprost, że to cała baza miejscowości" % w,
+                "cała baza" in kod)
+
+    # --- P07: filtrowanie listy szkół z klawiatury (zgłoszenie K08) ---------
+    #
+    # „jedno pole jest potrzebne w wyszukiwaniu sam numer szkoły jak wpiszę
+    # miasto i numer że mi przefiltruje a nie szukam na liscie" — Kasia.
+    print("\n-- P07: filtr listy szkół --")
+    for w in ("formularz2", "formularz3", "formularz4"):
+        html = open("templates/%s.html" % w, encoding="utf-8").read()
+        sprawdz("%s: szablon ma pole filtrowania" % w,
+                'id="f2-szkola-szukaj"' in html)
+        sprawdz("%s: pole startuje ukryte" % w,
+                'autocomplete="off" hidden' in html)
+        sprawdz("%s: filtruje bez pytania serwera" % w,
+                "function rysujSzkoly(" in zrodla[w] and "function pasuje(" in zrodla[w])
+        sprawdz("%s: ogonki nie przeszkadzają w szukaniu" % w,
+                "function bezOgonkow(" in zrodla[w])
+        sprawdz("%s: wybrana szkoła nie znika przy filtrowaniu" % w,
+                "lista = [indeks[bylo]].concat(lista);" in zrodla[w])
+
+    def blok_wyboru(kod):
+        a = kod.index("  /* P07 (zgłoszenie K08 Kasi")
+        return kod[a:kod.index("if (poWczytaniu) poWczytaniu();", a)]
+
+    sprawdz("wszystkie trzy warianty filtrują IDENTYCZNIE",
+            blok_wyboru(zrodla["formularz2"]) == blok_wyboru(zrodla["formularz3"])
+            == blok_wyboru(zrodla["formularz4"]))
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

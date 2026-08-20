@@ -94,15 +94,84 @@
       if (m.miejscowosc) licz[m.miejscowosc] = (licz[m.miejscowosc] || 0) + 1;
     });
     Array.prototype.forEach.call(selMiasto.options, function (o) {
-      if (licz[o.value]) o.textContent = o.textContent + "  (twoje: " + licz[o.value] + ")";
+      // Gwiazdka, a NIE „(twoje: 12)". Kasia czytała ten dopisek jako liczbę
+      // szkół w mieście: „w Katowicach pojawiają się tylko moje 12 szkół, nie
+      // ma całej listy placówek" — i prosiła wprost, żeby nie było tego słowa
+      // w nawiasie. Gwiazdka to ten sam znak co przy szkołach na liście,
+      // więc znaczy dokładnie to samo i nie da się jej wziąć za licznik.
+      if (licz[o.value]) o.textContent = "★ " + o.textContent;
     });
   })();
+
+  /* P07 (zgłoszenie K08 Kasi, 20.08): „jedno pole jest potrzebne w wyszukiwaniu
+     sam numer szkoły jak wpiszę miasto i numer że mi przefiltruje a nie szukam
+     na liscie".
+
+     Filtrujemy to, co JUŻ wczytaliśmy dla wybranej miejscowości — bez pytania
+     serwera. Dzięki temu reaguje z każdym znakiem, także wtedy, gdy zasięg
+     w szkolnym korytarzu ledwie starczył na jedno żądanie. */
+  var poleSzukaj = $("f2-szkola-szukaj");
+  var wczytane = [];                   // placówki ostatnio wybranej miejscowości
+
+  function bezOgonkow(s) {
+    return (s || "").toLowerCase()
+      .replace(/ą/g, "a").replace(/ć/g, "c").replace(/ę/g, "e").replace(/ł/g, "l")
+      .replace(/ń/g, "n").replace(/ó/g, "o").replace(/ś/g, "s").replace(/[żź]/g, "z");
+  }
+
+  function pasuje(p, fraza) {
+    var nazwa = bezOgonkow(p.nazwa);
+    // KAŻDY człon musi trafić, więc „sp 12" zawęża mocniej niż samo „12",
+    // a numer da się wpisać osobno — dokładnie o to prosiła Kasia.
+    return bezOgonkow(fraza).split(/\s+/).every(function (czesc) {
+      return !czesc || nazwa.indexOf(czesc) >= 0;
+    });
+  }
+
+  function rysujSzkoly() {
+    var fraza = poleSzukaj ? (poleSzukaj.value || "").trim() : "";
+    var lista = fraza ? wczytane.filter(function (p) { return pasuje(p, fraza); }) : wczytane;
+    var bylo = selSzkola.value;
+    // Wybrana szkoła zostaje na liście, nawet gdy wypadła z filtra. Inaczej
+    // select po cichu gubi wybór, a formularz dalej go pamięta i zapisuje.
+    if (bylo && indeks[bylo] && lista.indexOf(indeks[bylo]) < 0) {
+      lista = [indeks[bylo]].concat(lista);
+    }
+    var moich = 0;
+    var html = '<option value="">Wybierz szkołę z listy</option>';
+    lista.forEach(function (p) {
+      if (p.moja) moich++;
+      html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
+              (p.moja ? "  ★" : "") + "</option>";
+    });
+    selSzkola.innerHTML = html;
+    selSzkola.disabled = !wczytane.length;
+    if (bylo) selSzkola.value = bylo;
+
+    if (!wczytane.length) {
+      infoSzkola.textContent = "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+    } else if (fraza) {
+      infoSzkola.textContent = lista.length + " z " + wczytane.length +
+        " pasuje do wpisanego tekstu";
+    } else {
+      /* P06 (zgłoszenie K04): „na liście miast przy wpisywaniu DT katoice
+         pojawiają się tylko jako moje 12 szkół, nie ma całej listy plaówek".
+         Lista NIGDY nie była zawężona do własnych szkół — mylił dopisek przy
+         nazwie miasta. Mówimy więc wprost, że to cała baza miejscowości:
+         ukryte zawężenie wygląda jak brakujące dane. */
+      infoSzkola.textContent = wczytane.length + " szkół w tej miejscowości — cała baza" +
+        (moich ? ", twoich " + moich + " ★" : "");
+    }
+  }
+
+  if (poleSzukaj) poleSzukaj.addEventListener("input", rysujSzkoly);
 
   function wczytajSzkoly(miasto, poWczytaniu) {
     if (!miasto) {
       selSzkola.innerHTML = '<option value="">Najpierw wybierz miejscowość</option>';
       selSzkola.disabled = true;
       infoSzkola.textContent = "";
+      if (poleSzukaj) poleSzukaj.hidden = true;
       return;
     }
     selSzkola.disabled = true;
@@ -111,24 +180,18 @@
                "&handlowiec=" + encodeURIComponent(stan.handlowiec))
       .then(function (j) {
         indeks = {};
-        var moich = 0;
-        var html = '<option value="">Wybierz szkołę z listy</option>';
         // szkoły handlowca na górze, reszta alfabetycznie
         j.pozycje.sort(function (a, b) {
           if (a.moja !== b.moja) return a.moja ? -1 : 1;
           return a.nazwa.localeCompare(b.nazwa, "pl");
         });
-        j.pozycje.forEach(function (p) {
-          indeks[p.placowka_id] = p;
-          if (p.moja) moich++;
-          html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
-                  (p.moja ? "  ★" : "") + "</option>";
-        });
-        selSzkola.innerHTML = html;
-        selSzkola.disabled = false;
-        infoSzkola.textContent = j.pozycje.length
-          ? (j.pozycje.length + " placówek" + (moich ? ", w tym " + moich + " twoich (★)" : ""))
-          : "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+        j.pozycje.forEach(function (p) { indeks[p.placowka_id] = p; });
+        wczytane = j.pozycje;
+        if (poleSzukaj) {
+          poleSzukaj.value = "";
+          poleSzukaj.hidden = !wczytane.length;
+        }
+        rysujSzkoly();
         if (poWczytaniu) poWczytaniu();
       })
       .catch(function (e) {
