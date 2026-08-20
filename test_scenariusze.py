@@ -621,6 +621,66 @@ def main():
             and "SP OBSADZONA przez trenera" in html)
     sprawdz("licznik braków prowadzi do filtra", "bez_obsady=1" in html)
 
+    # --- P08: odwołanie DT ze śladem (zgłoszenie K12) -----------------------
+    #
+    # „nie widzę też możliwości wykasowania czegoś z kalendarza, w razie jakby
+    # np. szkoła w ostatnim momencie odmówiła współpracy" — Kasia, 20.08.
+    #
+    # Odwołujemy ZE ŚLADEM zamiast kasować: wpis zostaje w bazie jako dowód, że
+    # temat był i się nie udał (raport wykonania liczy właśnie takie przypadki),
+    # ale znika z grafiku i przestaje zajmować trenerowi termin.
+    print("\n-- P08: odwołanie DT --")
+    l_odw = nowa_szkola("SP 77 do odwołania", miasto="15. Będzin")
+    post("/api/przypisz", {"ids": [l_odw], "handlowiec": "04. Chytry"})
+    kod, _ = post("/api/event", {"lead_id": l_odw, "typ": "DT", "data": "2026-12-08",
+                                 "godz_od": "09:00", "trener": "01. Małolepsza"})
+    sprawdz("DT do odwołania dodane", kod == 200)
+    row = [r for r in leady() if r["id"] == l_odw][0]
+    sprawdz("status wskoczył na sukces", row["status_realizacji"].startswith("03."))
+
+    conn = db.get_conn()
+    ev_id = conn.execute("SELECT id FROM eventy WHERE lead_id=?", (l_odw,)).fetchone()["id"]
+    conn.close()
+
+    kod, j = post("/api/event/%d/odwolaj" % ev_id, {"powod": "szkoła wycofała się dzień przed"})
+    sprawdz("odwołanie przechodzi", kod == 200, str(j)[:90])
+    sprawdz("aplikacja mówi, że szkoła wróciła do umawiania",
+            (j or {}).get("wrocil_do_umawiania") is True)
+
+    conn = db.get_conn()
+    w_grafiku = [e for e in cv.events_for_month(conn, "2026-12") if e["lead_id"] == l_odw]
+    conn.close()
+    sprawdz("odwołane zajęcia znikają z grafiku", not w_grafiku)
+
+    row = [r for r in leady() if r["id"] == l_odw][0]
+    sprawdz("lead przestał być domknięty",
+            not (row["status_realizacji"] or "").startswith("03."), row["status_realizacji"])
+    sprawdz("termin DT zniknął z karty leada", not row["dt_data"], str(row["dt_data"]))
+    sprawdz("szkoła NIE wróciła do puli — handlowiec zostaje",
+            row["handlowiec"] == "04. Chytry", str(row["handlowiec"]))
+
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM eventy WHERE id=?", (ev_id,)).fetchone()["c"]
+    powod = conn.execute("SELECT powod_odwolania p FROM eventy WHERE id=?",
+                         (ev_id,)).fetchone()["p"]
+    conn.close()
+    sprawdz("wpis został w bazie jako dowód", ile == 1)
+    sprawdz("powód zapisany przy wpisie", "wycofała" in (powod or ""))
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
+    sprawdz("cofnięcie odwołania przechodzi", kod == 200)
+    conn = db.get_conn()
+    w_grafiku = [e for e in cv.events_for_month(conn, "2026-12") if e["lead_id"] == l_odw]
+    conn.close()
+    sprawdz("po cofnięciu zajęcia wracają do grafiku", len(w_grafiku) == 1)
+
+    # Kafel cyklu to WYSTĄPIENIE reguły — przycisk odwołania po `e.id` skasowałby
+    # z grafiku cały pakiet. Lepiej nie dać przycisku, niż dać mylący.
+    szablon = open("templates/kalendarz.html", encoding="utf-8").read()
+    sprawdz("odwołanie w grafiku tylko dla wpisów niecyklicznych",
+            "{% if e.typ not in TYPY_CYKLICZNE %}" in szablon
+            and 'data-odwolaj="{{ e.id }}"' in szablon)
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

@@ -210,6 +210,66 @@ def test_kalendarz(ids):
     sprawdz("własne DT dalej da się przestawić", kod == 200, "kod %s" % kod)
 
 
+def test_odwolanie(ids):
+    """P08 — decyzja z 20.08: handlowiec ODWOŁUJE, koordynator odwołuje I KASUJE.
+
+    Podział nie jest kosmetyczny. Odwołanie zostawia powód, osobę i datę, więc
+    zostaje ślad, że temat był i dlaczego się nie udał — to jest liczba, której
+    Kasia szuka w raporcie wykonania. Kasowanie zabiera ten dowód, więc siedzi
+    przy jednej osobie.
+    """
+    print("\n-- odwołanie kontra kasowanie --")
+    conn = db.get_conn()
+    ev_a = conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener) "
+                        "VALUES (?, 'DT', '2026-10-06', '09:00', '13. Cebula')",
+                        (ids["a"],)).lastrowid
+    ev_b = conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                        "VALUES (?, 'DT', '2026-10-07', '09:00')", (ids["b"],)).lastrowid
+    conn.commit()
+    conn.close()
+
+    zaloguj(PH_A)
+    kod, odp = post("/api/event/%d/odwolaj" % ev_a, {"powod": ""})
+    sprawdz("odwołanie bez powodu odrzucone", kod == 400, odp.get("error"))
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_b, {"powod": "szkoła odmówiła"})
+    sprawdz("handlowiec nie odwoła cudzego spotkania", kod == 403, "kod %s" % kod)
+
+    kod, odp = post("/api/event/%d/odwolaj" % ev_a,
+                    {"powod": "dyrektor odwołał dzień przed"})
+    sprawdz("handlowiec odwołuje WŁASNE spotkanie", kod == 200, "kod %s" % kod)
+
+    conn = db.get_conn()
+    r = conn.execute("SELECT odwolane, powod_odwolania, odwolal FROM eventy WHERE id=?",
+                     (ev_a,)).fetchone()
+    conn.close()
+    sprawdz("wpis został w bazie, tylko oznaczony", bool(r and r["odwolane"]))
+    sprawdz("zapisał się powód", "dyrektor odwołał" in (r["powod_odwolania"] or ""))
+    sprawdz("zapisało się KTO odwołał", r["odwolal"] == PH_A, str(r["odwolal"]))
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_a, {"powod": "jeszcze raz"})
+    sprawdz("drugie odwołanie tego samego wpisu odrzucone", kod == 400, "kod %s" % kod)
+
+    # Kasowanie bez śladu — handlowiec nie może, także u siebie.
+    kod, _ = usun("/api/event/%d" % ev_a)
+    sprawdz("handlowiec NIE skasuje nawet własnego spotkania", kod == 403, "kod %s" % kod)
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM eventy WHERE id=?", (ev_a,)).fetchone()["c"]
+    conn.close()
+    sprawdz("wpis nadal jest w bazie", ile == 1)
+
+    zaloguj(KOOR)
+    kod, _ = post("/api/event/%d/odwolaj" % ev_a, {"cofnij": True})
+    sprawdz("koordynator cofa odwołanie", kod == 200, "kod %s" % kod)
+    conn = db.get_conn()
+    r = conn.execute("SELECT odwolane FROM eventy WHERE id=?", (ev_a,)).fetchone()
+    conn.close()
+    sprawdz("po cofnięciu wpis znów jest aktualny", not r["odwolane"])
+
+    kod, _ = usun("/api/event/%d" % ev_a)
+    sprawdz("koordynator kasuje bez śladu", kod == 200, "kod %s" % kod)
+
+
 def test_tworzenie_leada(ids):
     print("\n-- nowa szkoła podpisuje się nazwiskiem z SESJI, nie z żądania --")
     zaloguj(PH_A)
@@ -258,6 +318,7 @@ def main():
     test_pola_zastrzezone(ids)
     test_szkola_niczyja(ids)
     test_kalendarz(ids)
+    test_odwolanie(ids)
     test_tworzenie_leada(ids)
     test_koordynator(ids)
     test_podglad_zostaje(ids)

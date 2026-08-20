@@ -133,6 +133,29 @@ PLACOWKA_KEYS = [f[1] for f in PLACOWKA_FIELDS]
 LEAD_KEYS = [f[1] for f in LEAD_FIELDS] + [f[1] for f in JULIA_FIELDS]
 EVENT_KEYS = [f[1] for f in EVENT_FIELDS]
 
+# Kolumny techniczne spotkania — dokładane do tabeli, ale ŚWIADOMIE poza
+# EVENT_FIELDS (P08, zgłoszenie K12 Kasi: „nie widzę możliwości wykasowania
+# czegoś z kalendarza, w razie jakby np. szkoła w ostatnim momencie odmówiła").
+#
+# Poza EVENT_FIELDS, bo odwołanie ma iść własnym endpointem, który zapisuje
+# powód, osobę i chwilę JEDNYM ruchem. Gdyby `odwolane` było zwykłym polem
+# karty, dałoby się je wpisać ręcznie bez powodu — a odwołanie bez powodu jest
+# gorsze niż jego brak: wygląda na decyzję, o której nikt nic nie wie.
+EVENT_KOLUMNY_TECHNICZNE = ["odwolane", "powod_odwolania", "odwolal"]
+
+
+def sql_nieodwolane(alias="e"):
+    """
+    Warunek „to spotkanie nadal jest aktualne" — do dopisania w każdym pytaniu
+    o to, co się dzieje.
+
+    Odwołane zajęcia ZOSTAJĄ w bazie, bo są dowodem, że temat był i się nie
+    udał (raport wykonania handlowca liczy właśnie takie przypadki). Ale nie
+    zajmują trenerowi terminu, nie liczą się do kolizji i nie wiszą w grafiku.
+    """
+    p = (alias + ".") if alias else ""
+    return "({0}odwolane IS NULL OR {0}odwolane = '')".format(p)
+
 INT_KEYS = {"ilosc_klas", "ilosc_dzieci", "co_ile_tygodni"}
 
 # Rodzaje słowników (klucz, etykieta, czy pozycje mają kolor)
@@ -381,7 +404,8 @@ def migruj(conn):
     `CREATE TABLE IF NOT EXISTS` nie zmienia istniejącej tabeli, więc bez tego
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
     """
-    tabele = {"placowki": PLACOWKA_KEYS, "leady": LEAD_KEYS, "eventy": EVENT_KEYS}
+    tabele = {"placowki": PLACOWKA_KEYS, "leady": LEAD_KEYS,
+              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}
         if not istniejace:

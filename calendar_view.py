@@ -129,6 +129,9 @@ FROM eventy e
 JOIN leady l ON l.id = e.lead_id
 JOIN placowki p ON p.id = l.placowka_id
 WHERE e.data IS NOT NULL AND e.data <> ''
+  -- odwołane zajęcia zostają w bazie (są dowodem, że temat był), ale
+  -- znikają z grafiku i nie zajmują trenerowi terminu — P08
+  AND (e.odwolane IS NULL OR e.odwolane = '')
 """
 
 # tylko te typy się powtarzają; START to jednorazowa inauguracja grupy
@@ -317,7 +320,8 @@ def available_months(conn):
     """Miesiące, w których cokolwiek się dzieje — bez sztywnego kodowania nazw zakładek."""
     rows = conn.execute(
         "SELECT DISTINCT substr(data,1,7) m FROM eventy "
-        "WHERE data IS NOT NULL AND data <> '' ORDER BY m").fetchall()
+        "WHERE data IS NOT NULL AND data <> '' "
+        "AND (odwolane IS NULL OR odwolane = '') ORDER BY m").fetchall()
     mies = [r["m"] for r in rows if r["m"]]
     # Pakiety na konkretne daty: miesiąc bierze się WPROST z terminu, nie
     # z rozwijania reguły. Bez tego ostatnie zajęcia z pakietu wpadające

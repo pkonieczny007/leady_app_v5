@@ -75,6 +75,10 @@ TYLKO_KOORDYNATOR = {
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
     "api_dostepnosc_demo",
+    # Kasowanie spotkania BEZ ŚLADU — decyzja z 20.08: „handlowiec może odwołać,
+    # a koordynator może odwołać i skasować". Odwołanie zostawia powód i osobę,
+    # więc wolno je szerzej; kasowanie zabiera dowód, że temat w ogóle był.
+    "api_event_delete",
 }
 
 # Zmiana dostępności. Handlowiec jej NIE robi — widzi grafik (bez tego nie umówi
@@ -1111,12 +1115,96 @@ def api_event_update(event_id):
     return jsonify(ok=True, kolizja=ostrzezenie)
 
 
-@app.route("/api/event/<int:event_id>", methods=["DELETE"])
-def api_event_delete(event_id):
+@app.route("/api/event/<int:event_id>/odwolaj", methods=["POST"])
+def api_event_odwolaj(event_id):
+    """
+    Odwołanie spotkania ZE ŚLADEM — zamiast kasowania (P08, zgłoszenie K12).
+
+    Kasia, 20.08: „nie widzę też możliwości wykasowania czegoś z kalendarza,
+    w razie jakby np. szkoła w ostatnim momencie odmówiła współpracy".
+
+    Kasowanie zabiera dowód, że temat w ogóle był — a to jest dokładnie ta
+    informacja, której Kasia szuka w raporcie wykonania („ile się nie udało").
+    Dlatego wpis zostaje w bazie, tylko znika z grafiku i przestaje zajmować
+    trenerowi termin.
+
+    Kto: koordynator zawsze, handlowiec na SWOJEJ szkole (decyzja z 20.08:
+    „handlowiec może odwołać, a koordynator może odwołać i skasować").
+
+    Powód jest wymagany. To trzecia twarda blokada w tym projekcie obok
+    słowników i uprawnień, i ma uzasadnienie: odwołanie bez powodu nie różni
+    się niczym od pomyłki, a po miesiącu nikt już nie odtworzy, czy szkoła
+    odmówiła, czy ktoś kliknął nie w ten wiersz.
+    """
+    d = request.get_json(silent=True) or {}
     conn = get_conn()
     odmowa = _wolno_pisac_do_eventu(conn, event_id)
     if odmowa:
         conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+
+    e = conn.execute("SELECT lead_id, typ, data, odwolane FROM eventy WHERE id=?",
+                     (event_id,)).fetchone()
+    ja = uz.zalogowany() or {}
+    cofnij = bool(d.get("cofnij"))
+
+    if cofnij:
+        if not e["odwolane"]:
+            conn.close(); return jsonify(ok=False, error="To spotkanie nie jest odwołane"), 400
+        conn.execute("UPDATE eventy SET odwolane=NULL, powod_odwolania=NULL, "
+                     "odwolal=NULL, updated_at=datetime('now') WHERE id=?", (event_id,))
+        zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+                   co="cofnięcie odwołania", przed=e["odwolane"], po=None)
+        conn.commit()
+        conn.close()
+        return jsonify(ok=True, odwolane=False)
+
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        conn.close()
+        return jsonify(ok=False, error="Napisz, dlaczego odwołujemy — bez tego "
+                                       "za miesiąc nikt tego nie odtworzy"), 400
+    if e["odwolane"]:
+        conn.close(); return jsonify(ok=False, error="To spotkanie jest już odwołane"), 400
+
+    conn.execute("UPDATE eventy SET odwolane=datetime('now'), powod_odwolania=?, "
+                 "odwolal=?, updated_at=datetime('now') WHERE id=?",
+                 (powod, ja.get("osoba") or "", event_id))
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id, co="odwołanie spotkania",
+               pole=e["typ"], przed=e["data"], po=powod)
+
+    # Lead ze statusem sukcesu, któremu odwołano OSTATNI aktywny DT, przestaje
+    # być domknięty — inaczej szkoła zostałaby zdjęta z listy zadań (P23) mimo
+    # tego, że nie ma już żadnego terminu. Wraca do „w trakcie umawiania", bo
+    # rozmowa była; do puli nie wraca i handlowca nie traci.
+    wrocil = False
+    zostalo = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE lead_id=? AND typ='DT' "
+        "AND data IS NOT NULL AND data<>'' AND (odwolane IS NULL OR odwolane='')",
+        (e["lead_id"],)).fetchone()["c"]
+    if not zostalo:
+        lead = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                            (e["lead_id"],)).fetchone()
+        stary = lead["status_realizacji"] or ""
+        if stary.startswith(STATUS_SUKCES_PREFIX):
+            nowy = "02b. DT w trakcie umawiania"
+            if nowy in slownik_values(conn, "status_realizacji"):
+                conn.execute("UPDATE leady SET status_realizacji=?, dt=NULL, "
+                             "updated_at=datetime('now') WHERE id=?",
+                             (nowy, e["lead_id"]))
+                zapisz_log(conn, lead_id=e["lead_id"], co="status po odwołaniu DT",
+                           pole="status_realizacji", przed=stary, po=nowy)
+                wrocil = True
+
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True, odwolane=True, wrocil_do_umawiania=wrocil)
+
+
+@app.route("/api/event/<int:event_id>", methods=["DELETE"])
+def api_event_delete(event_id):
+    # Kasowanie bez śladu zostaje przy koordynatorze (jest w TYLKO_KOORDYNATOR).
+    # Handlowiec ma odwołanie, które zostawia powód — patrz `api_event_odwolaj`.
+    conn = get_conn()
     row = conn.execute("SELECT lead_id FROM eventy WHERE id=?", (event_id,)).fetchone()
     conn.execute("DELETE FROM eventy WHERE id=?", (event_id,))
     if row:
@@ -1135,7 +1223,11 @@ def _ostrzezenie_kolizji(conn, event_id):
         return None
     inne = conn.execute(
         "SELECT id, godz_od, godz_do FROM eventy "
-        "WHERE id<>? AND data=? AND trener=?", (event_id, e["data"], e["trener"])
+        "WHERE id<>? AND data=? AND trener=? "
+        # odwołane zajęcia nie zajmują terminu — inaczej trener po odwołaniu
+        # dalej wyglądałby na zajętego i nikt by go tam nie wysłał (P08)
+        "AND (odwolane IS NULL OR odwolane = '')",
+        (event_id, e["data"], e["trener"])
     ).fetchall()
     for o in inne:
         if cv.overlaps(e["godz_od"], e["godz_do"], o["godz_od"], o["godz_do"]):

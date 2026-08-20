@@ -35,32 +35,43 @@ SELECT l.*,
        p.miejscowosc, p.adres, p.osoba_kontakt, p.telefon, p.mail,
        (SELECT MIN(e.data) FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
        ) AS dt_data,
        (SELECT e.godz_od FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_godz_od,
        (SELECT e.godz_do FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_godz_do,
        (SELECT e.trener FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_trener,
        (SELECT e.numer_sali FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_sala,
        (SELECT e.ilosc_klas FROM eventy e
-          WHERE e.lead_id = l.id AND e.typ='DT' ORDER BY e.data LIMIT 1
+          WHERE e.lead_id = l.id AND e.typ='DT'
+            AND (e.odwolane IS NULL OR e.odwolane = '')
+          ORDER BY e.data LIMIT 1
        ) AS dt_klas,
        (SELECT e.ilosc_dzieci FROM eventy e
-          WHERE e.lead_id = l.id AND e.typ='DT' ORDER BY e.data LIMIT 1
+          WHERE e.lead_id = l.id AND e.typ='DT'
+            AND (e.odwolane IS NULL OR e.odwolane = '')
+          ORDER BY e.data LIMIT 1
        ) AS dt_dzieci,
-       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='DT') AS n_dt,
+       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='DT'
+          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_dt,
        (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id
-          AND e.typ IN (%(cykl)s)) AS n_cykl
+          AND e.typ IN (%(cykl)s)
+          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_cykl
 FROM leady l
 JOIN placowki p ON p.id = l.placowka_id
 """ % {"cykl": SQL_TYPY_CYKLICZNE}

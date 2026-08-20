@@ -72,13 +72,28 @@
         <span class="nums muted">{{ e.godz_od or '' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
         {% if e.trener %}<span class="nowrap">{{ dot(kolory.get(e.trener)) }}{{ e.trener|bez_prefiksu }}</span>
         {% else %}<span class="tag tag-accent-2">bez obsady</span>{% endif %}
+        {# P08: odwołane spotkanie ZOSTAJE tutaj, choć znika z grafiku — to jest
+           jedyne miejsce, w którym widać, że temat był i dlaczego się nie udał. #}
+        {% if e.odwolane %}<span class="tag tag-solid-2"
+             title="odwołał: {{ e.odwolal or '—' }} · {{ e.odwolane }}">odwołane</span>{% endif %}
         <span class="grupa-line"></span>
         {# ranking kandydatów: dostępność + kolizje + rejon + obciążenie w jednym miejscu #}
+        {% if not e.odwolane %}
         <button type="button" class="btn btn-secondary btn-sm btn-kandydaci" data-id="{{ e.id }}"
                 title="Pokaż, kto może pojechać na to spotkanie">
           {{ 'Zmień trenera' if e.trener else 'Kogo wysłać?' }}</button>
+        <button type="button" class="btn btn-ghost btn-odwolaj-event" data-id="{{ e.id }}"
+                title="Odwołaj — wpis zostaje z powodem, znika z grafiku">Odwołaj</button>
+        {% else %}
+        <button type="button" class="btn btn-ghost btn-przywroc-event" data-id="{{ e.id }}"
+                title="Cofnij odwołanie — spotkanie wraca do grafiku">Przywróć</button>
+        {% endif %}
+        {# Kasowanie BEZ ŚLADU zostaje przy koordynatorze (decyzja z 20.08).
+           Handlowiec ma odwołanie, które zapisuje powód. #}
+        {% if ja and ja.rola == 'koordynator' %}
         <button type="button" class="btn btn-ghost btn-usun-event" data-id="{{ e.id }}"
-                title="usuń spotkanie">✕</button>
+                title="usuń bez śladu (tylko koordynator)">✕</button>
+        {% endif %}
       </div>
       <div class="event-grid">
         {% for f in event_fields %}

@@ -35,6 +35,18 @@
      wierszu. Bez tego podpisu wygląda na pomyłkę filtra („czemu Olszewska
      wyświetla mi Gawrona"), a to jest prawdziwa informacja. #}
   {% if e['_rola'] %}<span class="tag tag-rola" title="Szukana osoba jest na tym spotkaniu jako: {{ e['_rola'] }}">{{ e['_rola'] }}</span>{% endif %}
+  {# P08 (zgłoszenie K12): odwołanie WPROST Z GRAFIKU. Kasia patrzy na kalendarz,
+     widzi martwy DT po odmowie szkoły i do 20.08 nie miała jak go tknąć —
+     kasowanie było tylko na karcie leada, dwa kliknięcia i przewijanie dalej.
+
+     Tylko dla wpisów niecyklicznych. Kafel cyklu to WYSTĄPIENIE reguły, więc
+     odwołanie po `e.id` skasowałoby z grafiku cały pakiet zajęć zamiast jednego
+     terminu. Pojedyncze wystąpienia obsługuje `wyjatki_cyklu` i to osobna
+     robota — lepiej nie dać przycisku, niż dać taki, który robi co innego. #}
+  {% if e.typ not in TYPY_CYKLICZNE %}
+  <button type="button" class="ev-odwolaj" data-odwolaj="{{ e.id }}"
+          title="Odwołaj to spotkanie — zostanie z powodem, zniknie z grafiku">✕</button>
+  {% endif %}
 </div>
 {% endmacro %}
 

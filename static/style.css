@@ -701,6 +701,26 @@ tr.flash td{animation:flash .9s ease-out}
 .cal-cell-stack{display:flex;flex-direction:column;gap:4px}
 
 /* kafel spotkania — kolor z --ev-color (kolor trenera ze słownika) */
+/* P08 — odwołanie wprost z kafla w grafiku.
+
+   Przycisk jest BLADY do czasu najechania na kafel: usuwanie terminu ma być
+   pod ręką, ale nie ma prawa przyciągać wzroku przy przeglądaniu miesiąca.
+   Na telefonie nie ma najechania, więc tam zostaje widoczny — lepiej mały
+   szary krzyżyk niż funkcja, do której nie da się dojść dotykiem. */
+.ev{position:relative}
+.ev-odwolaj{
+  position:absolute;top:2px;right:2px;
+  width:18px;height:18px;line-height:1;padding:0;
+  border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--muted);
+  font-size:12px;cursor:pointer;opacity:.35;
+}
+.ev:hover .ev-odwolaj{opacity:1}
+.ev-odwolaj:hover{background:color-mix(in srgb,var(--danger,#b3261e) 12%,#fff);
+  color:var(--danger,#b3261e)}
+.ev-odwolaj:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+@media (hover:none){ .ev-odwolaj{opacity:.6} }
+
 .ev{
   --ev-color:#94a3b8;
   display:flex;flex-direction:column;gap:1px;
