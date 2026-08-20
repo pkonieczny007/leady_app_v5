@@ -8,8 +8,12 @@ Kolumna `K` wskazuje zgłoszenie źródłowe w `ZGLOSZENIA_KASI_2026-08-20.html`
 i osobno na produkcji) · `słownik` (Kasia może sama przez panel) · `pytanie`
 (dopytać PRZED pracą).
 
-**Status:** `nowa` → `w pracy` → `na demo` → `sprawdzone` → `na produkcji`.
+**Status:** `nowa` → `w pracy` → `zrobione` → `na demo` → `sprawdzone` → `na produkcji`.
 Do tego `czeka` (na odpowiedź Kasi), `wraca` (sprawdziła i to nie to), `odłożone`.
+
+`zrobione` znaczy: napisane, zacommitowane na gałęzi `poprawki-2026-08`, testy
+przechodzą — ale **nikt tego jeszcze nie kliknął**. Dopiero `na demo` znaczy,
+że da się to obejrzeć pod `demo-ph.silesia3d.site`.
 
 Puste pole „Test" przy statusie `sprawdzone` to sygnał ostrzegawczy, nie drobiazg.
 
@@ -19,18 +23,24 @@ Puste pole „Test" przy statusie `sprawdzone` to sygnał ostrzegawczy, nie drob
 
 | ID | K | Typ | Gdzie | Co robimy | Status | Test |
 |---|---|---|---|---|---|---|
-| P01 | K01 | kod | `api_lead_update` | handlowiec zapisuje tylko na swoim leadzie; podgląd cudzych zostaje | nowa | `test_filtr_osob` — PATCH cudzego leada → 403 |
-| P02 | K01 | kod | `api_lead_update` | `handlowiec` i `deadline` wyłącznie ścieżką koordynatora — dziś PH może przejąć lead i przedłużyć sobie termin | nowa | j.w. — PATCH obu pól przez PH → 403 |
-| P03 | K02 | dane | produkcja | sprawdzić rolę konta Zuzy (i przejrzeć wszystkie 49 kont); kod ruszamy dopiero, gdyby rola była poprawna | nowa | — |
+| P01 | K01 | kod | `api_lead_update`, `api_pin`, `api_lead` POST, `api_event` ×3 | handlowiec zapisuje tylko na swoim leadzie; szkoła niczyja też zamknięta; podgląd cudzych zostaje | **zrobione** | `test_uprawnienia.py` — 28 sprawdzeń |
+| P02 | K01 | kod | `api_lead_update` | `handlowiec` i `deadline` wyłącznie ścieżką koordynatora — PH mógł przejąć lead i przedłużyć sobie termin, czyli wyłączyć auto-zwrot | **zrobione** | j.w. |
+| P03 | K02 | dane | produkcja | sprawdzić rolę konta Zuzy (i przejrzeć wszystkie 49 kont); kod ruszamy dopiero, gdyby rola była poprawna | **czeka na Ciebie** — zapytanie gotowe | — |
+
+Dziura okazała się szersza niż `PATCH /api/lead`: bez sprawdzenia właściciela
+były też `/api/pin` (przypięcie cudzej szkoły), `/api/lead` POST (nowa szkoła
+podpisana cudzym nazwiskiem — wbrew zasadzie „właściciel z sesji", której
+formularz pilnuje od początku) i wszystkie trzy endpointy eventów, czyli
+**kasowanie cudzego DT**.
 
 ## Paczka B — błędy widoczne przy każdym użyciu
 
 | ID | K | Typ | Gdzie | Co robimy | Status | Test |
 |---|---|---|---|---|---|---|
-| P04 | K09 | kod | `formularz2/3/4.js` | zmiana szkoły **nadpisuje** dane kontaktowe i mówi o tym; dziś zostają po poprzedniej | nowa | `test_formularz` — po jednym na wariant |
-| P05 | K11 | kod | `app.py` `_miesiac_ekranu` | najpierw odtworzyć na demo; zapamiętany miesiąc z przeszłości przestaje wygrywać | nowa | `test_scenariusze` |
-| P06 | K04 | kod | lista szkół w formularzu | jawna plakietka „widzisz 12 z 545 · filtr: moje szkoły [pokaż wszystkie]" przy samej liście | nowa | `test_filtr_osob` |
-| P07 | K08 | kod | wybór szkoły | wpisywanie z klawiatury; „12" trafia w „Szkoła Podstawowa nr 12", miasto + numer naraz | nowa | `test_formularz` |
+| P04 | K09 | kod | `formularz2/3/4.js` | zmiana szkoły **nadpisuje** dane kontaktowe, także pustą wartością, i mówi o tym | **zrobione** | `test_formularz` — 13 sprawdzeń, w tym „trzy warianty identycznie" |
+| P05 | K11 | kod | `app.py` `_miesiac_ekranu` | bieżący miesiąc, a jak pusty — najbliższy przyszły; zapamiętany miesiąc z przeszłości przestaje wygrywać | **zrobione** | `test_scenariusze` — 7 sprawdzeń |
+| P06 | K04 | kod | lista miast i szkół w formularzu | dopisek „(twoje: 12)" → gwiazdka; pod listą zdanie „N szkół w tej miejscowości — cała baza". **Pochłania P15** | **zrobione** | `test_formularz` — w tym serwerowy dowód, że lista nie jest zawężona |
+| P07 | K08 | kod | wybór szkoły | pole filtrowania nad listą; bez ogonków, po członach, bez pytania serwera | **zrobione** | `test_formularz` — 16 sprawdzeń |
 
 ## Paczka C — kalendarz i obsada DT
 
@@ -49,7 +59,7 @@ Puste pole „Test" przy statusie `sprawdzone` to sygnał ostrzegawczy, nie drob
 | P13 | K05 | kod + dane | `placowki`, filtry | kolumna `powiat` + filtr na „Bazie", „Moich szkołach" i w formularzu | czeka | `test_scenariusze` |
 | P12 | K03 | dane | `rspo.py` | import brakujących gmin; **`Nr RSPO` pusty dla 545 rekordów** → dopasowanie po nazwie + mieście, raport do ręcznego przejrzenia | czeka | próba na demo, liczby przed/po |
 | P16 | K14 | kod | placówka | uwagi **trwałe przy placówce** (dziś `uwagi` są na leadzie i znikają przy zwrocie) + „ostatnio prowadził: X, zwrot: data" | czeka | `test_scenariusze` |
-| P15 | K06 | pytanie | słownik miast | **nie wiemy, co poprawiać** — w bazie nie ma miast z nawiasem; pytanie 3 | czeka | — |
+| ~~P15~~ | K06 | — | — | **ODPADA.** „Słowo w nawiasie" to `(twoje: 12)` doklejane przez JS do nazwy miasta, nie wartość w słowniku. Naprawione w P06, słownika miast nie ruszamy | **zamknięte** | — |
 
 ## Paczka E — konta i role
 

@@ -4,8 +4,9 @@ Zebrane w jedno miejsce, żeby poszły raz, a nie sześć razy przez dwa dni.
 Numeracja jest stała — `PROJEKT_PRAC_2026-08-20.md` i rejestr powołują się na nią
 („czeka na pytanie 1").
 
-**Blokujące** (bez odpowiedzi nie zaczynamy roboty): 1, 2, 3, 4, 8, 9.
+**Blokujące** (bez odpowiedzi nie zaczynamy roboty): 1, 2, 4, 8, 9.
 **Do doprecyzowania** (zrobimy po swojemu, jeśli nie będzie odpowiedzi): 5, 6, 7, 10–13.
+**Nieaktualne** — znaleźliśmy przyczynę sami: 3.
 
 Załącznik do tej wiadomości: **`POPRAWKA BAZY.xlsx`** — wykaz 545 placówek
 i 33 miejscowości z pustymi kolumnami do wypełnienia. To jest największa
@@ -47,18 +48,23 @@ nie więcej. Ale jeśli w praktyce chodzi o coś innego, wolę wiedzieć teraz.
 - Dwie osoby maksymalnie, czy czasem bywa więcej?
 - Czy praktykant liczy się w raportach wykonania?
 
-### 3. „Żeby nie było tego słowa w nawiasie" — czego dokładnie? *(K06 → P15)*
+### 3. ~~„Żeby nie było tego słowa w nawiasie"~~ — JUŻ WIEM, poprawione *(K06)*
 
-Sprawdziłem bazę produkcyjną i **nie ma tam żadnego miasta z nawiasem**.
-Lista wygląda tak: `08. Katowice`, `18. Zabrze`, `10. Piekary Śląskie` —
-z numerkiem z przodu, bez nawiasu. Katowice są **jedne**, mają 82 placówki.
+Pytanie nieaktualne, zostawiam numer, żeby reszta się nie przesunęła.
 
-Czyli albo:
-- chodzi o **numerek z przodu** (`08. `) i to on ma zniknąć, albo
-- widzisz to na ekranie, którego nie umiem znaleźć.
+Słowo w nawiasie to **„twoje"**. Lista miast dopisywała do nazwy
+`  (twoje: 12)` — licznik Twoich szkół w tym mieście. Czytało się to jak
+„w Katowicach jest 12 szkół" i stąd wzięło się też zgłoszenie o brakującej
+liście placówek: **lista nigdy nie była zawężona**, Katowice mają w bazie
+82 placówki i wszystkie się pokazywały.
 
-**Proszę o zrzut ekranu tego miejsca.** Bez tego mogę tylko zgadywać, a to jest
-słownik miast — pomyłka rozjedzie przypisania w całej bazie.
+Poprawione: zamiast dopisku jest gwiazdka przed nazwą miasta (ten sam znak,
+którym oznaczone są Twoje szkoły na liście), a pod listą szkół stoi zdanie
+mówiące wprost, ile ich jest i że to cała baza.
+
+Ważne, czego przy okazji **nie robimy**: nie ruszamy słownika miast. Nie ma
+tam czego scalać — Katowice, Zabrze i Piekary są w bazie pojedynczo, bez
+żadnych nawiasów.
 
 ### 4. Zakres bazy szkół — arkusz `POPRAWKA BAZY.xlsx` *(K03, K05, K07 → P12–P14)*
 
