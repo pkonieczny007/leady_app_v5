@@ -536,6 +536,47 @@ def main():
             'value="DT,CYKLICZNE" selected'
             in KL.get("/kalendarz?m=2027-03&typ=DT,CYKLICZNE").get_data(as_text=True))
 
+    # --- P05: na czym otwiera się kalendarz (zgłoszenie K11) ---------------
+    #
+    # „kalendarz ustawia się na czerwiec na starcie a nie na wrzesień" — Kasia,
+    # 20.08. Dwie przyczyny, obie warte testu: fallback brał miesiąc NAJDALSZY
+    # w przyszłość (przy cyklach sięgających pół roku to miesiąc, w którym nikt
+    # nie pracuje), a zapamiętany w sesji wybór nie miał daty ważności.
+    print("\n-- P05: domyślny miesiąc kalendarza --")
+    prawdziwe_dzis = A.dzis
+    try:
+        A.dzis = lambda: "2026-08-20"
+        sprawdz("pusty sierpień → skacze na wrzesień, nie na październik",
+                A._miesiac_domyslny(["2026-07", "2026-09", "2026-10"]) == "2026-09")
+        sprawdz("bieżący miesiąc wygrywa, gdy coś w nim jest",
+                A._miesiac_domyslny(["2026-07", "2026-08", "2026-09"]) == "2026-08")
+        sprawdz("same przeszłe miesiące → ostatni z nich",
+                A._miesiac_domyslny(["2026-05", "2026-06"]) == "2026-06")
+        sprawdz("pusta baza → bieżący miesiąc",
+                A._miesiac_domyslny([]) == "2026-08")
+
+        # Sedno zgłoszenia: jedno zajrzenie do czerwca nie może zostać na 30 dni.
+        with KL.session_transaction() as s:
+            s["miesiac"] = "2026-06"
+        r = KL.get("/kalendarz")
+        sprawdz("kalendarz się otwiera", r.status_code == 200, "kod %s" % r.status_code)
+        with KL.session_transaction() as s:
+            sprawdz("zapamiętany czerwiec został skasowany z sesji",
+                    s.get("miesiac") != "2026-06", s.get("miesiac"))
+
+        # ...ale miesiąc PRZYSZŁY dalej przeżywa przejście na sąsiedni ekran
+        # (to była poprawka z 09.08 i nie wolno jej odkręcić).
+        with KL.session_transaction() as s:
+            s["miesiac"] = "2026-10"
+        KL.get("/kalendarz")
+        with KL.session_transaction() as s:
+            sprawdz("przyszły miesiąc dalej jest pamiętany",
+                    s.get("miesiac") == "2026-10", s.get("miesiac"))
+    finally:
+        A.dzis = prawdziwe_dzis
+        with KL.session_transaction() as s:
+            s.pop("miesiac", None)
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

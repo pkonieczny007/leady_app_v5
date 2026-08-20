@@ -144,16 +144,42 @@
     zapiszSzkic();
   });
 
+  /* Dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ, a nie
+     wpisywać od zera przy każdym spotkaniu.
+
+     P04 (zgłoszenie K09 Kasi, 20.08): przy ZMIANIE szkoły pola zostawały
+     wypełnione danymi poprzedniej — „wybrałam z listy szkołę, uzupełniły się
+     dane typu osoba do kontaktu, a potem zmieniłam szkołę, to osoba się nie
+     zmieniła". Skutek jest gorszy niż pusta rubryka: do bazy wchodzi cudzy
+     mail przy dobrej szkole i nikt tego nie zauważy.
+
+     Nadpisujemy więc ZAWSZE, także pustą wartością — szkoła bez kontaktu ma
+     pole wyczyścić, a nie odziedziczyć poprzednie — i mówimy o tym, zgodnie
+     z zasadą projektu: ostrzegamy, nie blokujemy. */
+  function podstawKontakt(szkola) {
+    var mapa = [["f2-osoba", "osoba_kontakt"],
+                ["f2-telefon", "telefon"],
+                ["f2-mail", "mail"]];
+    var podmiana = false;
+    for (var i = 0; i < mapa.length; i++) {
+      var pole = $(mapa[i][0]);
+      var nowa = (szkola && szkola[mapa[i][1]]) || "";
+      // Komunikat należy się tylko wtedy, gdy coś WYPARŁO wpisaną wartość.
+      // Pierwsze wypełnienie pustego formularza nie jest podmianą.
+      if (pole.value && pole.value !== nowa) podmiana = true;
+      pole.value = nowa;
+    }
+    return podmiana;
+  }
+
   selSzkola.addEventListener("change", function () {
     stan.wybrana = indeks[selSzkola.value] || null;
     if (stan.wybrana) {
       stan.nowa = false;
       $("f2-nowa").hidden = true;
-      // dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ,
-      // a nie wpisywać od zera przy każdym spotkaniu
-      if (!$("f2-osoba").value) $("f2-osoba").value = stan.wybrana.osoba_kontakt || "";
-      if (!$("f2-telefon").value) $("f2-telefon").value = stan.wybrana.telefon || "";
-      if (!$("f2-mail").value) $("f2-mail").value = stan.wybrana.mail || "";
+      if (podstawKontakt(stan.wybrana)) {
+        toast("Dane kontaktowe podmienione na te ze szkoły z bazy — sprawdź je.");
+      }
     }
     odswiezDostepnosc();
     zapiszSzkic();

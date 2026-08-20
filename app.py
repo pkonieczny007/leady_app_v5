@@ -273,10 +273,38 @@ def _miesiac_ekranu(args, miesiace):
     if z_adresu:
         session["miesiac"] = z_adresu
         return z_adresu
+    domyslny = _miesiac_domyslny(miesiace)
     zapamietany = _sensowny_miesiac(session.get("miesiac"))
-    if zapamietany:
+    # P05 (zgłoszenie K11 Kasi, 20.08): „kalendarz ustawia się na czerwiec na
+    # starcie a nie na wrzesień". Zapamiętany wybór nie ma daty ważności, a sesja
+    # żyje 30 dni — jedno zajrzenie do minionego miesiąca i człowiek zostaje
+    # w nim na tygodnie, na każdym wejściu, bez pojęcia dlaczego. Wybór z
+    # PRZESZŁOŚCI przestaje więc wygrywać i pamięć się kasuje; miesiąc przyszły
+    # dalej przeżywa przejście na sąsiedni ekran, bo o to chodziło 09.08.
+    if zapamietany and zapamietany >= dzis()[:7]:
         return zapamietany
-    return miesiace[-1] if miesiace else dzis()[:7]
+    if zapamietany:
+        session["miesiac"] = domyslny
+    return domyslny
+
+
+def _miesiac_domyslny(miesiace):
+    """
+    Na czym otwiera się kalendarz, gdy nikt nic nie wybrał.
+
+    Bieżący miesiąc, a jeśli nic w nim nie ma — NAJBLIŻSZY PRZYSZŁY z wpisami.
+    Poprzednio był to `miesiace[-1]`, czyli miesiąc najdalszy w przyszłość:
+    przy zajęciach cyklicznych sięgających pół roku do przodu kalendarz otwierał
+    się tam, gdzie nikt nie pracuje. Pusty bieżący miesiąc też jest złą
+    odpowiedzią — w sierpniu praca dzieje się we wrześniu.
+    """
+    teraz = dzis()[:7]
+    if not miesiace:
+        return teraz
+    if teraz in miesiace:
+        return teraz
+    przyszle = [m for m in miesiace if m >= teraz]
+    return przyszle[0] if przyszle else miesiace[-1]
 
 
 def _walidacja(conn, field, value, mapa_slownikow, dozwolone_klucze):

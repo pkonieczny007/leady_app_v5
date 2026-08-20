@@ -748,6 +748,42 @@ def main():
     sprawdz("zajęcia bez DT są widoczne w kalendarzu", len(wrzesien) == 3)
     conn.close()
 
+    # --- P04: zmiana szkoły podmienia dane kontaktowe (zgłoszenie K09) -------
+    #
+    # „wybrałam z listy rozwijanej szkołę, uzupełniły się dane typu osoba do
+    # kontaktu, a potem zmieniłam szkołę, to osoba się nie zmieniła, została
+    # z poprzedniego wyboru" — Kasia, 20.08.
+    #
+    # Sprawdzamy w ŹRÓDLE, a nie przez przeglądarkę, bo to zachowanie czystego
+    # JS-a bez wywołania serwera. Ważniejsze i tak jest to, że wszystkie trzy
+    # warianty robią to TAK SAMO: gdyby się rozjechały, klient wybierałby między
+    # funkcjami, a nie między układem.
+    print("\n-- P04: dane kontaktowe przy zmianie szkoły --")
+    zrodla = {}
+    for w in ("formularz2", "formularz3", "formularz4"):
+        zrodla[w] = open("static/%s.js" % w, encoding="utf-8").read()
+
+    for w, kod in zrodla.items():
+        sprawdz("%s: nie ma już warunku „wpisz tylko, gdy pusto”" % w,
+                'if (!$("f2-osoba").value)' not in kod)
+        sprawdz("%s: podstawia kontakt jedną funkcją" % w,
+                "function podstawKontakt(" in kod and "podstawKontakt(stan.wybrana)" in kod)
+        # Pusta wartość MUSI czyścić pole — inaczej szkoła bez kontaktu
+        # dziedziczy dane poprzedniej, czyli dokładnie zgłoszony błąd.
+        sprawdz("%s: pusta wartość ze szkoły czyści pole" % w,
+                'var nowa = (szkola && szkola[mapa[i][1]]) || "";' in kod
+                and "pole.value = nowa;" in kod)
+        sprawdz("%s: mówi o podmianie zamiast robić ją po cichu" % w,
+                "Dane kontaktowe podmienione" in kod)
+
+    def helper(kod):
+        a = kod.index("function podstawKontakt(")
+        return kod[a:kod.index("selSzkola.addEventListener", a)].strip()
+
+    sprawdz("wszystkie trzy warianty podstawiają kontakt IDENTYCZNIE",
+            helper(zrodla["formularz2"]) == helper(zrodla["formularz3"])
+            == helper(zrodla["formularz4"]))
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1
