@@ -42,6 +42,28 @@ formularz pilnuje od początku) i wszystkie trzy endpointy eventów, czyli
 | P06 | K04 | kod | lista miast i szkół w formularzu | dopisek „(twoje: 12)" → gwiazdka; pod listą zdanie „N szkół w tej miejscowości — cała baza". **Pochłania P15** | **zrobione** | `test_formularz` — w tym serwerowy dowód, że lista nie jest zawężona |
 | P07 | K08 | kod | wybór szkoły | pole filtrowania nad listą; bez ogonków, po członach, bez pytania serwera | **zrobione** | `test_formularz` — 16 sprawdzeń |
 
+## Paczka B2 — zgłoszenia z 20.08 wieczorem (Kasia + Zuzia)
+
+Trzy zgłoszenia, jedna przyczyna: **formularz umiał zapisać dokładnie jeden
+wynik wizyty** — „DT umówione" z kompletem sześciu pól. Wszystko inne, co się
+w terenie zdarza, nie miało gdzie trafić, więc ludzie omijali formularz
+i klikali status w karcie leada — a wtedy szkoła zostawała na liście zadań.
+
+| ID | Źródło | Typ | Gdzie | Co robimy | Status | Test |
+|---|---|---|---|---|---|---|
+| P24 | Zuzia | kod | kalendarz | filtr „bez prowadzącego" we wszystkich trzech widokach; licznik w nagłówku klikalny | **zrobione** | `test_scenariusze` — 13 sprawdzeń |
+| P23 | Zuzia | kod | plan dnia | „zrobione" liczy się też ze statusu, nie tylko z datowanego DT; lista schodzi od razu po zapisie, bez przeładowania | **zrobione** | `test_formularz` — 11 sprawdzeń |
+| P22 | Kasia | kod | formularz v2/v3/v4 | sekcja „Wynik wizyty": status ze słownika + notatka; pola DT wymagane tylko przy umawianiu DT | **zrobione** | `test_formularz` — 23 sprawdzenia |
+| P25 | Kasia | słownik | Słowniki | **do zrobienia przez Kasię**: w słowniku `status_realizacji` brakuje pozycji „brak próby". Reszta z jej listy już jest | **czeka na Kasię** | — |
+
+P22 jest warunkiem raportu z K15: „ile odpuściliśmy celowo" nie dawało się
+policzyć, bo odpuszczenie nigdy nie zostawiało śladu tam, gdzie się je
+podejmuje. P23 jest warunkiem P22 — bez niego wynik „szkoła się nie zgadza"
+trzymałby szkołę na liście zadań w nieskończoność.
+
+P24 to pierwsza połowa K13: **widać już, co jest wolne**. Druga połowa — żeby
+trener sam mógł takie zajęcia wziąć — czeka na pytanie 1 do Kasi.
+
 ## Paczka C — kalendarz i obsada DT
 
 | ID | K | Typ | Gdzie | Co robimy | Status | Test |
