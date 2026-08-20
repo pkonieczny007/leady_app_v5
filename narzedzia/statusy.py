@@ -67,6 +67,16 @@ RODZAJ = "status_realizacji"
 
 
 def _polacz(profil):
+    # W kontenerze `DATA_DIR` WYGRYWA z `PROFIL` — o tę samą pułapkę potknął się
+    # już `narzedzia/baza.py`. Bez tej odmowy `--profil prod` puszczone
+    # w kontenerze demo po cichu dopisałoby statusy do bazy demo i wyglądałoby
+    # na wykonane. Ta sama zasada: raczej odmówić niż ruszyć nie tę bazę.
+    wlasciwy = os.environ.get("PROFIL")
+    if os.environ.get("DATA_DIR") and wlasciwy and wlasciwy != profil:
+        print("Odmawiam: DATA_DIR wskazuje bazę profilu „%s”, a prosisz o „%s”."
+              % (wlasciwy, profil))
+        print("W kontenerze uruchamiaj bez --profil albo z tym samym, co PROFIL.")
+        sys.exit(2)
     os.environ["PROFIL"] = profil
     import db
     return db, db.get_conn()
