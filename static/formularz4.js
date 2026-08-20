@@ -920,15 +920,21 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
           var el = $(p[0]);
           if (!String(el.value || "").trim()) braki.push([el, p[1]]);
         });
-    } else if (!zbierzCykl()) {
-      // DT wyłączony I pusta sekcja cykliczna = zapis, po którym nie powstaje
-      // ŻADNE spotkanie. Przycisk mruga, ekran sukcesu pokazuje samą szkołę
-      // i wygląda to jak zgubiony formularz. Mówimy wprost, czego brakuje.
+    } else if (!zbierzCykl() && !$("f2-wynik").value) {
+      // DT wyłączony, pusta sekcja cykliczna I brak wyniku wizyty = zapis,
+      // po którym nie powstaje ŻADNE spotkanie i nie wiadomo nawet, czym
+      // skończyła się rozmowa. Ekran sukcesu pokazałby samą szkołę i wyglądałby
+      // jak zgubiony formularz. Mówimy wprost, czego brakuje.
+      //
+      // P22 dołożył trzecie wyjście: sam wynik wizyty wystarczy. Wcześniej
+      // jedyną drogą bez DT był cykl, więc „szkoła się nie zgadza" nie dawało
+      // się zapisać nigdzie.
       var cel = wybranyTryb() === "daty" ? $("f4-start") : $("f2-cykl-dzien");
-      braki.push([cel, "Bez Dnia Technologii trzeba ustalić zajęcia cykliczne — " +
+      braki.push([cel, "Bez Dnia Technologii ustal zajęcia cykliczne (" +
                        (wybranyTryb() === "daty"
-                         ? "podaj datę pierwszych zajęć."
-                         : "wybierz dzień tygodnia.")]);
+                         ? "podaj datę pierwszych zajęć"
+                         : "wybierz dzień tygodnia") +
+                       ") albo zaznacz wynik wizyty."]);
     }
 
     braki.forEach(function (b) { bladPola(b[0], b[1]); });
@@ -976,6 +982,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       mail: $("f2-mail").value.trim()
     };
     d.cykle = $("f2-cykle").value;
+    // P22: wynik wizyty i notatka jadą ZAWSZE, także gdy DT jest wyłączony.
+    // Puste wartości serwer pomija, więc pusty wybór nie skasuje tego, co już
+    // przy tej szkole zapisano.
+    d.status_realizacji = $("f2-wynik").value;
+    d.uwagi = $("f2-uwagi").value.trim();
     // Przy wyłączonym DT nie wysyłamy ANI bloku `dt`, ani pytania o wiadomość
     // do rodziców — to pole dotyczy zapowiedzi dnia pokazowego. Serwer
     // pomijający pusty blok nie utworzy spotkania i nie ruszy statusu leada
@@ -1114,7 +1125,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
   var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
               "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
-              "f2-mail-rodzice", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
+              "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi",
               "f4-co-ile", "f4-start", "f4-ile", "f4-co-ile-daty"];
 

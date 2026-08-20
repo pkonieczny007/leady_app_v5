@@ -381,16 +381,35 @@
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
       else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
     }
-    [["f2-dt-data", "Podaj datę DT."],
-     ["f2-dt-od", "Podaj godzinę DT."],
-     ["f2-dt-trener", "Wybierz prowadzącego DT."],
-     ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-     ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-     ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-      .forEach(function (p) {
-        var el = $(p[0]);
-        if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-      });
+    /* P22 (Kasia, 20.08): pola DT są wymagane TYLKO wtedy, gdy DT rzeczywiście
+       dziś umawiamy. Do tej pory formularz żądał kompletu sześciu pól ZAWSZE,
+       więc „byłam, dyrektor się zastanawia" nie dawało się zapisać w ogóle —
+       i ludzie omijali formularz, klikając status wprost w karcie leada.
+
+       „Zaczęty DT" poznajemy po tym, że cokolwiek w tej sekcji wpisano.
+       Połowa DT jest gorsza niż brak DT: wpis bez godziny albo bez
+       prowadzącego wygląda w kalendarzu na ustalony i nikt go nie poprawi. */
+    var zaczetyDT = ["f2-dt-data", "f2-dt-od", "f2-dt-trener",
+                     "f2-dt-klas", "f2-dt-dzieci"].some(function (id) {
+      var el = $(id);
+      return !!(el && String(el.value || "").trim());
+    });
+    if (zaczetyDT) {
+      [["f2-dt-data", "Podaj datę DT."],
+       ["f2-dt-od", "Podaj godzinę DT."],
+       ["f2-dt-trener", "Wybierz prowadzącego DT."],
+       ["f2-dt-klas", "Podaj liczbę klas 1–4."],
+       ["f2-dt-dzieci", "Podaj liczbę dzieci."],
+       ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
+        .forEach(function (p) {
+          var el = $(p[0]);
+          if (!String(el.value || "").trim()) braki.push([el, p[1]]);
+        });
+    } else if (!$("f2-wynik").value) {
+      // Zapis bez DT i bez wyniku nie niesie żadnej informacji — powstałaby
+      // szkoła „odwiedzona", o której nie wiadomo nic.
+      braki.push([$("f2-wynik"), "Bez terminu DT zaznacz, czym skończyła się wizyta."]);
+    }
 
     braki.forEach(function (b) { bladPola(b[0], b[1]); });
     if (braki.length) {
@@ -429,6 +448,10 @@
     };
     d.mail_rodzice = $("f2-mail-rodzice").value;
     d.cykle = $("f2-cykle").value;
+    // P22: wynik wizyty i notatka jadą ZAWSZE, także gdy DT nie ma. Puste
+    // wartości serwer pomija, więc pusty wybór nie skasuje tego, co już jest.
+    d.status_realizacji = $("f2-wynik").value;
+    d.uwagi = $("f2-uwagi").value.trim();
     d.dt = {
       data: $("f2-dt-data").value,
       godz_od: $("f2-dt-od").value,
@@ -519,7 +542,7 @@
   var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
               "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
-              "f2-mail-rodzice", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
+              "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi"];
 
   var timerSzkicu = null;

@@ -220,7 +220,11 @@ def main():
     print("\nF5 — wariant 2: jeden ciągły, wg makiety klienta")
     sprawdz("/formularz/ciagly zwraca 200", KL.get("/formularz/ciagly").status_code == 200)
     html = KL.get("/formularz/ciagly?handlowiec=" + H).get_data(as_text=True)
-    sprawdz("trzy sekcje makiety, jedna pod drugą", html.count('class="f2-sekcja"') == 3)
+    # Trzy sekcje z makiety klienta + „Wynik wizyty" dołożony 20.08 (P22).
+    # Makieta zakładała, że wizyta zawsze kończy się umówieniem DT — Kasia po
+    # dwóch tygodniach pracy poprosiła o miejsce na pozostałe zakończenia.
+    sprawdz("sekcje makiety plus wynik wizyty, jedna pod drugą",
+            html.count('class="f2-sekcja"') == 4)
     sprawdz("para list Miejscowość → Placówka",
             'id="f2-miasto"' in html and 'id="f2-szkola"' in html)
     sprawdz("lista szkół zablokowana do czasu wyboru miasta",
@@ -239,8 +243,8 @@ def main():
     r3 = KL.get("/formularz/v3")
     sprawdz("/formularz/v3 zwraca 200", r3.status_code == 200)
     html3 = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
-    sprawdz("v3 ma układ v2 — te same trzy sekcje",
-            html3.count('class="f2-sekcja"') == 3)
+    sprawdz("v3 ma układ v2 — te same cztery sekcje",
+            html3.count('class="f2-sekcja"') == 4)
     sprawdz("plakietka statusu wybranego prowadzącego",
             'id="f3-status"' in html3)
     sprawdz("plakietka startuje ukryta (nie ma czego pokazywać bez daty)",
@@ -920,6 +924,79 @@ def main():
         kod = open("static/%s.js" % w, encoding="utf-8").read()
         sprawdz("%s: po zapisie zdejmuje szkołę z listy od razu" % w,
                 "FX_PLAN_ZROBIONE(j.lead_id)" in kod)
+
+    # --- P22: zapis wizyty BEZ terminu DT (zgłoszenie Kasi) -----------------
+    #
+    # „musza byc opcje w formularzu ze bez daty dt można wprowadzić szkołę
+    # i wybrać z listy rozwijanej opcje (…) I pole uwagi do wpisania notatki".
+    #
+    # Do 20.08 formularz wymagał kompletu sześciu pól DT, więc „byłam, dyrektor
+    # się zastanawia" nie dawało się zapisać w ogóle.
+    print("\n-- P22: wizyta bez terminu DT --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 300 bez DT', ?, 'test')", (M,))
+    l_bez = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                         (cur.lastrowid, H)).lastrowid
+    conn.commit()
+    conn.close()
+
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_bez,
+        "status_realizacji": "02. Próba kontaktu (czekam na termin)",
+        "uwagi": "Dyrektor wraca z urlopu 5.09, dzwonić po 10:00.",
+    })
+    sprawdz("zapis bez bloku DT i bez cyklu przechodzi", kod == 200, str(j)[:110])
+
+    conn = db.get_conn()
+    row = conn.execute("SELECT status_realizacji, uwagi FROM leady WHERE id=?",
+                       (l_bez,)).fetchone()
+    ile_ev = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                          (l_bez,)).fetchone()["c"]
+    conn.close()
+    sprawdz("wynik wizyty zapisany na leadzie",
+            row["status_realizacji"] == "02. Próba kontaktu (czekam na termin)",
+            str(row["status_realizacji"]))
+    sprawdz("notatka zapisana", "Dyrektor wraca" in (row["uwagi"] or ""))
+    sprawdz("NIE powstało żadne spotkanie", ile_ev == 0, "eventów: %d" % ile_ev)
+
+    # Szkoła z takim wynikiem dalej JEST zadaniem — trzeba do niej wrócić.
+    # To odróżnia „czekam na termin" od „DT umówione" i pilnuje, żeby P23
+    # nie zdjęło z listy czegoś, co jeszcze wymaga ruchu.
+    p = pozycja_planu(l_bez)
+    sprawdz("„czekam na termin” nie zdejmuje szkoły z zadań",
+            p is not None and not p["zrobione"])
+
+    # Pusty wybór nie kasuje tego, co już zapisano — formularz wysyła pola
+    # zawsze, także gdy człowiek ich nie ruszył.
+    post("/api/formularz", {"handlowiec": H, "lead_id": l_bez,
+                            "status_realizacji": "", "uwagi": ""})
+    conn = db.get_conn()
+    row = conn.execute("SELECT status_realizacji, uwagi FROM leady WHERE id=?",
+                       (l_bez,)).fetchone()
+    conn.close()
+    sprawdz("pusty wynik nie kasuje zapisanego statusu",
+            row["status_realizacji"] == "02. Próba kontaktu (czekam na termin)")
+    sprawdz("pusta notatka nie kasuje zapisanej", "Dyrektor wraca" in (row["uwagi"] or ""))
+
+    kod, j = post("/api/formularz", {"handlowiec": H, "lead_id": l_bez,
+                                     "status_realizacji": "Wymyślony status"})
+    sprawdz("status spoza słownika odrzucony", kod == 400, str(j)[:90])
+
+    for w in ("formularz2", "formularz3", "formularz4"):
+        html = open("templates/%s.html" % w, encoding="utf-8").read()
+        sprawdz("%s: sekcja „Wynik wizyty” jest w szablonie" % w,
+                'id="f2-wynik"' in html and 'id="f2-uwagi"' in html)
+        sprawdz("%s: stany techniczne „00.” nie trafiają do terenu" % w,
+                "not v.startswith('00.')" in html)
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: wynik i notatka jadą w zapisie" % w,
+                "d.status_realizacji = $(\"f2-wynik\").value;" in kod_js
+                and "d.uwagi = $(\"f2-uwagi\").value.trim();" in kod_js)
+        sprawdz("%s: pola DT wymagane tylko przy umawianiu DT" % w,
+                "zaczetyDT" in kod_js or "czyDT()" in kod_js)
+        sprawdz("%s: szkic pamięta wynik i notatkę" % w,
+                '"f2-wynik", "f2-uwagi"' in kod_js)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

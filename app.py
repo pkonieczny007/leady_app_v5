@@ -1821,8 +1821,13 @@ def api_formularz():
                           (placowka_id,)).fetchone()["miejscowosc"]
 
     # --- 2. pola leada ------------------------------------------------------
+    # `status_realizacji` doszedł 20.08 (P22, zgłoszenie Kasi): formularz musi
+    # umieć zapisać wizytę, która NIE skończyła się umówieniem DT. Wartość idzie
+    # przez słownik jak każda inna, więc nie da się tędy wstawić czegoś spoza
+    # listy. Sekcja 3 (spotkania) wykonuje się PÓŹNIEJ i przy realnym DT
+    # nadpisze to na „03. DT umówione" — i tak ma być: termin bije deklarację.
     for k in ("uwagi", "do_zrobienia", "mail_rodzice", "mail_wynajem",
-          "status_szkoly", "cykle"):
+          "status_szkoly", "cykle", "status_realizacji"):
         if k not in d:
             continue
         v, e = _walidacja(conn, k, d.get(k), LEAD_SLOWNIKI, LEAD_KEYS)
