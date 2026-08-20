@@ -998,6 +998,70 @@ def main():
         sprawdz("%s: szkic pamięta wynik i notatkę" % w,
                 '"f2-wynik", "f2-uwagi"' in kod_js)
 
+    # --- P27: DT wolno zapisać niekompletny (zgłoszenie Zuzi, p. 2) ---------
+    #
+    # „Możemy ustalić, że szkoła chce DT, ale dokładna godzina, liczba klas czy
+    # liczba dzieci zostanie podana później." Przez wymóg kompletu nie dało się
+    # wprowadzić prawie całego jej tygodnia w terenie.
+    print("\n-- P27: DT bez kompletu danych --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 301 niepelny DT', ?, 'test')", (M,))
+    l_nie = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                         (cur.lastrowid, H)).lastrowid
+    conn.commit()
+    conn.close()
+
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_nie,
+        "dt": {"data": "2026-12-15"},          # sama data — reszta „będzie później"
+    })
+    sprawdz("DT z samą datą przechodzi", kod == 200, str(j)[:110])
+    conn = db.get_conn()
+    ev = conn.execute("SELECT data, godz_od, trener, ilosc_klas, ilosc_dzieci "
+                      "FROM eventy WHERE lead_id=?", (l_nie,)).fetchone()
+    conn.close()
+    sprawdz("spotkanie powstało z datą", ev and ev["data"] == "2026-12-15")
+    sprawdz("i bez reszty pól — nikt ich nie zmyślił",
+            ev and not ev["godz_od"] and not ev["ilosc_klas"] and not ev["ilosc_dzieci"])
+
+    # Druga połowa P27 (P30): skoro zapis wolno zostawić niepełny, kalendarz
+    # MUSI o tym mówić. Bez tego „zapisane" znaczyłoby „gotowe".
+    import calendar_view as _cv
+    conn = db.get_conn()
+    braki = [e["braki"] for e in _cv.events_for_month(conn, "2026-12")
+             if e["lead_id"] == l_nie]
+    conn.close()
+    sprawdz("kalendarz nazywa braki po imieniu",
+            braki and braki[0] == ["godzina", "liczba klas", "liczba dzieci"],
+            str(braki))
+
+    # Data zostaje twarda: bez niej serwer pomija cały blok DT, więc godzina
+    # i liczby wpisane obok przepadłyby po cichu.
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_nie,
+        "status_realizacji": "02c. Czekam na decyzję",
+        "dt": {"godz_od": "09:00", "ilosc_klas": 3},
+    })
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                       (l_nie,)).fetchone()["c"]
+    conn.close()
+    sprawdz("blok DT bez daty nie tworzy spotkania-widma", ile == 1,
+            "eventów: %d" % ile)
+
+    for w in ("formularz2", "formularz3", "formularz4"):
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: z pól DT twarda jest tylko data" % w,
+                "POLA_DT" in kod_js and "wpisaneDT(POLA_DT[0])" in kod_js
+                and "Podaj godzinę DT." not in kod_js)
+        sprawdz("%s: braki są mówione, nie milczane" % w,
+                "do uzupełnienia" in kod_js)
+        # Toast podmienia treść, więc dwa wywołania obok siebie zjadają się
+        # nawzajem — ostrzeżenia muszą iść jednym komunikatem.
+        sprawdz("%s: ostrzeżenia zbierane w jedno" % w,
+                "var ostrz = []" in kod_js)
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

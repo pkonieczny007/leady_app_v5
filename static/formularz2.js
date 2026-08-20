@@ -381,30 +381,35 @@
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
       else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
     }
-    /* P22 (Kasia, 20.08): pola DT są wymagane TYLKO wtedy, gdy DT rzeczywiście
-       dziś umawiamy. Do tej pory formularz żądał kompletu sześciu pól ZAWSZE,
-       więc „byłam, dyrektor się zastanawia" nie dawało się zapisać w ogóle —
-       i ludzie omijali formularz, klikając status wprost w karcie leada.
+    /* P22 (Kasia, 20.08) + P27 (Zuzia, 20.08): sekcja DT przestała być zestawem
+       sześciu pól „wszystko albo nic". Najpierw zdjęliśmy wymóg DT z wizyty bez
+       terminu (P22), teraz — wymóg KOMPLETU z wizyty z terminem.
 
-       „Zaczęty DT" poznajemy po tym, że cokolwiek w tej sekcji wpisano.
-       Połowa DT jest gorsza niż brak DT: wpis bez godziny albo bez
-       prowadzącego wygląda w kalendarzu na ustalony i nikt go nie poprawi. */
-    var zaczetyDT = ["f2-dt-data", "f2-dt-od", "f2-dt-trener",
-                     "f2-dt-klas", "f2-dt-dzieci"].some(function (id) {
-      var el = $(id);
+       Zuzia: „możemy ustalić, że szkoła chce DT, ale dokładna godzina, liczba
+       klas czy liczba dzieci zostanie podana później". Przez tę jedną regułę nie
+       dało się wprowadzić prawie całego jej tygodnia w terenie — a praca, której
+       nie da się zapisać, nie znika: dzieje się dalej, tylko poza aplikacją.
+
+       Twarda zostaje JEDNA rzecz: data. Serwer pomija blok DT bez daty
+       (`if typ == "DT" and not blok["data"]: continue`), więc godzina i liczba
+       dzieci wpisane obok przepadłyby bez śladu. Reszta braków ma być WIDOCZNA,
+       nie zablokowana: ostrzeżenie tutaj i znacznik „do uzupełnienia"
+       w kalendarzu (P30, prośba Kasi z 20.08). */
+    var POLA_DT = [["f2-dt-data", "datę"], ["f2-dt-od", "godzinę"],
+                   ["f2-dt-trener", "prowadzącego"], ["f2-dt-klas", "liczbę klas"],
+                   ["f2-dt-dzieci", "liczbę dzieci"]];
+    function wpisaneDT(p) {
+      var el = $(p[0]);
       return !!(el && String(el.value || "").trim());
-    });
+    }
+    var zaczetyDT = POLA_DT.some(wpisaneDT);
     if (zaczetyDT) {
-      [["f2-dt-data", "Podaj datę DT."],
-       ["f2-dt-od", "Podaj godzinę DT."],
-       ["f2-dt-trener", "Wybierz prowadzącego DT."],
-       ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-       ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-       ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-        .forEach(function (p) {
-          var el = $(p[0]);
-          if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-        });
+      if (!wpisaneDT(POLA_DT[0])) {
+        braki.push([$("f2-dt-data"),
+                    "Podaj datę DT — bez niej wpis nie trafi do kalendarza, " +
+                    "a godzina i liczby wpisane obok przepadną. Jeśli terminu " +
+                    "jeszcze nie ma, wyczyść tę sekcję i zaznacz wynik wizyty."]);
+      }
     } else if (!$("f2-wynik").value) {
       // Zapis bez DT i bez wyniku nie niesie żadnej informacji — powstałaby
       // szkoła „odwiedzona", o której nie wiadomo nic.
@@ -419,10 +424,27 @@
             odmiana(braki.length, "pole", "pola", "pól"), true);
       return false;
     }
+    /* Ostrzeżenia idą JEDNYM komunikatem: `toast` podmienia treść, więc dwa
+       wywołania obok siebie zjadają się nawzajem i człowiek widzi tylko drugie. */
+    var ostrz = [];
     // Data w przeszłości to OSTRZEŻENIE, nie blokada — czasem wpisuje się
-    // ustalenia po fakcie.
-    if ($("f2-dt-data").value < root.dataset.dzis) {
-      toast("Uwaga: data DT jest w przeszłości — zapisuję tak, jak wpisałeś.");
+    // ustalenia po fakcie. Pusta data nie jest „przeszła": porównanie
+    // "" < "2026-08-20" wychodzi prawdą, więc po P22 każda wizyta BEZ DT
+    // dostawała ostrzeżenie o dacie w przeszłości.
+    if (wpisaneDT(POLA_DT[0])) {
+      if ($("f2-dt-data").value < root.dataset.dzis) {
+        ostrz.push("data DT jest w przeszłości");
+      }
+      var brakiDT = POLA_DT.slice(1)
+        .filter(function (p) { return !wpisaneDT(p); })
+        .map(function (p) { return p[1]; });
+      if (brakiDT.length) {
+        ostrz.push("DT bez: " + brakiDT.join(", ") +
+                   " — w kalendarzu będzie oznaczone „do uzupełnienia”");
+      }
+    }
+    if (ostrz.length) {
+      toast("Uwaga: " + ostrz.join(" · ") + ". Zapisuję tak, jak wpisałeś.");
     }
     return true;
   }

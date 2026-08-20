@@ -347,6 +347,11 @@ main{padding-bottom:var(--space-8)}
 /* „szukana osoba jest tu, ale nie jako prowadząca" — podpis roli na kafelku,
    żeby wpis w cudzym wierszu nie wyglądał na pomyłkę filtra */
 .tag-rola{background:var(--amber-l);color:var(--fill-t);border:1px solid var(--amber-d);font-weight:600}
+/* P30 „do uzupełnienia". Wygląda jak `tag-rola`, ale MUSI być osobną klasą:
+   testy filtra osób liczą wystąpienia `tag-rola` w HTML, żeby sprawdzić, że
+   etykieta roli wisi dokładnie na jednym spotkaniu. Pożyczona klasa zepsuła
+   dwa takie sprawdzenia od razu — i słusznie, bo to dwie różne informacje. */
+.tag-braki{background:var(--amber-l);color:var(--fill-t);border:1px dotted var(--amber-d);font-weight:600}
 
 /* ------------------------------------------------------------------ formularze */
 
@@ -741,6 +746,14 @@ tr.flash td{animation:flash .9s ease-out}
 .ev.kolizja{background:var(--overdue);border-color:var(--warn);border-left-color:var(--warn)}
 .ev.kolizja .ev-godz{color:var(--warn-d)}
 .ev-kol{font-size:9px;padding:1px 6px;align-self:flex-start;margin-top:2px}
+/* P30: DT z niekompletnymi danymi. Bursztynowa lewa krawędź, nie czerwone tło —
+   kolizja to błąd (dwie rzeczy naraz), a brak godziny to niedokończona robota.
+   Gdyby oba wyglądały tak samo, kolizja przestałaby się rzucać w oczy. */
+.ev-braki{border-left-color:var(--amber-d);border-left-style:dotted}
+/* P31: odwołane widać tylko w swoim trybie, więc mogą być wyraźnie „przekreślone" —
+   nie ma ryzyka, że ktoś je pomyli z zajęciami, które się odbędą. */
+.ev-odwolany{opacity:.72;background:var(--panel);border-style:dashed}
+.ev-odwolany .ev-szkola,.ev-odwolany .ev-godz{text-decoration:line-through}
 
 /* ---- widok AGENDA ---- */
 

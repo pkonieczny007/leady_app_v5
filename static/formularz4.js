@@ -907,19 +907,30 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
       else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
     }
-    // Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
-    // przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
+    /* Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
+       przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
+
+       P27 (Zuzia, 20.08): a i przy włączonej sekcji twarda zostaje sama DATA.
+       „Szkoła chce DT 15 września, godzinę i liczbę klas poda sekretariat" to
+       normalny wynik pierwszej wizyty, a nie błąd do poprawienia na miejscu.
+       Bez daty serwer i tak pomija cały blok DT, więc godzina wpisana obok
+       przepadłaby bez śladu — dlatego akurat ta jedna zostaje wymagana.
+       Reszta braków: ostrzeżenie niżej i znacznik „do uzupełnienia"
+       w kalendarzu (P30). */
+    var POLA_DT = [["f2-dt-data", "datę"], ["f2-dt-od", "godzinę"],
+                   ["f2-dt-trener", "prowadzącego"], ["f2-dt-klas", "liczbę klas"],
+                   ["f2-dt-dzieci", "liczbę dzieci"]];
+    function wpisaneDT(p) {
+      var el = $(p[0]);
+      return !!(el && String(el.value || "").trim());
+    }
     if (czyDT()) {
-      [["f2-dt-data", "Podaj datę DT."],
-       ["f2-dt-od", "Podaj godzinę DT."],
-       ["f2-dt-trener", "Wybierz prowadzącego DT."],
-       ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-       ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-       ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-        .forEach(function (p) {
-          var el = $(p[0]);
-          if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-        });
+      if (!wpisaneDT(POLA_DT[0])) {
+        braki.push([$("f2-dt-data"),
+                    "Podaj datę DT — bez niej wpis nie trafi do kalendarza, " +
+                    "a godzina i liczby wpisane obok przepadną. Jeśli terminu " +
+                    "jeszcze nie ma, wyłącz Dzień Technologii i zaznacz wynik wizyty."]);
+      }
     } else if (!zbierzCykl() && !$("f2-wynik").value) {
       // DT wyłączony, pusta sekcja cykliczna I brak wyniku wizyty = zapis,
       // po którym nie powstaje ŻADNE spotkanie i nie wiadomo nawet, czym
@@ -945,19 +956,34 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
             odmiana(braki.length, "pole", "pola", "pól"), true);
       return false;
     }
+    /* Ostrzeżenia idą JEDNYM komunikatem: `toast` podmienia treść, więc trzy
+       wywołania obok siebie zjadają się nawzajem i widać tylko ostatnie. */
+    var ostrz = [];
     // Data w przeszłości to OSTRZEŻENIE, nie blokada — czasem wpisuje się
     // ustalenia po fakcie. Przy wyłączonym DT pole jest puste, a pusty tekst
     // jest „mniejszy" od dzisiejszej daty — bez tego warunku ostrzeżenie
     // wyskakiwałoby za każdym razem, gdy DT pomijamy.
-    if (czyDT() && $("f2-dt-data").value < root.dataset.dzis) {
-      toast("Uwaga: data DT jest w przeszłości — zapisuję tak, jak wpisałeś.");
+    if (czyDT() && wpisaneDT(POLA_DT[0])) {
+      if ($("f2-dt-data").value < root.dataset.dzis) {
+        ostrz.push("data DT jest w przeszłości");
+      }
+      // Pierwsze zajęcia PRZED Dniem Technologii to prawie zawsze pomyłka
+      // (cykl otwiera się po dniu pokazowym), ale bywa świadome przy szkole,
+      // która już nas zna — więc ostrzegamy, nie blokujemy.
+      if (stan.terminy.length && stan.terminy[0].data &&
+          stan.terminy[0].data < $("f2-dt-data").value) {
+        ostrz.push("pierwsze zajęcia cykliczne wypadają przed DT");
+      }
+      var brakiDT = POLA_DT.slice(1)
+        .filter(function (p) { return !wpisaneDT(p); })
+        .map(function (p) { return p[1]; });
+      if (brakiDT.length) {
+        ostrz.push("DT bez: " + brakiDT.join(", ") +
+                   " — w kalendarzu będzie oznaczone „do uzupełnienia”");
+      }
     }
-    // Pierwsze zajęcia PRZED Dniem Technologii to prawie zawsze pomyłka
-    // (cykl otwiera się po dniu pokazowym), ale bywa świadome przy szkole,
-    // która już nas zna — więc ostrzegamy, nie blokujemy.
-    if (czyDT() && stan.terminy.length && $("f2-dt-data").value &&
-        stan.terminy[0].data && stan.terminy[0].data < $("f2-dt-data").value) {
-      toast("Uwaga: pierwsze zajęcia cykliczne wypadają przed DT.");
+    if (ostrz.length) {
+      toast("Uwaga: " + ostrz.join(" · ") + ". Zapisuję tak, jak wpisałeś.");
     }
     return true;
   }

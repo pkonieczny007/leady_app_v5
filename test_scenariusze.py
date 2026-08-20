@@ -696,8 +696,92 @@ def main():
     # z grafiku cały pakiet. Lepiej nie dać przycisku, niż dać mylący.
     szablon = open("templates/kalendarz.html", encoding="utf-8").read()
     sprawdz("odwołanie w grafiku tylko dla wpisów niecyklicznych",
-            "{% if e.typ not in TYPY_CYKLICZNE %}" in szablon
+            # P31 wsunął przed ten warunek gałąź „to jest odwołane → przywróć",
+            # więc `if` zamienił się w `elif`. Sam warunek jest ten sam i to
+            # jego pilnujemy: przycisk odwołania nie ma prawa pojawić się na
+            # kaflu cyklu.
+            "{% elif e.typ not in TYPY_CYKLICZNE %}" in szablon
             and 'data-odwolaj="{{ e.id }}"' in szablon)
+
+    # -----------------------------------------------------------------
+    print("\nS19 — P30/P31: braki w DT widać w kalendarzu, odwołane mają swoją listę")
+
+    # DT z kompletem danych i DT „zaczęty" — dokładnie to, co od P27 wolno
+    # zapisać z terenu. Kalendarz jest jedynym miejscem, gdzie widać różnicę.
+    conn = db.get_conn()
+    p_id = conn.execute(
+        "INSERT INTO placowki (nazwa, miejscowosc, typ) VALUES (?,?,?)",
+        ("SP Braki", "01. Katowice", "01. Szkoła podstawowa")).lastrowid
+    l_braki = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                           (p_id, "04. Chytry")).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener, "
+                 "ilosc_klas, ilosc_dzieci) VALUES (?,?,?,?,?,?,?)",
+                 (l_braki, "DT", "2026-12-08", "09:00", "01. Małolepsza", 3, 60))
+    id_niepelny = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, trener) VALUES (?,?,?,?)",
+        (l_braki, "DT", "2026-12-09", "01. Małolepsza")).lastrowid
+    conn.commit()
+
+    evs = {e["id"]: e for e in cv.events_for_month(conn, "2026-12")}
+    sprawdz("komplet danych = brak ostrzeżenia",
+            evs[id_niepelny - 1]["braki"] == [], str(evs[id_niepelny - 1]["braki"]))
+    sprawdz("DT bez godziny, klas i dzieci wymienia wszystkie trzy braki",
+            evs[id_niepelny]["braki"] == ["godzina", "liczba klas", "liczba dzieci"],
+            str(evs[id_niepelny]["braki"]))
+
+    mac = cv.build_matrix(conn, "2026-12")
+    sprawdz("licznik „do uzupełnienia” liczy tylko niepełne wpisy",
+            mac["n_do_uzupelnienia"] == sum(1 for e in evs.values() if e["braki"]),
+            "licznik %d" % mac["n_do_uzupelnienia"])
+    tylko_braki = cv.build_matrix(conn, "2026-12", do_uzupelnienia=True)
+    sprawdz("filtr braków zostawia same niepełne wpisy",
+            tylko_braki["n_events"] == mac["n_do_uzupelnienia"]
+            and tylko_braki["n_events"] < mac["n_events"],
+            "%d z %d" % (tylko_braki["n_events"], mac["n_events"]))
+    conn.close()
+
+    # Zajęcia cykliczne nie mają liczby klas i nigdy nie będą miały — gdyby
+    # wchodziły do licznika, „do uzupełnienia" pokazywałoby całą jesień.
+    sprawdz("cykl nie jest „do uzupełnienia”",
+            cv.braki_dt({"typ": "CYKLICZNE"}) == [])
+
+    # P31 — lista odwołanych. Do 20.08 dało się je zobaczyć TYLKO na karcie
+    # konkretnej szkoły, czyli trzeba było wiedzieć, której szukać.
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"powod": "sala zajęta"})
+    sprawdz("odwołanie na potrzeby listy przechodzi", kod == 200)
+    conn = db.get_conn()
+    lista = cv.events_for_month(conn, "2026-12", odwolane=True)
+    grafik = cv.events_for_month(conn, "2026-12")
+    conn.close()
+    sprawdz("tryb „odwołane” pokazuje odwołane", [e["id"] for e in lista] == [ev_id],
+            str([e["id"] for e in lista]))
+    sprawdz("…i tylko je — grafik ich nie ma",
+            ev_id not in [e["id"] for e in grafik])
+    sprawdz("wpis niesie powód i osobę",
+            (lista[0]["odwolanie"] or {}).get("powod") == "sala zajęta"
+            and (lista[0]["odwolanie"] or {}).get("kto"),
+            str(lista[0]["odwolanie"]))
+    sprawdz("czynny wpis nie udaje odwołanego",
+            grafik[0]["odwolanie"] is None)
+
+    # Nazwa `odwolanie` jest celowo inna niż `odwolane`: to drugie w
+    # calendar_view znaczy „odwołane WYSTĄPIENIE cyklu" i jest zerowane przy
+    # każdym wpisie bez wyjątku. Przy pierwszym podejściu zjadło znacznik.
+    zrodlo = open("calendar_view.py", encoding="utf-8").read()
+    sprawdz("odwołanie spotkania ma własną nazwę pola",
+            'e["odwolanie"] = ' in zrodlo and 'ev["odwolane"] = False' in zrodlo)
+
+    szablon = open("templates/kalendarz.html", encoding="utf-8").read()
+    sprawdz("wszystkie trzy widoki znaczą braki",
+            szablon.count("tag tag-braki") == 3, str(szablon.count("tag tag-braki")))
+    sprawdz("tryb odwołanych mówi wprost, że to nie grafik",
+            "nie grafik" in szablon)
+    sprawdz("z listy odwołanych da się przywrócić termin",
+            szablon.count("btn-przywroc-event") == 3,
+            str(szablon.count("btn-przywroc-event")))
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
+    sprawdz("sprzątanie po S19: termin wraca", kod == 200)
 
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
