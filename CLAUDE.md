@@ -502,6 +502,15 @@ SKRÓCONYM — scalanie musi przepiąć eventy PRZED czymkolwiek innym.
 placówki, chipy zajęć, etapy E0–E8) i `PLAN_BAZY_PH.md` (6 zakładek Kasi; cztery
 już istnieją w backendzie). Razem **28 pytań** do Kasi i Wojtka.
 
+**Nowy formularz to PIĄTY PRZYCISK na `/formularz`, nie podmiana istniejącego.**
+Dzięki temu można go budować w dowolnym momencie — rozgrzebany v5 nie blokuje
+nikomu pracy, bo handlowiec dalej klika swój v3, a piąty kafelek jest ścieżką,
+w którą nikt nie wchodzi przypadkiem (i ma być opisany jako testowy, jak dziś
+v4). Warunek: rozszerzenia API muszą być **addytywne** — nowa lista `zajecia`
+dochodzi obok bloków `dt`/`cykl`, a stare payloady jadą bez zmian. To ta sama
+zasada, dla której cztery warianty w ogóle istnieją: porównanie na żywych
+danych zamiast sporu o układ. Wygaszanie starych — osobna decyzja po testach.
+
 ### Grabie z tej rundy
 **`git add <katalog>` zgarnia pliki klienta.** Dwa razy: raz notatkę roboczą,
 raz `Kopia Julia Młynarczyk.xlsx` — miesięczne rozliczenia trenerów ze stawkami,

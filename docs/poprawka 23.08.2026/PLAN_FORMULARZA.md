@@ -382,10 +382,25 @@ w poniedziałek. Z tego planu:
 - **robić:** E0 (kwadrans, czysta poprawka danych/słownika);
 - **zależność robiona równolegle:** poprawka mobilna Pawła
   (topbar/.seg/.kv) — nie dublować jej;
-- **NIE zaczynać:** E2, E5, E7 — każdy z nich zostawiony w połowie na weekend
-  to rozgrzebany ekran u ludzi, którzy w poniedziałek mają pracować.
-  E3 nie wolno ruszyć przed E2 z definicji. E1/E4/E6 można zacząć po
-  poniedziałku spokojnie — nic nie zyskują na pośpiechu.
+- **NIE zaczynać:** E2 i E3 — dotykają ekranów, na których ludzie pracują
+  w poniedziałek, a zostawione w połowie zostawiają rozgrzebany widok.
+  E3 nie wolno ruszyć przed E2 z definicji.
+
+**Korekta z 23.08 wieczorem (decyzja Pawła): E5 i E7 wolno robić w dowolnym
+momencie.** Nowy formularz powstaje jako **PIĄTY PRZYCISK** na ekranie wyboru
+`/formularz`, obok czterech istniejących — czyli jest ścieżką, w którą nikt nie
+wchodzi przypadkiem. Rozgrzebany v5 nie zablokuje pracy, bo handlowiec dalej
+klika swój v3; w najgorszym razie piąty kafelek prowadzi do ekranu, który nie
+robi jeszcze wszystkiego. To jest ta sama zasada, dla której cztery warianty
+w ogóle istnieją: **porównanie na żywych danych zamiast sporu o układ**.
+
+Dwa warunki, żeby to pozostało prawdą:
+1. **E5 musi być addytywne.** Lista `zajecia:[…]` dochodzi OBOK bloków
+   `dt`/`cykl`; stare payloady mają jechać bajt w bajt jak dziś. Test
+   „v1–v4 nietknięte" (pkt 7) przestaje być formalnością i staje się zaporą.
+2. **Piąty kafelek ma być opisany jako testowy** — jak dziś v4 („testowy:
+   CYKLICZNE-PRZEDSZKOLE"). Handlowiec, który wejdzie tam z ciekawości, ma
+   wiedzieć, na czym stoi; v3 zostaje „Rekomendowany" do końca testów.
 
 ---
 
@@ -513,10 +528,13 @@ handlowcowi jedyną listę zadań, zanim nowa zacznie działać.
 
 ```
 E0 (słownik prod)  ──────────────► przed poniedziałkiem
-[poprawka mobilna Pawła] ────────► równolegle, zależność E2
+[poprawka mobilna Pawła] ────────► ZROBIONA 23.08 (commit 45c11a2)
 E1 (/baza spójność) ─► E2 (filtry /leady) ─► E3 (zdjęcie zakładki)
+                       └─ E2/E3 dopiero PO poniedziałku (ekrany w pracy)
 pytania 1–4 ─► E4 (typy) ─► E5 (API zajęcia) ─┐
                             E6 (moduł JS) ────┴─► E7 (ekran v5)
+                       └─ E5/E6/E7 KIEDYKOLWIEK: v5 to piąty przycisk
+                          na /formularz, nikt nie wchodzi tam przypadkiem
 migracja RSPO M5+M6 ─────────────────────────────► E8 (kaskada powiatowa)
 wygaszanie v1–v4: POZA planem, osobna decyzja po testach v5
 ```

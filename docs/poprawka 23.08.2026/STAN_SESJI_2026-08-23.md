@@ -144,8 +144,17 @@ czy przyjmujemy pełne nazwy z rejestru zamiast skrótów handlowców.
    z formularza — stąd „brakuje szkół w mojej bazie")
 
 **Czego NIE zaczynać przed poniedziałkiem** (za `PLAN_FORMULARZA.md`): etapów
-E2, E5 i E7 — to robota na kilka dni, a zostawiona w połowie zablokuje
-handlowców, którzy w poniedziałek mają pracować.
+**E2 i E3** — dotykają „Twoich szkół", czyli ekranu, na którym handlowcy
+w poniedziałek pracują.
+
+**Nowy formularz można robić kiedykolwiek — decyzja Pawła z 23.08 wieczorem.**
+Powstaje jako **piąty przycisk** na ekranie wyboru `/formularz`, obok czterech
+istniejących. Rozgrzebany v5 niczego nie blokuje, bo handlowiec dalej klika
+swój v3; w najgorszym razie piąty kafelek prowadzi do ekranu, który nie robi
+jeszcze wszystkiego. Dwa warunki, żeby to zostało prawdą: **E5 ma być
+addytywne** (lista `zajecia:[…]` obok bloków `dt`/`cykl`, stare payloady bez
+zmian — test „v1–v4 nietknięte" jest tu zaporą, nie formalnością) i **piąty
+kafelek ma być opisany jako testowy**, tak jak dziś v4.
 
 ---
 
