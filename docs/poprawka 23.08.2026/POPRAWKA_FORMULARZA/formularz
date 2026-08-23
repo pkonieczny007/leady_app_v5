@@ -59,3 +59,28 @@ moj opis.
 Z tego co zrozumialem chca aby na poczatku wybierac placowke. potem np DT. to sie dopiero rozsuwa DT.
 
 jak wpiszesz Cykliczne to sie dopiero cykliczne rozsuwaja. 
+
+ale wczesniej sa niewidoczne. 
+
+Jak dasz przedszlole to masz cykliczne przedzszkole, jak szkola to cykliczne szkola.
+
+jednorazowki mozesz wpisac itp. i mozna kilka wyborow. ale tez mozna tylko, zaznaczenie z uwagami jezeli sie bylo, ruchy poczynione ale bez sukcesu.
+
+Wg uwag ZUzi dla kontekstu:
+C:\XEN\AI-szkolenie\SIERPIEN2026\leady_app_v5\docs\poprawka 20.08.2026\ZUZIA_lista_błędów v3.md
+
+Główny problem z obecnym sposobem działania
+
+Największym problemem jest to, że system traktuje proces praktycznie jako:
+
+przydzielona szkoła → spotkanie → kompletnie ustalony DT
+
+A rzeczywisty proces wygląda raczej:
+
+przydzielona szkoła → próba kontaktu → kontakt → spotkanie → zainteresowanie → oczekiwanie na decyzję/termin → ustalenie szczegółów → DT → ustalenie cykli → zakończone
+
+Na każdym z tych etapów handlowiec wykonuje konkretną pracę, która powinna być widoczna w systemie.
+
+System powinien więc pozwalać zapisać szkołę i wykonaną czynność nawet wtedy, gdy nie mamy jeszcze kompletu informacji, a następnie stopniowo uzupełniać dane.
+
+Dzięki temu baza będzie pokazywała:
