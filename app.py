@@ -28,6 +28,7 @@ from flask import (Flask, render_template, request, jsonify, redirect,
 import calendar_view as cv
 import dostepnosc_view as dv
 import filtry as fl
+import obszary
 import przydzial as pz
 import repo
 import uzytkownicy as uz
@@ -69,7 +70,7 @@ JAWNE = {"logowanie", "api_logowanie", "static"}
 # albo w słowniki potrafi narobić bałaganu w danych wszystkich naraz.
 TYLKO_KOORDYNATOR = {
     "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
-    "export_xlsx", "pulpit", "rejony", "uzytkownicy_view",
+    "export_xlsx", "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
     "api_przypisz", "api_odbierz", "api_przedluz", "api_slownik_add", "api_slownik_patch",
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
@@ -766,6 +767,58 @@ def dostepnosc():
     }
     conn.close()
     return render_template("dostepnosc.html", **ctx)
+
+
+@app.route("/obszary")
+def obszary_view():
+    """
+    Obszary działania firmy — PODGLĄD zakresu wg rejestru RSPO (M2 migracji).
+
+    Osobno od `/rejony`, bo to dwa różne pojęcia pod podobną nazwą: rejon jest
+    CZYJŚ (trener jeździ po miastach), obszar jest FIRMY (gdzie w ogóle
+    pracujemy). Ekran tylko pokazuje — obszary zmienia się narzędziem, dopóki
+    migracja nie dojdzie do M9. Pomyłka w obszarze przestawia, KTÓRE placówki
+    są nasze, więc nie ma powodu dopuszczać do niej klikania przed czasem.
+    """
+    conn = get_conn()
+    ctx = {"lustro": 0, "w_obszarach": 0, "nasze_typy": 0, "obszary": [],
+           "suma": {"sp": 0, "przedszkola": 0, "punkty": 0, "zespoly": 0},
+           "placowek_roboczych": 0, "z_numerem": 0, "nav_active": "obszary"}
+    try:
+        ctx["lustro"] = conn.execute(
+            "SELECT COUNT(*) FROM rspo_rejestr").fetchone()[0]
+    except Exception:
+        # Lustra jeszcze nie ma (M1 nieuruchomiony) — ekran ma o tym powiedzieć,
+        # a nie wywalić się pięćsetką.
+        conn.close()
+        return render_template("obszary.html", **ctx)
+
+    ctx["placowek_roboczych"] = conn.execute(
+        "SELECT COUNT(*) FROM placowki").fetchone()[0]
+    ctx["z_numerem"] = conn.execute(
+        "SELECT COUNT(*) FROM placowki WHERE rspo IS NOT NULL AND rspo <> ''"
+    ).fetchone()[0]
+
+    TYPY = [("sp", "Szkoła podstawowa"), ("przedszkola", "Przedszkole"),
+            ("punkty", "Punkt przedszkolny"),
+            ("zespoly", "Zespół szkół i placówek oświatowych")]
+    for o in obszary.lista(conn):
+        w = {"nazwa": o["nazwa"], "zakresy": o["zakresy"],
+             "wszystko": o["placowek_w_lustrze"], "nasze": 0}
+        for klucz, typ in TYPY:
+            n = conn.execute(
+                "SELECT COUNT(*) FROM rspo_obszar ro JOIN rspo_rejestr r "
+                "ON r.rspo = ro.rspo WHERE ro.obszar_id = ("
+                "SELECT id FROM obszary_dzialania WHERE nazwa = ?) AND r.typ = ?",
+                (o["nazwa"], typ)).fetchone()[0]
+            w[klucz] = n
+            w["nasze"] += n
+            ctx["suma"][klucz] += n
+        ctx["obszary"].append(w)
+        ctx["w_obszarach"] += w["wszystko"]
+    ctx["nasze_typy"] = sum(ctx["suma"].values())
+    conn.close()
+    return render_template("obszary.html", **ctx)
 
 
 @app.route("/rejony")
