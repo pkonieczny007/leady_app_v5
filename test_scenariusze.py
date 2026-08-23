@@ -98,6 +98,15 @@ def main():
     conn = db.get_conn()
     sprawdz("słownik handlowców niepusty", len(db.slownik_values(conn, "handlowiec")) >= 5)
     sprawdz("słownik trenerów niepusty", len(db.slownik_values(conn, "trener")) >= 30)
+    # Wartości, które KOD zna ze stałej, muszą być w słowniku — inaczej wpis
+    # da się utworzyć (walidacja idzie po stałej), ale nie da się go już
+    # POPRAWIĆ: edycja na karcie szkoły odbija się od słownika, a to jedna
+    # z dwóch jedynych twardych blokad w aplikacji. Na produkcji zdarzyło się
+    # to realnie: baza powstała 10.08, zanim doszedł CYKLICZNE-PRZEDSZKOLE.
+    typy_ev = db.slownik_values(conn, "typ_eventu")
+    brak_typow = [t for t in db.TYPY_CYKLICZNE if t not in typy_ev]
+    sprawdz("słownik typ_eventu zna wszystkie typy cykliczne z kodu",
+            not brak_typow, "brakuje: %s" % ", ".join(brak_typow) if brak_typow else "")
     m0 = repo.metryki(conn)
     conn.close()
     sprawdz("zero leadów na starcie", m0["leady"] == 0)
