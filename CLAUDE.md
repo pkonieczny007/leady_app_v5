@@ -433,8 +433,132 @@ w `.gitignore` i ma tam zostać):
 
 ---
 
+## 8c. Runda poprawek 20–23.08.2026 — gałąź `poprawki-2026-08`
+
+Produkcja stoi nietknięta na `main` (`6a3e181`, tag `przed-poprawkami-2026-08-20`
+to punkt cofnięcia). **Demo też stoi na `main`** — dopóki nie zostanie wdrożone,
+klient NIE WIDZI żadnej z poniższych poprawek i zgłasza je ponownie. To była
+najczęstsza przyczyna nieporozumień w tej rundzie.
+
+Testy: **11 plików, 912 sprawdzeń + 93 w `test_parsers` + 17 w node**, komplet
+przechodzi. Doszedł `test_obszary.py`.
+
+### Zrobione (P01–P31 + E0)
+Blokada pisania po cudzych szkołach · przydział/termin tylko dla koordynatora ·
+podstawianie kontaktu · gwiazdka „twoje" zamiast licznika · filtr tekstowy listy
+szkół · odwoływanie DT ze śladem (kasowanie tylko koordynator) · sekcja „Wynik
+wizyty" · „zrobione" schodzi z planu dnia · filtr „bez prowadzącego" ·
+**P27** pola DT nieobowiązkowe poza datą · **P30** znacznik „do uzupełnienia"
+w kalendarzu · **P31** lista odwołanych · statusy pośrednie · poprawka mobilna ·
+**E0** brakujący typ w słowniku produkcji.
+
+### Sedno listy Zuzi: to nie był jeden błąd, tylko jedna reguła
+Formularz żądał kompletu sześciu pól DT. Przez to nie dało się zapisać ani
+wizyty bez terminu, ani terminu bez szczegółów — czyli **większości realnej
+pracy w terenie**. Praca, której nie da się zapisać, nie znika: dzieje się dalej,
+tylko poza aplikacją. Twarda została sama **data**, bo serwer pomija blok DT bez
+niej (`if typ == "DT" and not blok["data"]: continue`) i godzina wpisana obok
+przepadłaby bez śladu. Reszta braków jest teraz WIDOCZNA (P30), nie blokowana —
+bez tego zamienilibyśmy „nie da się zapisać" na gorsze: „zapisane, wygląda na
+gotowe, nikt tam nie wróci".
+
+**Punkty 7–10 jej listy nie były błędem kodu.** Te operacje od początku były
+zamknięte dla handlowca; Zuzia pracuje na wspólnym koncie `Koordynator` (nie ma
+własnego wśród 50). Dopóki go nie dostanie, będzie zgłaszać to samo, a historia
+zmian zapisuje konto zamiast człowieka.
+
+### Baza na RSPO — projekt i pierwsze dwa etapy
+`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md` (etapy M0–M9). Zrobione **M1 i M2
+na profilu `test`**, oba addytywne i odwracalne `DROP TABLE`:
+- `rejestr_rspo.py` — lustro rejestru (`rspo_rejestr` + dziennik zmian), 6 116
+  placówek śląskich, wgranie 1,2 s
+- `obszary.py` — 17 obszarów z listy Kasi; kontrola wyjścia zgodna co do sztuki:
+  **1 259 szkół i przedszkoli**, Knurów 44 przez gminę, rybnicki 0
+- `narzedzia/migracja_rspo.py` (`lustro` / `obszary` / `stan`), ekran `/obszary`
+  (podgląd, bez klikania)
+
+**Źródło całego zamieszania z miejscowościami**: w pliku klienta dwie wartości
+brzmiały `09. Pszczyna powiat` i `15. Będzin powiat` — **import urwał słowo
+„powiat"**. Pod Będzinem siedzi 17 miejscowości (w tym Czeladź), pod Pszczyną 27.
+Stąd „nie ma szkół z Czeladzi": one są, tylko nazwa przestała o tym mówić.
+Ornontowice też nie były naszym wymysłem — u klienta siedziały pod `01. Orzesze`.
+
+**Rejon działania to LISTA OBSZARÓW (powiat albo gmina), nie kolumna.** Zakres
+firmy nie pokrywa się z żadnym jednym poziomem administracyjnym: Rybnik bierzemy
+jako miasto, ale nie powiat rybnicki; Knurów jako gminę, ale nie resztę powiatu
+gliwickiego. Reguła „gmina bije powiat" żyje w jednym zapytaniu w `przelicz()`.
+
+**Lustro jest OSOBNĄ tabelą, nie kolumnami w `placowki`** — bo polityki
+nadpisywania są sprzeczne: w lustrze wygrywa rejestr, w bazie roboczej człowiek.
+W jednej tabeli jedna z nich musiałaby po cichu przegrywać.
+
+Stan bazy przed migracją: **409 placówek niesie realną pracę, 136 jest
+nietkniętych** (granica ostra; pola miękkie nic nie zmieniają). **18 par dubli**
+w bloku id 517–545, przy czym w 16 z nich jedyne DT wisi na rekordzie
+SKRÓCONYM — scalanie musi przepiąć eventy PRZED czymkolwiek innym.
+
+### Plany czekające na decyzje klienta
+`PLAN_FORMULARZA.md` (v5 obok czterech starych — decyzja klienta; kaskada od
+placówki, chipy zajęć, etapy E0–E8) i `PLAN_BAZY_PH.md` (6 zakładek Kasi; cztery
+już istnieją w backendzie). Razem **28 pytań** do Kasi i Wojtka.
+
+### Grabie z tej rundy
+**`git add <katalog>` zgarnia pliki klienta.** Dwa razy: raz notatkę roboczą,
+raz `Kopia Julia Młynarczyk.xlsx` — miesięczne rozliczenia trenerów ze stawkami,
+do PUBLICZNEGO repo. Za drugim razem złapane przed `push`. Arkusze klienta
+w katalogach poprawek są teraz w `.gitignore`; **`git status` czytać PRZED
+commitem, nie po**.
+
+**`odwolane` w `calendar_view.py` było już zajęte** — znaczy „odwołane
+WYSTĄPIENIE cyklu" i `_naloz_wyjatek()` zeruje je przy każdym wpisie bez wyjątku.
+Odwołanie całego spotkania musiało dostać własną nazwę (`odwolanie`), inaczej
+znacznik znikał po cichu.
+
+**Skrypty Pythona w heredocu Basha mają cudzysłowy w cp1250.** Wzorce z polskimi
+znakami przestają pasować i `replace` nie robi nic — bez asercji na liczbę
+trafień wygląda to jak wykonana praca. Do zmian w plikach z polskimi znakami
+używać narzędzia Edit albo `\uXXXX`.
+
+**`app.py` jest w CRLF, a `calendar_view.py` w LF.** Skrypt podmieniający tekst
+działa na jednym, a na drugim cicho nie trafia. Zawsze `assert s.count(wzorzec) == 1`.
+
+**Test pisał wszystkie pliki pod jedną ścieżkę** — „plik pierwotny" miał już
+treść drugiego wgrania, więc sprawdzenie przechodziło zależnie od kolejności.
+Test, który nie testuje, jest gorszy niż jego brak.
+
+**`typ_eventu` na produkcji nie znał `CYKLICZNE-PRZEDSZKOLE`**, choć v4 pozwala
+go zapisać (walidacja idzie po stałej `db.TYPY_CYKLICZNE`, a słownik to DANE
+osobne dla każdego profilu). Wpis dawało się utworzyć, ale nie poprawić —
+edycja odbija się od twardej blokady słownika. `narzedzia/slowniki_kontrola.py`
++ sprawdzenie w S0. **Każda nowa stała, którą kod zna, musi trafić do słownika
+każdego profilu** — i pamiętać, że `odswiez_demo.sh` zasiewa demo kopią produkcji
+i takie dopiski zetrze (jak `statusy.py`).
+
+**Telefon: dwie różne przyczyny pod jednym zgłoszeniem.** „Nie da się zmniejszyć"
+to tryb standalone PWA (iOS wyłącza zoom systemowo — nasza decyzja z 10.08),
+a „widok trzeba przesuwać" to był realny błąd: `.topbar-right` miał w wersji
+mobilnej `flex:0 0 auto`, czyli ZAKAZ kurczenia, przy zawartości ~370 px.
+Poprawka z 10.08 objęła nawigację i tabele, ale nie ten blok, nie `.seg`
+(ucinał zakładki bez możliwości dojechania) i nie kartę szkoły.
+
+### Do zrobienia w pierwszej kolejności
+1. **Wdrożenie na demo** — bez tego wszystko powyżej jest niewidoczne
+   (`./wdroz.sh demo`, potem `slowniki_kontrola.py --zapisz` i `statusy.py --zapisz`)
+2. Konto handlowca dla Zuzi
+3. Odpowiedzi Kasi → M3 (numery RSPO) i M4 (scalanie dubli)
+4. P29 „zgłoś do usunięcia" · P28 placówka 532 „SP 5" bez miejscowości
+
+---
+
 ## 9. Dokumentacja w `docs/`
 
 `11_PLAN_v5.md` to żywy plan v5 ze stanem etapów — aktualizować przy każdym
 domknięciu etapu. Starsze pliki (`01`–`10`) to analiza plików klienta i projekty
 modułów v2–v4; są punktem odniesienia dla decyzji, nie do zmieniania.
+
+`docs/poprawka 20.08.2026/` — runda poprawek: `REJESTR_POPRAWEK_2026-08.md`
+(P01–P31 ze statusami), `STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi.
+`docs/poprawka 23.08.2026/` — `PROJEKT_BAZY_RSPO.md` (migracja M0–M9),
+`PLAN_FORMULARZA.md` (v5, E0–E8), `PLAN_BAZY_PH.md` (zakładki Kasi).
+**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8c wyżej → rejestr
+poprawek → właściwy plan.**
