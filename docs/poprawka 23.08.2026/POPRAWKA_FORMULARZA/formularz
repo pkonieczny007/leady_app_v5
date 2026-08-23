@@ -1,0 +1,61 @@
+Klient chce nowy formularz.
+
+Aby w jednym bylo wszystko.
+
+
+Przedszkola, Szkoła,
+
+ DT, Cykliczne
+
+
+ Wynik wizyty
+ od Kasi: "tu poproszę jeszcze nawisko osoby wprowadzającej wiadomość,
+  bo potem przekazuję to komuś innemu jeśli wróci do bazy i oni muszą się 
+  skomunikować w razie potrzeby i kolejny PH musi widzieć tą notatkę  i 
+  osobę która tam była przed nim"
+
+  Dane placówki 
+  od Kasi:
+  tu niech będą też przedszkola
+i myślę, że zostańmy przy 1 formularzu - tym rekomendowanym mnarazie
+dajmy tu poprotu wybór czy szkoła czy przedszkole
+kolejno nazwa jednostki i wybór czy chcemy:
+- wizyta
+- DT
+-cykliczne szkoła
+- cykliczne przedszkole
+- jednorazówka (szkoła/przedszkole/seniorzy)
+- cykliczne inne (seniorzy, MDK)
+- festyn
+- VR
+- inne
+
+o liscie rozwijanej z miastami.
+Kasia pisze:
+tu na liście są porozbijane miasta a w bazie RSPO jest to zrobione powiatami więc musimy to ujednolicić, ponieważ chyba stąd mamy brak bazy w Czeladzi, bo ona wchodzi w skład powiatu
+
+Ale fajnie było by, aby obok był filtr Miasto
+
+Czyli:
+POwiat Będziń —-> Psary—-> Szkoła/Przedszkle
+
+
+zakladka od kordynatora:
+od kasi
+to niech zniknie z formularza, robi chaos
+To niech będzie tylko w zakładce Twoje szkoły, ale musi być kolumna w której widzę efekt swojej pracy jako PH, albo że znika z listy jak oddaję do bazy
+Może niech na górę podbijają się rzeczy do zrobienia, albo najlepiej jakby był filtr - wszystkie/ustalone/ustal szczegóły/ 
+Żeby PH miał wszystkie swoje placówki, ale mógł nimi operować dowolnie
+
+
+(moj dopisek, na razie zrobmy to w nowym formularzu v4 jak przetestuje to wprowadzimy jeden zwycieski)
+
+tu dla kontekstu jakies stare pliki: 
+"C:\XEN\AI-szkolenie\SIERPIEN2026\leady_app_v5\docs\poprawka 23.08.2026\POPRAWKA_FORMULARZA\Kopia Julia Młynarczyk.xlsx"
+
+
+moj opis.
+
+Z tego co zrozumialem chca aby na poczatku wybierac placowke. potem np DT. to sie dopiero rozsuwa DT.
+
+jak wpiszesz Cykliczne to sie dopiero cykliczne rozsuwaja. 

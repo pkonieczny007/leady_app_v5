@@ -101,21 +101,7 @@ Największym problemem jest to, że system traktuje proces praktycznie jako:
 przydzielona szkoła → spotkanie → kompletnie ustalony DT
 
 A rzeczywisty proces wygląda raczej:
-to jest lista od trenerki
-570 szkół musik być (tu muszę mieć możliwość wykasowania szkół które nam nie pasuje)
-plus przedszkola
-Muszę mieć możliwość raportu każdego PH
-czyli formularz musi mieć więcej opcji - nie tylko zakończonego sukcesem, 
-Te dane muszą się pojawić w karcie szkoły, a nie w kalendarzu bo nie mam daty DT, 
-Jeśli mam datę DT i wpisało się do kalendarza, a nie mam liczby dzieci albo klas to w kalendarzu maj się to jakoś podświetlić że brakuje danych i są do uzupełnienia przez PH
 
-
-dodatkowo:
-tu ode mnie. musimy miec liste odwolanych. albo jakis sposob na odwolane zajecia, leady.
-
-
-
-cd od Zuzi
 przydzielona szkoła → próba kontaktu → kontakt → spotkanie → zainteresowanie → oczekiwanie na decyzję/termin → ustalenie szczegółów → DT → ustalenie cykli → zakończone
 
 Na każdym z tych etapów handlowiec wykonuje konkretną pracę, która powinna być widoczna w systemie.
@@ -130,6 +116,7 @@ do których szkół trzeba wrócić,
 co dokładnie jest jeszcze do zrobienia,
 ile zadań na dany tydzień rzeczywiście pozostało.
 o której możemy się zdzwonić - propnuję 17:00
+
 musi nam to działać w poniedziałek na 100%
 Wojtek już mi głowę myje
 
@@ -137,3 +124,16 @@ Pawełⓧ Konieczny
 Photo
 w którym formularzu to jest bo w 3 tego nie widzę
 wszystko musi być w formuarzu żeby nic nie szukać po karcie szkoły i nie uzupełniać tam na wstępnie, tylko zaczynać pracę od forlumarza, a ewentualne zmiany potem robić w karcie szkoły
+
+
+to jest lista od trenerki
+570 szkół musik być (tu muszę mieć możliwość wykasowania szkół które nam nie pasuje)
+plus przedszkola
+Muszę mieć możliwość raportu każdego PH
+czyli formularz musi mieć więcej opcji - nie tylko zakończonego sukcesem, 
+Te dane muszą się pojawić w karcie szkoły, a nie w kalendarzu bo nie mam daty DT, 
+Jeśli mam datę DT i wpisało się do kalendarza, a nie mam liczby dzieci albo klas to w kalendarzu maj się to jakoś podświetlić że brakuje danych i są do uzupełnienia przez PH
+
+
+dodatkowo:
+tu ode mnie. musimy miec liste odwolanych. albo jakis sposob na odwolane zajecia, leady.
