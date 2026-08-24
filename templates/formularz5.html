@@ -4,6 +4,11 @@
 {% block body_class %}f-pelny-ekran{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='formularz2.css') }}">
+{# `formularz3.css` to dokładka z panelem dostępności prowadzących: plakietka
+   statusu, grupy kandydatów, podgląd dnia. Wczytujemy TEN SAM plik zamiast
+   przepisywać reguły do formularz5.css — panel ma być tą samą rzeczą co w v3,
+   a dwie kopie stylu rozjeżdżają się przy pierwszej poprawce koloru. #}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz3.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='formularz5.css') }}">
 {% endblock %}
 

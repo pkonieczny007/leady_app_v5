@@ -1,11 +1,12 @@
 # Plan: nowy formularz terenowy (v5) + filtry „Twoje szkoły"
 
-**Data:** 23.08.2026. **Status na 24.08:** ZROBIONE E0, E5 (lista `zajecia` w API) i E7-lite — piąty
-przycisk `/formularz/v5` z kaskadą działa, wraz z E8 (kaskada powiatowa, bo
-migracja RSPO poszła szybciej niż plan zakładał). ZOSTAŁO: E1, E2, E3, E4 (nowe
-typy zajęć — czeka na odpowiedzi 1–4), E6 (wspólny moduł JS) i to, czego v5
-jeszcze nie przejął z v3: podpowiedź prowadzącego, wolne okna, „co się dzieje
-tego dnia".
+**Data:** 23.08.2026. **Status na 24.08 (wieczór):** ZROBIONE E0, E5 (lista
+`zajecia` w API), E7-lite i E8 — piąty przycisk `/formularz/v5` z kaskadą
+powiatową działa. Doszedł **panel dostępności prowadzących przeniesiony z v3**
+(kandydaci w grupach, status wybranej osoby, „co się dzieje tego dnia") —
+z jedną różnicą wymuszoną przez kaskadę: panel jest **przy sekcji**, bo v5
+umawia kilka rzeczy naraz i każda ma własną datę. ZOSTAŁO: E1, E2, E3,
+E4 (nowe typy zajęć — czeka na odpowiedzi 1–4) i E6 (wspólny moduł JS).
 **Źródła wymagań:** `POPRAWKA_FORMULARZA/formularz` i
 `POPRAWKA_FORMULARZA/poprawka_dzialania_filtrow` (notatki Kasi + dopiski Pawła),
 lista Zuzi (`ZUZIA_lista_błędów v3.md`), rejestr `REJESTR_POPRAWEK_2026-08.md`,

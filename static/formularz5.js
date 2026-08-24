@@ -62,6 +62,11 @@
     });
   }
 
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
   function bezOgonkow(s) {
     return String(s || "").toLowerCase()
       .replace(/ą/g, "a").replace(/ć/g, "c").replace(/ę/g, "e").replace(/ł/g, "l")
@@ -78,7 +83,8 @@
     placowki: [],
     placowka: null,     // wybrany rekord
     zajecia: {},        // typ → { pola }
-    wlaczone: {}        // typ → czy chip zaznaczony
+    wlaczone: {},       // typ → czy chip zaznaczony
+    dostepnosc: {}      // typ → { klucz, dane } — ostatnia odpowiedź /api/kandydaci
   };
 
   // ------------------------------------------------- definicje pól sekcji
@@ -292,12 +298,258 @@
         : polaHtml(typ);
       return '<div class="f5-sekcja" data-sekcja="' + typ + '">' +
              '<h3 class="f5-sekcja-tytul">' + etykietaChipa(typ) + "</h3>" +
-             wewnatrz + "</div>";
+             wewnatrz + sekcjaDostepnosci(typ) + "</div>";
     }).join("");
+    // Panele wypełniamy PO przerysowaniu — `innerHTML` wyżej właśnie skasował
+    // poprzednie. Odpowiedzi siedzą w `stan.dostepnosc`, więc powrót do
+    // odznaczonej i znów zaznaczonej sekcji nie kosztuje żądania.
+    odswiezWszystkie();
   }
 
   function etykietaChipa(typ) {
     return typ === "CYKLICZNE" || typ === "CYKLICZNE-PRZEDSZKOLE" ? "Zajęcia cykliczne" : typ;
+  }
+
+  // ------------------------------------- dostępność prowadzących (panel z v3)
+
+  /* Panel „kto jest wolny" przeniesiony z wariantu 3, z jedną różnicą, która
+     wynika wprost z kaskady: v3 umawia JEDNO spotkanie, więc ma jeden panel na
+     ekran. v5 umawia w jednym wyjściu w teren kilka rzeczy naraz — DT w środę
+     i cykl od października — a każda z nich ma własną datę, godziny i osobę.
+     Dlatego panel siedzi PRZY SEKCJI. Jeden wspólny pokazywałby dostępność na
+     termin, którego akurat nie wypełniasz, czyli mówiłby nieprawdę.
+
+     Style biorą się z `formularz3.css` — ten sam wygląd, bo to ma być ta sama
+     rzecz. Kolor niesie znaczenie: zielony można, bursztyn da się z uwagą,
+     czerwony zła osoba na ten termin. Nic z tego NIE BLOKUJE zapisu. */
+
+  var KATEGORIE = [
+    { klucz: "wolny", tytul: "Wolni", znak: "✅", otwarta: true },
+    { klucz: "nieznany", tytul: "Bez deklaracji", znak: "○", otwarta: false },
+    { klucz: "zastrzezenie", tytul: "Z zastrzeżeniem", znak: "⚠️", otwarta: false },
+    { klucz: "niedostepny", tytul: "Niedostępni", znak: "⛔", otwarta: false }
+  ];
+  var ZNAK = { wolny: "✅", nieznany: "○", zastrzezenie: "⚠️", niedostepny: "⛔" };
+  var timeryDost = {};
+
+  function sekcjaDostepnosci(typ) {
+    return '<div class="f2-dostepnosc" data-dost="' + typ + '"></div>' +
+           '<p class="f3-status" data-status="' + typ + '" hidden></p>' +
+           '<details class="f3-dzien" data-dzien="' + typ + '" hidden>' +
+           '<summary data-dzien-tytul="' + typ + '">Co się dzieje tego dnia</summary>' +
+           '<div data-dzien-tresc="' + typ + '"></div></details>';
+  }
+
+  function odmiana(n, jeden, kilka, wiele) {
+    if (n === 1) return jeden;
+    var r10 = n % 10, r100 = n % 100;
+    if (r10 >= 2 && r10 <= 4 && (r100 < 10 || r100 >= 20)) return kilka;
+    return wiele;
+  }
+
+  function godziny(z) {
+    // W pliku klienta 48 z 66 DT nie ma godziny — pusty nawias wyglądałby jak
+    // usterka ekranu, a to brak w danych.
+    if (!z.godz_od) return "godz. nieustalona";
+    return z.godz_od + (z.godz_do ? "–" + z.godz_do : "");
+  }
+
+  function wszyscy(j) {
+    var lista = [];
+    ((j && j.grupy) || []).forEach(function (g) {
+      (g.pozycje || []).forEach(function (k) { lista.push(k); });
+    });
+    return lista;
+  }
+
+  /* Klucz zapytania. `rysujSekcje()` przerysowuje CAŁY blok sekcji od zera —
+     przy każdym kliknięciu chipa i przy każdej zmianie placówki. Bez bufora
+     każde takie przerysowanie wysyłałoby żądanie na sekcję, a w terenie liczy
+     się każdy bajt: odpowiedź tej samej treści bierzemy z pamięci. */
+  function kluczDostepnosci(typ) {
+    var z = stan.zajecia[typ] || {};
+    return [z.data || "", z.godz_od || "", z.godz_do || "",
+            (stan.placowka && stan.placowka.miejscowosc) || ""].join("|");
+  }
+
+  function odswiezDostepnosc(typ) {
+    var box = root.querySelector('[data-dost="' + typ + '"]');
+    if (!box) return;
+    var z = stan.zajecia[typ] || {};
+    if (!z.data) {
+      // Wyczyszczona data unieważnia poprzednią odpowiedź — inaczej plakietka
+      // „✅ wolny" wisiałaby przy terminie, którego już nie ma.
+      stan.dostepnosc[typ] = null;
+      // Cykl liczy się od daty pierwszych zajęć; sama reguła „co wtorek" nie
+      // wskazuje dnia, w którym da się sprawdzić czyjkolwiek grafik.
+      box.innerHTML = czyCykl(typ)
+        ? "Podaj datę pierwszych zajęć — sprawdzimy, kto jest wtedy wolny."
+        : "Po wybraniu daty pokażemy, kto jest wolny. Rejon podbija kolejność " +
+          "na liście, ale nikogo nie ukrywa.";
+      var dzien = root.querySelector('[data-dzien="' + typ + '"]');
+      if (dzien) dzien.hidden = true;
+      rysujStatus(typ);
+      return;
+    }
+    var klucz = kluczDostepnosci(typ);
+    var buf = stan.dostepnosc[typ];
+    if (buf && buf.klucz === klucz) {
+      rysujDostepnosc(typ, buf.dane);
+      return;
+    }
+    box.textContent = "Sprawdzam dostępność…";
+    clearTimeout(timeryDost[typ]);
+    timeryDost[typ] = setTimeout(function () {
+      var q = "?data=" + encodeURIComponent(z.data) +
+              "&godz_od=" + encodeURIComponent(z.godz_od || "") +
+              "&godz_do=" + encodeURIComponent(z.godz_do || "") +
+              "&miasto=" + encodeURIComponent(
+                (stan.placowka && stan.placowka.miejscowosc) || "");
+      fetch("/api/kandydaci" + q)
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          stan.dostepnosc[typ] = { klucz: klucz, dane: j };
+          rysujDostepnosc(typ, j);
+        })
+        .catch(function () {
+          stan.dostepnosc[typ] = null;
+          box.textContent = "Nie udało się sprawdzić dostępności — " +
+                            "wybierz prowadzącego z listy.";
+          rysujStatus(typ);
+        });
+    }, 200);
+  }
+
+  function kafelTrenera(typ, k) {
+    var szczegol = "";
+    if (k.wolne && k.wolne.length) {
+      szczegol = "wolne: " + k.wolne.join(", ");
+    } else if (k.zajete && k.zajete.length) {
+      szczegol = k.zajete.map(function (z) {
+        return godziny(z) + " " + (z.typ || "") + (z.miasto ? " " + z.miasto : "");
+      }).join(" · ");
+    } else if (k.powod) {
+      szczegol = k.powod;
+    }
+    return '<li><button type="button" data-trener="' + esc(k.trener) +
+      '" data-dla="' + esc(typ) + '" class="f3-kand f3-kand-' + esc(k.kategoria) +
+      '" title="' + esc(k.powod || "") + '">' +
+      '<span class="f3-kand-imie">' + esc(k.trener) +
+      (k.rejon ? ' <span class="f3-rejon">jeździ tu</span>' : "") + "</span>" +
+      (szczegol ? '<span class="f3-kand-info">' + esc(szczegol) + "</span>" : "") +
+      "</button></li>";
+  }
+
+  function rysujDostepnosc(typ, j) {
+    var box = root.querySelector('[data-dost="' + typ + '"]');
+    if (!box) return;
+    var z = stan.zajecia[typ] || {};
+    var lista = wszyscy(j);
+    var wolnych = lista.filter(function (k) { return k.kategoria === "wolny"; }).length;
+    var miasto = (stan.placowka && stan.placowka.miejscowosc) || "";
+
+    var html = wolnych
+      ? "<b>" + wolnych + "</b> " +
+        odmiana(wolnych, "osoba wolna", "osoby wolne", "osób wolnych") + " " +
+        esc(z.data) + (miasto ? ", rejon <b>" + esc(miasto) + "</b>" : "")
+      : "Nikt nie zadeklarował dostępności na " + esc(z.data) + ".";
+    // Bez godziny startu serwer NIE liczy kolizji ani wyjścia poza deklarację
+    // (`przydzial._zakres_spotkania`) — mówimy to wprost, zamiast pokazywać
+    // ranking udający pełną wiedzę.
+    if (!z.godz_od) {
+      html += ' <span class="f3-uwaga-godzina">Podaj godzinę rozpoczęcia, ' +
+              "żeby sprawdzić kolizje.</span>";
+    }
+    if (czyCykl(typ)) {
+      // Cykl trwa miesiącami; jedno zapytanie odpowiada o JEDEN dzień. Lepiej
+      // to powiedzieć, niż pozwolić handlowcowi uznać, że sprawdziliśmy serię.
+      html += ' <span class="f3-uwaga-godzina">To dostępność na PIERWSZE ' +
+              "zajęcia — dalszych tygodni nie sprawdzamy.</span>";
+    }
+
+    KATEGORIE.forEach(function (kat) {
+      var grupa = lista.filter(function (k) { return k.kategoria === kat.klucz; });
+      if (!grupa.length) return;
+      html += '<details class="f3-grupa f3-grupa-' + kat.klucz + '"' +
+              (kat.otwarta ? " open" : "") + "><summary>" + kat.znak + " " + kat.tytul +
+              ' <span class="f3-licznik">' + grupa.length + "</span></summary>" +
+              '<ul class="f2-dost-lista">' +
+              grupa.map(function (k) { return kafelTrenera(typ, k); }).join("") +
+              "</ul></details>";
+    });
+    box.innerHTML = html;
+    rysujStatus(typ);
+    rysujDzien(typ, j, z.data);
+  }
+
+  /* Status WYBRANEJ osoby. Sam select niesie pełny słownik 40 trenerów, więc
+     bez tego „niedostępny" przechodziłby bez słowa aż do ekranu sukcesu. */
+  function rysujStatus(typ) {
+    var el = root.querySelector('[data-status="' + typ + '"]');
+    if (!el) return;
+    var kto = (stan.zajecia[typ] || {}).trener;
+    var buf = stan.dostepnosc[typ];
+    if (!kto || !buf) { el.hidden = true; return; }
+    var k = wszyscy(buf.dane).filter(function (x) { return x.trener === kto; })[0];
+    if (!k) { el.hidden = true; return; }
+
+    var tekst = k.powod || "";
+    if (k.kategoria === "wolny" && k.wolne && k.wolne.length) {
+      tekst += " · wolne: " + k.wolne.join(", ");
+    }
+    if (k.zajete && k.zajete.length) {
+      tekst += " · tego dnia ma " + k.zajete.length + " " +
+               odmiana(k.zajete.length, "zajęcie", "zajęcia", "zajęć");
+    }
+    el.className = "f3-status f3-status-" + k.kategoria;
+    el.innerHTML = "<b>" + (ZNAK[k.kategoria] || "") + " " + esc(kto) + "</b> — " +
+                   esc(tekst);
+    el.hidden = false;
+  }
+
+  /* „Co się dzieje tego dnia" — z tej samej odpowiedzi, bez nowego zapytania.
+     Zwinięte, bo przy zwykłym umawianiu nie jest potrzebne; rozwija się, gdy
+     dyrektor pyta „a kto u was będzie tego dnia?". */
+  function rysujDzien(typ, j, data) {
+    var box = root.querySelector('[data-dzien="' + typ + '"]');
+    if (!box) return;
+    var tytul = root.querySelector('[data-dzien-tytul="' + typ + '"]');
+    var tresc = root.querySelector('[data-dzien-tresc="' + typ + '"]');
+    var wpisy = [];
+    wszyscy(j).forEach(function (k) {
+      (k.zajete || []).forEach(function (z) {
+        wpisy.push({ trener: k.trener, godz: z.godz_od || "", do: z.godz_do || "",
+                     typ: z.typ || "", szkola: z.szkola || "", miasto: z.miasto || "" });
+      });
+    });
+    box.hidden = false;
+    if (!wpisy.length) {
+      tytul.textContent = "Co się dzieje " + data + " — nic w kalendarzu";
+      tresc.innerHTML = '<p class="f3-dzien-pusto">Tego dnia nikt nie ma jeszcze ' +
+                        "wpisanych zajęć.</p>";
+      return;
+    }
+    wpisy.sort(function (a, b) {
+      return (a.godz || "99:99").localeCompare(b.godz || "99:99");
+    });
+    var bezGodzin = wpisy.filter(function (w) { return !w.godz; }).length;
+    tytul.textContent = "Co się dzieje " + data + " — " + wpisy.length + " " +
+      odmiana(wpisy.length, "zajęcie", "zajęcia", "zajęć") +
+      (bezGodzin ? " (" + bezGodzin + " bez godziny)" : "");
+    tresc.innerHTML = '<ul class="f3-dzien-lista">' + wpisy.map(function (w) {
+      return '<li><span class="f3-dzien-godz' + (w.godz ? "" : " f3-brak-godz") + '">' +
+             esc(godziny({ godz_od: w.godz, godz_do: w.do })) + "</span>" +
+             '<span class="f3-dzien-kto">' + esc(w.trener) + "</span>" +
+             '<span class="f3-dzien-gdzie">' +
+             esc(w.typ + " · " + w.szkola + (w.miasto ? " · " + w.miasto : "")) +
+             "</span></li>";
+    }).join("") + "</ul>";
+  }
+
+  function odswiezWszystkie() {
+    Object.keys(stan.wlaczone).forEach(function (typ) {
+      if (stan.wlaczone[typ]) odswiezDostepnosc(typ);
+    });
   }
 
   function pokazKroki() {
@@ -407,8 +659,15 @@
     }
 
     if (el.dataset.typ && el.dataset.pole) {
-      stan.zajecia[el.dataset.typ] = stan.zajecia[el.dataset.typ] || {};
-      stan.zajecia[el.dataset.typ][el.dataset.pole] = el.value;
+      var t = el.dataset.typ;
+      stan.zajecia[t] = stan.zajecia[t] || {};
+      stan.zajecia[t][el.dataset.pole] = el.value;
+      // Termin się zmienił → dostępność liczona na poprzedni jest już nieprawdą.
+      if (["data", "godz_od", "godz_do"].indexOf(el.dataset.pole) >= 0) {
+        odswiezDostepnosc(t);
+      } else if (el.dataset.pole === "trener") {
+        rysujStatus(t);
+      }
       zapiszSzkic();
       return;
     }
@@ -432,6 +691,20 @@
   root.addEventListener("click", function (ev) {
     var el = ev.target.closest("button");
     if (!el) return;
+
+    // Kliknięcie kandydata z panelu dostępności wpisuje go do TEJ sekcji
+    // (`data-dla`), nie do pierwszej lepszej — w v5 sekcji bywa kilka naraz.
+    if (el.dataset.trener !== undefined) {
+      var dla = el.dataset.dla;
+      stan.zajecia[dla] = stan.zajecia[dla] || {};
+      stan.zajecia[dla].trener = el.dataset.trener;
+      var sel = root.querySelector('select[data-typ="' + dla + '"][data-pole="trener"]');
+      if (sel) sel.value = el.dataset.trener;
+      rysujStatus(dla);
+      toast("Prowadzący: " + el.dataset.trener);
+      zapiszSzkic();
+      return;
+    }
 
     if (el.dataset.rodzaj !== undefined) {
       stan.rodzaj = el.dataset.rodzaj;

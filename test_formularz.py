@@ -1263,6 +1263,40 @@ def main():
     sprawdz("v5: prowadzący jest w definicji każdego rodzaju",
             js5.count("POLE_TRENER") == 4)          # 1 definicja + 3 rodzaje
 
+    # --- panel dostępności prowadzących: v5 dostaje to samo co v3 ------------
+    #
+    # Zgłoszenie Pawła 24.08: „brakuje w v5 dostępności prowadzącego jak w v3".
+    # Sam select niesie pełny słownik 40 trenerów, więc bez panelu „niedostępny"
+    # przechodzi bez słowa aż do ekranu sukcesu.
+    #
+    # Jedyna różnica wobec v3 wynika z kaskady: v3 umawia JEDNO spotkanie, więc
+    # ma jeden panel na ekran; v5 umawia kilka rzeczy naraz, każdą z własną datą
+    # i osobą, więc panel siedzi PRZY SEKCJI. Jeden wspólny pokazywałby
+    # dostępność na termin, którego akurat nie wypełniasz — czyli kłamałby.
+    sprawdz("v5 wczytuje ten sam arkusz panelu co v3, bez kopii stylu",
+            "formularz3.css" in html5)
+    sprawdz("v5: panel dostępności doklejany do KAŻDEJ sekcji",
+            "sekcjaDostepnosci(typ)" in js5)
+    sprawdz("v5: panele rozróżniane typem zajęć, nie jednym id",
+            'data-dost="' in js5 and 'data-status="' in js5 and 'data-dzien="' in js5)
+    sprawdz("v5: kandydat trafia do sekcji, z której go kliknięto",
+            "el.dataset.dla" in js5 and 'data-dla="' in js5)
+    sprawdz("v5: zmiana daty albo godzin przelicza dostępność",
+            '["data", "godz_od", "godz_do"].indexOf(el.dataset.pole)' in js5)
+    # `rysujSekcje()` przerysowuje wszystkie sekcje przy każdym kliknięciu chipa.
+    # Bez bufora każde takie przerysowanie wysyłałoby żądanie na sekcję — w
+    # terenie, po LTE.
+    sprawdz("v5: odpowiedź buforowana kluczem termin+miasto",
+            "function kluczDostepnosci(" in js5 and "buf.klucz === klucz" in js5)
+    # Cykl trwa miesiącami, a API odpowiada o JEDEN dzień. Panel ma to mówić,
+    # zamiast pozwolić handlowcowi uznać, że sprawdziliśmy całą serię.
+    sprawdz("v5: przy cyklu panel mówi, że sprawdza PIERWSZE zajęcia",
+            "dalszych tygodni nie sprawdzamy" in js5)
+    # Bez godziny startu serwer nie liczy kolizji (`przydzial._zakres_spotkania`),
+    # więc ranking udawałby pełną wiedzę.
+    sprawdz("v5: bez godziny startu panel ostrzega, że nie liczy kolizji",
+            "żeby sprawdzić kolizje" in js5)
+
     # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
     l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
     kod, j = post("/api/formularz", {
