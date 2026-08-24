@@ -77,13 +77,8 @@
     rodzaj: "",         // filtr typu placówki na liście
     placowki: [],
     placowka: null,     // wybrany rekord
-    nowa: false,        // dodajemy placówkę spoza listy
     zajecia: {},        // typ → { pola }
-    wlaczone: {},       // typ → czy chip zaznaczony
-    // Które pola kontaktu podstawiła aplikacja, a których dotknął człowiek.
-    // Bez tego rozróżnienia zmiana placówki albo gubi to, co wpisał handlowiec,
-    // albo zostawia kontakt do poprzedniej szkoły — obie odpowiedzi są złe.
-    kontaktAuto: { "f5-osoba": true, "f5-telefon": true, "f5-mail": true }
+    wlaczone: {}        // typ → czy chip zaznaczony
   };
 
   // ------------------------------------------------- definicje pól sekcji
@@ -249,7 +244,8 @@
     if (!stan.placowki.length) {
       box.innerHTML = '<p class="f2-info">' +
         (Object.keys(stan.wybor).some(function (k) { return stan.wybor[k]; })
-          ? "Nie ma tu placówek w wybranym rodzaju. Zmień filtr albo dodaj nową."
+          ? "Nie ma tu placówek w wybranym rodzaju. Zdejmij filtr albo zmień " +
+            "miejscowość — baza obejmuje cały rejestr z terenu firmy."
           : "Wybierz powiat, żeby zobaczyć placówki.") + "</p>";
       return;
     }
@@ -294,7 +290,7 @@
   }
 
   function pokazKroki() {
-    var jest = !!(stan.placowka || stan.nowa);
+    var jest = !!stan.placowka;
     $("f5-sek-kontakt").hidden = !jest;
     $("f5-sek-zajecia").hidden = !jest;
     $("f5-sek-wynik").hidden = !jest;
@@ -324,39 +320,40 @@
 
   function podstawKontakt(p) {
     /*
-      KONTAKT NALEŻY DO PLACÓWKI, WIĘC PRZY ZMIANIE PLACÓWKI MUSI SIĘ ZMIENIĆ.
+      KONTAKT NALEŻY DO PLACÓWKI, WIĘC PRZY ZMIANIE PLACÓWKI PODMIENIA SIĘ
+      W CAŁOŚCI — także na pustą wartość.
 
-      Zgłoszenie Pawła z 24.08: „po wybraniu przedszkola uzupełnia się osoba
-      kontaktowa, ale gdy zmienię placówkę, osoba kontaktowa zostaje ta sama".
-      Pierwsza wersja podstawiała tylko w PUSTE pola — regułą z P04, która
-      chroni to, co handlowiec zdążył wpisać. Przy zmianie szkoły ta sama reguła
-      zaczyna szkodzić: dyrektorka poprzedniego przedszkola zostaje w polu
-      i wjeżdża do bazy pod nową placówką.
+      To jest ta sama reguła, którą warianty 2–4 mają od czerwca, i ten sam
+      błąd, który v5 popełnił od nowa. Zgłoszenie wraca po raz trzeci: raz od
+      Kasi („wprowadziłam dane typu osoba do kontaktu, a potem zmieniłam szkołę,
+      to osoba się nie zmieniła"), dwa razy od Pawła w tej rundzie.
 
-      Rozróżniamy więc, SKĄD wzięła się zawartość pola:
-        · podstawione z bazy  → przy zmianie placówki podmieniamy bez pytania,
-        · wpisane przez człowieka → zostaje, ale mówimy o tym wprost, bo to
-          jedyny przypadek, w którym karta placówki i formularz się rozjeżdżają.
+      Wersja z 24.08 próbowała rozróżniać, czy pole podstawiła aplikacja, czy
+      wpisał je człowiek — i chroniła to drugie. Nie działa, bo sekcja kontaktu
+      jest ZAKRYTA do czasu wybrania placówki: cokolwiek w niej wpisano,
+      dotyczyło POPRZEDNIEJ szkoły. „Ochrona" oznaczała więc przeniesienie
+      dyrektorki jednego przedszkola do karty drugiego.
+
+      Skutek pustej rubryki jest odwracalny (widać brak), skutek cudzego maila
+      przy dobrej szkole — nie: nikt tego nie zauważy. Dlatego nadpisujemy
+      zawsze i mówimy o tym wprost (ostrzegamy, nie blokujemy).
     */
     var zrodla = { "f5-osoba": p.osoba_kontakt || "", "f5-telefon": p.telefon || "",
                    "f5-mail": p.mail || "" };
-    var wziete = 0, wlasne = [];
+    var wziete = 0, podmiana = false;
     Object.keys(zrodla).forEach(function (id) {
       var el = $(id);
       if (!el) return;
-      if (!el.value || stan.kontaktAuto[id]) {
-        el.value = zrodla[id];
-        stan.kontaktAuto[id] = true;
-        if (zrodla[id]) wziete++;
-      } else if (el.value !== zrodla[id]) {
-        wlasne.push(el.previousElementSibling
-                    ? el.previousElementSibling.textContent : id);
-      }
+      // Komunikat należy się tylko wtedy, gdy coś WYPARŁO poprzednią wartość.
+      // Pierwsze wypełnienie pustego formularza nie jest podmianą.
+      if (el.value && el.value !== zrodla[id]) podmiana = true;
+      el.value = zrodla[id];
+      if (zrodla[id]) wziete++;
     });
     var info = $("f5-kontakt-info");
-    if (wlasne.length) {
-      info.textContent = "Zostawiono to, co wpisałeś (" + wlasne.join(", ") +
-                         ") — reszta jest z karty nowej placówki.";
+    if (podmiana) {
+      info.textContent = "Kontakt podmieniony na dane z karty tej placówki — " +
+                         "poprzedni dotyczył innej szkoły. Sprawdź go.";
     } else {
       info.textContent = wziete
         ? "Kontakt z karty placówki — popraw, jeśli się zmienił."
@@ -390,8 +387,6 @@
       stan.placowka = stan.placowki.filter(function (p) {
         return p.placowka_id === id;
       })[0] || null;
-      stan.nowa = false;
-      $("f5-nowa").hidden = true;
       if (stan.placowka) podstawKontakt(stan.placowka);
       pokazKroki();
       rysujListe();
@@ -421,11 +416,6 @@
 
   root.addEventListener("input", function (ev) {
     if (ev.target.id === "f5-szukaj") rysujListe();
-    // Dotknięcie pola kontaktu znaczy „to jest moje" — od tej chwili zmiana
-    // placówki go nie podmieni.
-    if (stan.kontaktAuto.hasOwnProperty(ev.target.id)) {
-      stan.kontaktAuto[ev.target.id] = false;
-    }
   });
 
   root.addEventListener("click", function (ev) {
@@ -462,14 +452,6 @@
 
     if (el.classList.contains("f5-generuj")) {
       generujTerminy(el.dataset.typ);
-      return;
-    }
-
-    if (el.id === "f5-nowa-otworz") {
-      stan.nowa = !stan.nowa;
-      $("f5-nowa").hidden = !stan.nowa;
-      if (stan.nowa) stan.placowka = null;
-      pokazKroki();
       return;
     }
 
@@ -520,7 +502,7 @@
   }
 
   function czyCosJest() {
-    return !!(stan.placowka || stan.nowa || $("f5-notatka").value ||
+    return !!(stan.placowka || $("f5-notatka").value ||
               Object.keys(stan.zajecia).length);
   }
 
@@ -565,22 +547,8 @@
     var blad = $("f5-blad");
     blad.hidden = true;
 
-    if (!stan.placowka && !stan.nowa) {
+    if (!stan.placowka) {
       blad.textContent = "Najpierw wybierz placówkę (krok 1).";
-      blad.hidden = false;
-      return;
-    }
-    if (stan.nowa && !$("f5-nowa-nazwa").value.trim()) {
-      blad.textContent = "Podaj nazwę nowej placówki.";
-      blad.hidden = false;
-      return;
-    }
-    if (stan.nowa && !stan.wybor.miejscowosc) {
-      // Sam powiat nie wystarczy: powiat nowej placówki serwer wywodzi
-      // z NAZWY MIEJSCOWOŚCI przez rejestr. Bez niej rekord wylądowałby bez
-      // powiatu, czyli poza filtrem, po którym pracuje cała firma.
-      blad.textContent = "Wybierz miejscowość — bez niej nowa placówka nie " +
-                         "trafi do żadnego filtra.";
       blad.hidden = false;
       return;
     }
@@ -602,27 +570,18 @@
       },
       zajecia: z.zajecia
     };
-    if (stan.placowka) {
+    if (stan.placowka.lead_id) {
       payload.lead_id = stan.placowka.lead_id;
-      if (!payload.lead_id) {
-        // Placówka bez leada istnieje od dołożenia bazy z rejestru RSPO —
-        // 700 przedszkoli weszło jako nieprzydzielone. Wysyłamy ją jak nową,
-        // żeby serwer założył lead; nazwa i miejscowość są z rekordu, więc
-        // nie powstaje drugi wiersz placówki.
-        payload.placowka = {
-          nazwa: stan.placowka.nazwa, typ: stan.placowka.typ,
-          miejscowosc: stan.placowka.miejscowosc, adres: stan.placowka.adres
-        };
-      }
     } else {
-      payload.placowka = {
-        nazwa: $("f5-nowa-nazwa").value.trim(),
-        typ: $("f5-nowa-typ").value,
-        // Miejscowość, nie powiat — powiat dopisze `geografia.uzupelnij()`
-        // z rejestru po nazwie, więc nowa placówka wpada w filtry same z siebie.
-        miejscowosc: stan.wybor.miejscowosc || "",
-        adres: $("f5-nowa-adres").value.trim()
-      };
+      // Placówka bez leada — lista v5 czyta placówki LEFT JOIN-em, więc taka
+      // może się na niej pojawić. Wysyłamy jej `placowka_id`, a serwer zakłada
+      // lead do ISTNIEJĄCEGO rekordu.
+      //
+      // Do 24.08 szedł tu blok `placowka` z nazwą przepisaną z rekordu, w
+      // przekonaniu, że serwer rozpozna placówkę po nazwie. Nie rozpoznawał —
+      // wstawiał drugi wiersz. Dubel z tego samego rekordu, o którym Kasia
+      // pisała, że robią go ludzie.
+      payload.placowka_id = stan.placowka.placowka_id;
     }
     if ($("f5-status").value) payload.status_realizacji = $("f5-status").value;
     if ($("f5-notatka").value.trim()) {

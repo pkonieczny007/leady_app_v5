@@ -271,15 +271,48 @@ def test_odwolanie(ids):
 
 
 def test_tworzenie_leada(ids):
-    print("\n-- nowa szkoła podpisuje się nazwiskiem z SESJI, nie z żądania --")
+    """
+    ZAKŁADANIE PLACÓWEK PRZESZŁO DO KOORDYNATORA (Kasia, 24.08).
+
+    Zgłoszenie: „usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki
+    sami i będą się dublować rzeczy, a wpisują nazwy jak popadnie".
+
+    W rundzie z 20.08 zamknęliśmy tu węższą dziurę — endpoint zostawał otwarty
+    dla handlowca, tylko właściciel szedł z sesji zamiast z żądania. Teraz
+    zamyka się cały endpoint, bo po przejściu bazy na rejestr RSPO „nie ma jej
+    na liście" znaczy prawie zawsze „szukam nie w tym powiecie".
+
+    Sprawdzamy OBIE drogi, bo w aplikacji są dwie: ekran „Baza" (`/api/lead`)
+    i formularz terenowy (`/api/formularz` z blokiem `placowka`). Zamknięcie
+    jednej bez drugiej nie znaczyłoby nic.
+    """
+    print("\n-- placówki zakłada KOORDYNATOR, nie handlowiec (Kasia, 24.08) --")
     zaloguj(PH_A)
     kod, odp = post("/api/lead", {"nazwa": "Podrzucona szkoła", "handlowiec": PH_B})
-    sprawdz("utworzenie przechodzi", kod == 200, "kod %s" % kod)
+    sprawdz("handlowiec NIE założy placówki przez /api/lead", kod == 403, "kod %s" % kod)
+
+    kod, odp = post("/api/formularz", {
+        "placowka": {"nazwa": "Wpisana z ręki", "miejscowosc": "Psary"}})
+    sprawdz("handlowiec NIE założy placówki przez formularz", kod == 403, "kod %s" % kod)
+    sprawdz("komunikat kieruje do powiatu, zanim wyśle do koordynatorki",
+            "powiat" in (odp.get("error") or "").lower(), odp.get("error"))
+
     conn = db.get_conn()
-    r = conn.execute("SELECT handlowiec FROM leady WHERE id=?", (odp.get("id"),)).fetchone()
+    ile = conn.execute("SELECT COUNT(*) c FROM placowki WHERE nazwa IN "
+                       "('Podrzucona szkoła','Wpisana z ręki')").fetchone()["c"]
     conn.close()
-    sprawdz("właściciel wzięty z sesji, nie z ciała żądania",
-            r and r["handlowiec"] == PH_A, r["handlowiec"] if r else "brak")
+    sprawdz("żaden z odrzuconych wierszy nie wszedł do bazy", ile == 0, "jest %d" % ile)
+
+    # Formularz na ISTNIEJĄCEJ placówce ma działać jak dotąd — blokada dotyczy
+    # zakładania, nie zapisu ustaleń. Inaczej zabralibyśmy handlowcowi pracę,
+    # o którą w tym formularzu chodzi.
+    kod, _ = post("/api/formularz", {"lead_id": ids["a"],
+                                     "kontakt": {"telefon": "600100200"}})
+    sprawdz("zapis ustaleń na własnej szkole przechodzi dalej", kod == 200, "kod %s" % kod)
+
+    zaloguj(KOOR)
+    kod, odp = post("/api/lead", {"nazwa": "Szkoła od koordynatorki"})
+    sprawdz("koordynator zakłada placówkę bez zmian", kod == 200, "kod %s" % kod)
 
 
 def test_koordynator(ids):

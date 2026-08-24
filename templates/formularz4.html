@@ -133,31 +133,15 @@
       </div>
     </div>
 
-    {# Makieta nie przewiduje dodania nowej szkoły — a w terenie to się zdarza
-       i bez tego handlowiec zapisuje ustalenia na kartce. #}
-    <button type="button" class="f2-link" id="f2-nowa-otworz">
-      + Nie ma jej na liście — dodaj nową placówkę
-    </button>
-
-    <div id="f2-nowa" class="f2-nowa" hidden>
-      <div class="f2-siatka f2-siatka-2">
-        <div class="f2-pole-grupa">
-          <label class="f2-etykieta" for="f2-nowa-nazwa">Nazwa placówki <span class="f2-wym">*</span></label>
-          <input type="text" id="f2-nowa-nazwa" class="f2-pole" placeholder="np. SP 12 im. Kopernika">
-        </div>
-        <div class="f2-pole-grupa">
-          <label class="f2-etykieta" for="f2-nowa-typ">Typ</label>
-          <select id="f2-nowa-typ" class="f2-pole">
-            <option value="">Wybierz typ</option>
-            {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="f2-pole-grupa">
-        <label class="f2-etykieta" for="f2-nowa-adres">Adres</label>
-        <input type="text" id="f2-nowa-adres" class="f2-pole" placeholder="ulica i numer">
-      </div>
-    </div>
+    {# Do 24.08 stała tu droga „dodaj nową placówkę" — usunięta na wyraźne
+       zgłoszenie Kasi: „PH wpisują coś z ręki sami i będą się dublować rzeczy,
+       a wpisują nazwy jak popadnie". Wypada we wszystkich pięciu wariantach
+       naraz: gdyby została w jednym, handlowiec po prostu zakładałby placówki
+       tamtym, a porównanie wariantów przestałoby dotyczyć układu. #}
+    <p class="f2-info">
+      Nie znajdujesz szkoły? Sprawdź miejscowość i pisownię — baza obejmuje cały
+      rejestr z terenu firmy. Nowe placówki zakłada koordynatorka.
+    </p>
 
     <div class="f2-siatka f2-siatka-3">
       <div class="f2-pole-grupa">

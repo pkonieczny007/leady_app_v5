@@ -806,6 +806,33 @@ def main():
             helper(zrodla["formularz2"]) == helper(zrodla["formularz3"])
             == helper(zrodla["formularz4"]))
 
+    # --- zakładanie placówki wypadło z WSZYSTKICH wariantów (Kasia, 24.08) ---
+    #
+    # „usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą
+    # się dublować rzeczy, a wpisują nazwy jak popadnie".
+    #
+    # Sprawdzamy komplet pięciu, a nie tego jednego, którego akurat używają:
+    # gdyby furtka została w jednym wariancie, handlowiec zakładałby placówki
+    # tamtym, a porównanie wariantów przestałoby dotyczyć układu. Zapora jest
+    # w interfejsie i przy zapisie (`test_uprawnienia.py`) — sam brak przycisku
+    # niczego nie zamyka, bo zapis idzie zwykłym `fetch`.
+    print("\n-- placówki zakłada koordynator: żaden wariant już nie proponuje --")
+    for w, pliki in (("v1", ("formularz.js", "formularz.html")),
+                     ("v2", ("formularz2.js", "formularz2.html")),
+                     ("v3", ("formularz3.js", "formularz3.html")),
+                     ("v4", ("formularz4.js", "formularz4.html")),
+                     ("v5", ("formularz5.js", "formularz5.html"))):
+        js = open("static/%s" % pliki[0], encoding="utf-8").read()
+        html = open("templates/%s" % pliki[1], encoding="utf-8").read()
+        sprawdz("%s: nie ma przycisku „dodaj nową placówkę”" % w,
+                "nowa-otworz" not in html and "nowa-otworz" not in js)
+        sprawdz("%s: nie ma pól nowej placówki" % w, "nowa-nazwa" not in html)
+        sprawdz("%s: nie wysyła bloku `placowka` do API" % w,
+                "d.placowka =" not in js and "payload.placowka =" not in js)
+        sprawdz("%s: placówkę bez leada wysyła jako `placowka_id`" % w,
+                "placowka_id = stan.wybrana.placowka_id" in js
+                or "placowka_id = stan.placowka.placowka_id" in js)
+
     # --- P06: lista szkół to CAŁA baza miejscowości (zgłoszenie K04) ---------
     #
     # „na liście miast przy wpisywaniu DT katoice pojawiają się tylko jako moje
@@ -1163,18 +1190,61 @@ def main():
             all(p["typ"].startswith(("02.", "03.")) for p in tylko_p["pozycje"])
             and len(tylko_p["pozycje"]) >= 1)
 
-    # Kontakt należy do PLACÓWKI, więc przy zmianie placówki musi się zmienić.
-    # Zgłoszenie Pawła 24.08: „po wybraniu przedszkola uzupełnia się osoba
-    # kontaktowa, ale gdy zmienię placówkę, zostaje ta sama". Podstawianie
-    # wyłącznie w puste pola (reguła P04) chroni to, co wpisał człowiek — ale
-    # przy zmianie szkoły zostawia kontakt do poprzedniej.
+    # ...i musi dać się na niej ZAPISAĆ, nie tylko ją zobaczyć. Do 24.08 v5
+    # wysyłał w tym miejscu blok `placowka` z nazwą przepisaną z rekordu,
+    # w przekonaniu, że serwer rozpozna placówkę po nazwie. Nie rozpoznawał —
+    # wstawiał drugi wiersz. Dubel z tego samego rekordu, czyli dokładnie to,
+    # o czym Kasia pisała, że robią ludzie, tyle że robiony przez aplikację.
+    conn = db.get_conn()
+    ile_przed = conn.execute("SELECT COUNT(*) c FROM placowki").fetchone()["c"]
+    conn.close()
+    kod, j = post("/api/formularz", {"handlowiec": H, "placowka_id": p_bez,
+                                     "kontakt": {"telefon": "600700800"}})
+    conn = db.get_conn()
+    ile_po = conn.execute("SELECT COUNT(*) c FROM placowki").fetchone()["c"]
+    leady_p = conn.execute("SELECT COUNT(*) c FROM leady WHERE placowka_id=?",
+                           (p_bez,)).fetchone()["c"]
+    tel = conn.execute("SELECT telefon FROM placowki WHERE id=?", (p_bez,)).fetchone()["telefon"]
+    conn.close()
+    sprawdz("zapis na placówce bez leada przechodzi", kod == 200, str(j)[:100])
+    sprawdz("NIE powstał drugi wiersz placówki", ile_po == ile_przed,
+            "%d → %d" % (ile_przed, ile_po))
+    sprawdz("powstał dokładnie jeden lead do tego rekordu", leady_p == 1, "jest %d" % leady_p)
+    sprawdz("kontakt wylądował przy istniejącej placówce", tel == "600700800", str(tel))
+
+    # Drugie wejście na tę samą placówkę ma trafić w ZAŁOŻONY lead, nie zrobić
+    # kolejnego — inaczej dubel wróciłby piętro niżej, w tabeli leadów.
+    kod, _ = post("/api/formularz", {"handlowiec": H, "placowka_id": p_bez,
+                                     "kontakt": {"telefon": "600700801"}})
+    conn = db.get_conn()
+    leady_p2 = conn.execute("SELECT COUNT(*) c FROM leady WHERE placowka_id=?",
+                            (p_bez,)).fetchone()["c"]
+    conn.close()
+    sprawdz("drugi zapis nie mnoży leadów", kod == 200 and leady_p2 == 1,
+            "jest %d" % leady_p2)
+
+    kod, j = post("/api/formularz", {"handlowiec": H, "placowka_id": 999999})
+    sprawdz("nieistniejąca placówka odrzucona", kod == 404, "kod %s" % kod)
+
+    # KONTAKT NALEŻY DO PLACÓWKI — zgłoszenie wróciło trzeci raz.
+    #
+    # Kasia (o wariantach 2–4): „wprowadziłam dane typu osoba do kontaktu,
+    # a potem zmieniłam szkołę, to osoba się nie zmieniła". Paweł dwa razy
+    # 24.08 o v5, drugi raz słowami „dalej źle wpisuje dane, gdy wybiorę
+    # z listy szkołę, i potem chcę inną wybrać".
+    #
+    # Pierwsza poprawka v5 chroniła to, co wpisał człowiek (reguła P04), i przez
+    # to przenosiła dyrektorkę jednego przedszkola do karty drugiego. Nie ma tu
+    # czego chronić: sekcja kontaktu jest ZAKRYTA, dopóki nie wybrano placówki,
+    # więc każda wartość w niej dotyczy POPRZEDNIEJ szkoły.
     js5 = open("static/formularz5.js", encoding="utf-8").read()
-    sprawdz("v5 rozróżnia kontakt podstawiony od wpisanego ręcznie",
-            "kontaktAuto" in js5)
-    sprawdz("dotknięcie pola kontaktu zdejmuje z niego automat",
-            "stan.kontaktAuto[ev.target.id] = false" in js5)
-    sprawdz("zmiana placówki podmienia to, co podstawiła aplikacja",
-            "if (!el.value || stan.kontaktAuto[id])" in js5)
+    cialo5 = js5[js5.index("function podstawKontakt("):
+                 js5.index("root.addEventListener", js5.index("function podstawKontakt("))]
+    sprawdz("v5: podstawienie kontaktu nie zależy już od zawartości pola",
+            "if (!el.value" not in cialo5 and "kontaktAuto" not in js5)
+    sprawdz("v5: pusta wartość ze szkoły CZYŚCI pole", "el.value = zrodla[id];" in cialo5)
+    sprawdz("v5: mówi o podmianie zamiast robić ją po cichu",
+            "Kontakt podmieniony" in cialo5)
 
     # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
     l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)

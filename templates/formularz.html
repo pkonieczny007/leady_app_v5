@@ -110,31 +110,14 @@
         <div class="fx-wybrana-meta" id="fx-wybrana-meta"></div>
       </div>
 
-      {# Osobny przycisk, nie automatyczne „nie znalazłem → utwórz": dublet placówki
-         to dokładnie ten bałagan, od którego uciekamy. Dodanie ma być świadome. #}
-      <button type="button" class="fx-btn fx-btn-lekki" id="fx-nowa-otworz">
-        + Nie ma jej na liście — dodaj nową
-      </button>
-
-      <div id="fx-nowa" class="fx-nowa" hidden>
-        <label class="fx-etykieta" for="fx-nowa-nazwa">Nazwa placówki <span class="fx-wym">*</span></label>
-        <input type="text" id="fx-nowa-nazwa" class="fx-pole" placeholder="np. SP 12 im. Kopernika">
-
-        <label class="fx-etykieta" for="fx-nowa-miasto">Miejscowość <span class="fx-wym">*</span></label>
-        <select id="fx-nowa-miasto" class="fx-pole">
-          <option value="">— wybierz —</option>
-          {% for m in slowniki.miasto %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
-        </select>
-
-        <label class="fx-etykieta" for="fx-nowa-typ">Typ</label>
-        <select id="fx-nowa-typ" class="fx-pole">
-          <option value="">— wybierz —</option>
-          {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
-        </select>
-
-        <label class="fx-etykieta" for="fx-nowa-adres">Adres</label>
-        <input type="text" id="fx-nowa-adres" class="fx-pole" placeholder="ulica i numer">
-      </div>
+      {# Zakładanie placówki wypadło z formularza 24.08 (Kasia): „PH wpisują coś
+         z ręki sami i będą się dublować rzeczy, a wpisują nazwy jak popadnie".
+         Wcześniej stał tu świadomy przycisk „dodaj nową" — świadomość okazała
+         się słabszą zaporą niż lista, która po prostu ma wszystko. #}
+      <p class="fx-podpowiedz">
+        Nie znajdujesz szkoły? Sprawdź pisownię i miejscowość — baza obejmuje
+        cały rejestr z terenu firmy. Nowe placówki zakłada koordynatorka.
+      </p>
     </div>
 
     <div class="fx-karta">

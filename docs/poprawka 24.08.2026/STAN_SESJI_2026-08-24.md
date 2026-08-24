@@ -37,7 +37,8 @@ powiat → miejscowość → placówka.
 | `42ecc4f` | zespoły wg wariantu ostrożnego — wyszło 0 do dołożenia |
 | `232233a` | **pełne pokrycie**: wszystkie 278 zespołów, 0 braków wobec rejestru |
 | `48c198a` | katalog `do_sprawdzenia_recznego` + plik 25 placówek bez numeru |
-| — | v5: kontakt odświeża się przy zmianie placówki (zgłoszenie Pawła) |
+| `ffbafa0` | stan i plan po 24.08 (pierwsze podejście do kontaktu w v5) |
+| — | zakładanie placówek wypadło z formularza; kontakt nadpisywany zawsze |
 
 ---
 
@@ -167,6 +168,40 @@ liczby i wychodzą.
 
 **Czego NIE zaczynać:** etapów E2 i E3 z `PLAN_FORMULARZA.md` — dotykają
 „Twoich szkół", czyli ekranu, na którym handlowcy pracują.
+
+---
+
+## 6b. Zgłoszenia z wieczora 24.08 — zrobione
+
+**Zakładanie placówek wypadło z formularza (Kasia).** „Usuń tę możliwość, bo to
+powoduje, że PH wpisują coś z ręki sami i będą się dublować rzeczy, a wpisują
+nazwy jak popadnie". Przycisk zniknął z **pięciu** wariantów; w jego miejscu
+stoi podpowiedź kierująca najpierw do filtra powiatu. Blokada przy ZAPISIE:
+`/api/formularz` odmawia handlowcowi bloku `placowka` (403),
+`api_lead_create` doszedł do `TYLKO_KOORDYNATOR`. Koordynator zakłada dalej,
+na ekranie „Baza". Testy: `test_uprawnienia.py` (obie drogi), `test_formularz.py`
+(komplet wariantów), `test_logowanie.py` (L6 przepisane — podszycie sprawdzamy
+teraz na szkole niczyjej, bo tam handlowiec dziś w ogóle może się podpisać).
+
+⚠️ **Na `prod` ta zmiana ma sens dopiero razem z bazą RSPO** — produkcja ma 545
+placówek i zero powiatów, więc sam zakaz zabrałby handlowcowi możliwość zapisania
+wizyty w przedszkolu spoza tych 545. Obie rzeczy jadą tą samą gałęzią; nie
+rozdzielać ich przy wdrożeniu.
+
+**Kontakt w v5 nadpisywany ZAWSZE (Paweł, drugie zgłoszenie tego samego).**
+Pierwsza poprawka rozróżniała kontakt podstawiony od wpisanego ręcznie i ten
+drugi chroniła. Nie działa: sekcja kontaktu jest zakryta, dopóki placówka nie
+jest wybrana, więc każda wpisana wartość dotyczy POPRZEDNIEJ szkoły. v5 robi
+teraz to samo co v2–v4 od czerwca — nadpisuje wszystkie trzy pola, także pustą
+wartością, i mówi o podmianie.
+
+**v5 robił dubla placówki sam z siebie.** Przy placówce bez leada wysyłał blok
+`placowka` z nazwą przepisaną z rekordu; serwer bez `lead_id` po prostu wstawia
+wiersz. Teraz jedzie `placowka_id`, a serwer zakłada lead do ISTNIEJĄCEGO
+rekordu — z testem na liczbę placówek i leadów przed zapisem i po nim.
+
+Testy po tej rundzie: **11 plików, 928 sprawdzeń + 93 (`test_parsers`) + 17
+w node**, komplet OK.
 
 ---
 

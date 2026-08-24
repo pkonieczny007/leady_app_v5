@@ -77,6 +77,13 @@ TYLKO_KOORDYNATOR = {
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
     "api_dostepnosc_demo",
+    # ZAKŁADANIE PLACÓWEK PRZESZŁO DO KOORDYNATORA (Kasia, 24.08): „usuń tę
+    # możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
+    # dublować rzeczy, a wpisują nazwy jak popadnie". Do 20.08 endpoint był
+    # otwarty dla handlowca i tylko wymuszał właściciela z sesji — po dołożeniu
+    # bazy z rejestru RSPO „nie ma jej na liście" znaczy prawie zawsze „szukam
+    # nie w tym powiecie", a nie „brakuje placówki".
+    "api_lead_create",
     # Kasowanie spotkania BEZ ŚLADU — decyzja z 20.08: „handlowiec może odwołać,
     # a koordynator może odwołać i skasować". Odwołanie zostawia powód i osobę,
     # więc wolno je szerzej; kasowanie zabiera dowód, że temat w ogóle był.
@@ -2078,6 +2085,32 @@ def api_formularz():
     # --- 1. placówka i lead: istniejąca z listy albo zupełnie nowa -----------
     lead_id = d.get("lead_id")
     nowa = d.get("placowka") or {}
+
+    # Placówka z rejestru, która nie ma jeszcze leada. Dołożenie z RSPO zakłada
+    # lead każdej, ale `/api/formularz/placowki` czyta je LEFT JOIN-em i musi
+    # umieć oddać także taką — więc formularz musi umieć ją zapisać.
+    #
+    # Do 24.08 v5 wysyłał w tym miejscu blok `placowka`, czyli prosił o INSERT
+    # nowego wiersza. Komentarz obok twierdził, że „nie powstaje drugi wiersz
+    # placówki" — a powstawał, bo serwer bez `lead_id` po prostu wstawia. To był
+    # dokładnie ten dubel, przed którym ostrzegała Kasia, tyle że robiony przez
+    # aplikację, a nie przez człowieka.
+    if not lead_id and d.get("placowka_id"):
+        pid = d["placowka_id"]
+        if not conn.execute("SELECT id FROM placowki WHERE id=?", (pid,)).fetchone():
+            return blad("Nie ma takiej placówki", 404)
+        row = conn.execute("SELECT id FROM leady WHERE placowka_id=? ORDER BY id LIMIT 1",
+                           (pid,)).fetchone()
+        if row:
+            lead_id = row["id"]
+        else:
+            lead_id = conn.execute(
+                "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) "
+                "VALUES (?,?,?)",
+                (pid, handlowiec or None, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+            zapisz_log(conn, lead_id=lead_id, kto=handlowiec or "formularz",
+                       co="lead założony z formularza", po=None)
+
     if lead_id:
         row = conn.execute("SELECT id, placowka_id, handlowiec FROM leady WHERE id=?",
                            (lead_id,)).fetchone()
@@ -2091,6 +2124,21 @@ def api_formularz():
             zapisz_log(conn, lead_id=lead_id, kto=handlowiec, co="przypisanie z formularza",
                        pole="handlowiec", przed=None, po=handlowiec)
     else:
+        # ZAKŁADANIE PLACÓWKI Z FORMULARZA WYPADŁO 24.08 — zgłoszenie Kasi:
+        # „usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami
+        # i będą się dublować rzeczy, a wpisują nazwy jak popadnie".
+        #
+        # Blokada jest po ROLI, nie po widoku przycisku. Przycisku nie ma dziś
+        # w żadnym z pięciu wariantów formularza, ale zapis idzie zwykłym
+        # `fetch` — sam brak przycisku nie zamyka niczego (ta sama lekcja co
+        # przy K01 z 20.08). Koordynator zakłada dalej: robi to na ekranie
+        # „Baza", a import i migracje muszą mieć czym wstawiać rekordy.
+        u = uz.zalogowany() or {}
+        if u.get("rola") == "handlowiec":
+            return blad("Nowe placówki zakłada koordynator. Jeśli nie widzisz "
+                        "szkoły na liście, sprawdź powiat — baza obejmuje cały "
+                        "rejestr. Gdyby naprawdę jej brakowało, zgłoś to "
+                        "koordynatorce.", 403)
         nazwa = (nowa.get("nazwa") or "").strip()
         if not nazwa:
             return blad("Podaj nazwę placówki")

@@ -129,8 +129,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   var stan = {
     handlowiec: root.dataset.handlowiec || "",
-    wybrana: null,
-    nowa: false
+    wybrana: null
   };
 
   var moje = window.FX_MOJE || [];
@@ -334,8 +333,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
   selSzkola.addEventListener("change", function () {
     stan.wybrana = indeks[selSzkola.value] || null;
     if (stan.wybrana) {
-      stan.nowa = false;
-      $("f2-nowa").hidden = true;
       if (podstawKontakt(stan.wybrana)) {
         toast("Dane kontaktowe podmienione na te ze szkoły z bazy — sprawdź je.");
       }
@@ -353,20 +350,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       selSzkola.dispatchEvent(new Event("change"));
     });
   };
-
-  $("f2-nowa-otworz").addEventListener("click", function () {
-    stan.nowa = !stan.nowa;
-    $("f2-nowa").hidden = !stan.nowa;
-    this.textContent = stan.nowa
-      ? "− Jednak wybieram z listy"
-      : "+ Nie ma jej na liście — dodaj nową placówkę";
-    if (stan.nowa) {
-      stan.wybrana = null;
-      selSzkola.value = "";
-      $("f2-nowa-nazwa").focus();
-    }
-    zapiszSzkic();
-  });
 
   /* ==================================================== DOSTĘPNOŚĆ TRENERÓW */
 
@@ -900,12 +883,9 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
     root.querySelectorAll(".zly").forEach(function (e) { e.classList.remove("zly"); });
 
     var braki = [];
-    if (stan.nowa) {
-      if (!$("f2-nowa-nazwa").value.trim()) braki.push([$("f2-nowa-nazwa"), "Podaj nazwę placówki."]);
+    if (!stan.wybrana) {
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-    } else if (!stan.wybrana) {
-      if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-      else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
+      else braki.push([selSzkola, "Wybierz szkołę z listy."]);
     }
     /* Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
        przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
@@ -991,17 +971,10 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
   /* =================================================================== ZAPIS */
 
   function zbierz() {
+    // `sprawdz()` nie przepuszcza zapisu bez wybranej szkoły, więc tu zawsze jest.
     var d = { handlowiec: stan.handlowiec };
-    if (stan.wybrana) {
-      d.lead_id = stan.wybrana.lead_id;
-    } else {
-      d.placowka = {
-        nazwa: $("f2-nowa-nazwa").value.trim(),
-        miejscowosc: selMiasto.value,
-        typ: $("f2-nowa-typ").value,
-        adres: $("f2-nowa-adres").value.trim()
-      };
-    }
+    if (stan.wybrana.lead_id) d.lead_id = stan.wybrana.lead_id;
+    else d.placowka_id = stan.wybrana.placowka_id;
     d.kontakt = {
       osoba_kontakt: $("f2-osoba").value.trim(),
       telefon: $("f2-telefon").value.trim(),
@@ -1148,8 +1121,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   /* ========================================================= SZKIC W TELEFONIE */
 
-  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
-              "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
+  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail",
+              "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
               "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi",
@@ -1167,7 +1140,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
           kiedy: new Date().toISOString(),
           handlowiec: stan.handlowiec,
           placowka_id: stan.wybrana ? stan.wybrana.placowka_id : null,
-          nowa: stan.nowa,
           pola: pola,
           // Lista terminów NIE jest zwykłym polem formularza — bez tego
           // przywrócony szkic wracałby z pustą listą i wyglądałby jak
@@ -1209,11 +1181,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       // listę szkół podstawiamy dopiero po doczytaniu placówek dla miasta
       if (el && id !== "f2-szkola") el.value = s.pola[id];
     });
-    if (s.nowa) {
-      stan.nowa = true;
-      $("f2-nowa").hidden = false;
-      $("f2-nowa-otworz").textContent = "− Jednak wybieram z listy";
-    }
     if (s.typCyklu) {
       var elTyp = root.querySelector('input[name="f4-typ"][value="' + s.typCyklu + '"]');
       if (elTyp) elTyp.checked = true;
@@ -1255,7 +1222,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   function czyCosWpisane() {
     if (zapisano) return false;
-    if (stan.wybrana || stan.nowa) return true;
+    if (stan.wybrana) return true;
     if (stan.terminy.length) return true;
     return POLA.some(function (id) {
       if (POLA_DOMYSLNE.indexOf(id) >= 0) return false;

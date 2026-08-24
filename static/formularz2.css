@@ -98,11 +98,6 @@ select.f2-pole{
   font:600 14px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--cyan-t);
   cursor:pointer;text-decoration:underline;
 }
-.f2-nowa{
-  padding:14px;margin-bottom:16px;border:1px dashed var(--muted-2);
-  border-radius:var(--radius-md);background:var(--panel-2);
-}
-
 /* --- podpowiedź dostępności pod listą prowadzących ------------------------ */
 .f2-dostepnosc{
   margin:8px 0 0;padding:9px 12px;border-radius:var(--radius-sm);

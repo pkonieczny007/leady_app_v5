@@ -33,8 +33,7 @@
 
   var stan = {
     handlowiec: root.dataset.handlowiec || "",
-    wybrana: null,
-    nowa: false
+    wybrana: null
   };
 
   var moje = window.FX_MOJE || [];
@@ -238,8 +237,6 @@
   selSzkola.addEventListener("change", function () {
     stan.wybrana = indeks[selSzkola.value] || null;
     if (stan.wybrana) {
-      stan.nowa = false;
-      $("f2-nowa").hidden = true;
       if (podstawKontakt(stan.wybrana)) {
         toast("Dane kontaktowe podmienione na te ze szkoły z bazy — sprawdź je.");
       }
@@ -258,20 +255,6 @@
       selSzkola.dispatchEvent(new Event("change"));
     });
   };
-
-  $("f2-nowa-otworz").addEventListener("click", function () {
-    stan.nowa = !stan.nowa;
-    $("f2-nowa").hidden = !stan.nowa;
-    this.textContent = stan.nowa
-      ? "− Jednak wybieram z listy"
-      : "+ Nie ma jej na liście — dodaj nową placówkę";
-    if (stan.nowa) {
-      stan.wybrana = null;
-      selSzkola.value = "";
-      $("f2-nowa-nazwa").focus();
-    }
-    zapiszSzkic();
-  });
 
   /* ==================================================== DOSTĘPNOŚĆ TRENERÓW */
 
@@ -374,12 +357,9 @@
     root.querySelectorAll(".zly").forEach(function (e) { e.classList.remove("zly"); });
 
     var braki = [];
-    if (stan.nowa) {
-      if (!$("f2-nowa-nazwa").value.trim()) braki.push([$("f2-nowa-nazwa"), "Podaj nazwę placówki."]);
+    if (!stan.wybrana) {
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-    } else if (!stan.wybrana) {
-      if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-      else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
+      else braki.push([selSzkola, "Wybierz szkołę z listy."]);
     }
     /* P22 (Kasia, 20.08) + P27 (Zuzia, 20.08): sekcja DT przestała być zestawem
        sześciu pól „wszystko albo nic". Najpierw zdjęliśmy wymóg DT z wizyty bez
@@ -452,17 +432,10 @@
   /* =================================================================== ZAPIS */
 
   function zbierz() {
+    // `sprawdz()` nie przepuszcza zapisu bez wybranej szkoły, więc tu zawsze jest.
     var d = { handlowiec: stan.handlowiec };
-    if (stan.wybrana) {
-      d.lead_id = stan.wybrana.lead_id;
-    } else {
-      d.placowka = {
-        nazwa: $("f2-nowa-nazwa").value.trim(),
-        miejscowosc: selMiasto.value,
-        typ: $("f2-nowa-typ").value,
-        adres: $("f2-nowa-adres").value.trim()
-      };
-    }
+    if (stan.wybrana.lead_id) d.lead_id = stan.wybrana.lead_id;
+    else d.placowka_id = stan.wybrana.placowka_id;
     d.kontakt = {
       osoba_kontakt: $("f2-osoba").value.trim(),
       telefon: $("f2-telefon").value.trim(),
@@ -561,8 +534,8 @@
 
   /* ========================================================= SZKIC W TELEFONIE */
 
-  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
-              "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
+  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail",
+              "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
               "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi"];
@@ -579,7 +552,6 @@
           kiedy: new Date().toISOString(),
           handlowiec: stan.handlowiec,
           placowka_id: stan.wybrana ? stan.wybrana.placowka_id : null,
-          nowa: stan.nowa,
           pola: pola
         }));
         var t = new Date();
@@ -614,11 +586,6 @@
       // listę szkół podstawiamy dopiero po doczytaniu placówek dla miasta
       if (el && id !== "f2-szkola") el.value = s.pola[id];
     });
-    if (s.nowa) {
-      stan.nowa = true;
-      $("f2-nowa").hidden = false;
-      $("f2-nowa-otworz").textContent = "− Jednak wybieram z listy";
-    }
     if (selMiasto.value) {
       wczytajSzkoly(selMiasto.value, function () {
         if (s.placowka_id && indeks[s.placowka_id]) {
@@ -642,7 +609,7 @@
 
   function czyCosWpisane() {
     if (zapisano) return false;
-    if (stan.wybrana || stan.nowa) return true;
+    if (stan.wybrana) return true;
     return POLA.some(function (id) {
       var el = $(id);
       return el && String(el.value || "").trim();

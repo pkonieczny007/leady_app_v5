@@ -33,7 +33,6 @@
     krok: 1,
     handlowiec: root.dataset.handlowiec || "",
     wybrana: null,        // {lead_id, placowka_id, nazwa, miejscowosc, ...}
-    nowa: false,          // czy tworzymy placówkę od zera
     trener: "",
     cyklPominiety: false
   };
@@ -88,13 +87,12 @@
   var poleSzukaj = $("fx-szukaj");
   var boxWyniki = $("fx-wyniki");
   var boxWybrana = $("fx-wybrana");
-  var boxNowa = $("fx-nowa");
   var timerSzukania = null;
 
   function rysujWyniki(pozycje, naglowek) {
     if (!pozycje.length) {
       boxWyniki.innerHTML = '<p class="fx-wyniki-pusto">Nic nie znaleziono. ' +
-        'Sprawdź pisownię albo dodaj nową placówkę poniżej.</p>';
+        'Sprawdź pisownię — spróbuj samej nazwy miejscowości.</p>';
       boxWyniki.hidden = false;
       return;
     }
@@ -143,7 +141,6 @@
   function wybierz(p) {
     if (!p) return;
     stan.wybrana = p;
-    stan.nowa = false;
     $("fx-wybrana-nazwa").textContent = p.nazwa;
     var meta = [p.miejscowosc, p.typ, p.adres].filter(Boolean).join(" · ");
     if (p.osoba_kontakt) meta += (meta ? " · " : "") + p.osoba_kontakt;
@@ -151,9 +148,7 @@
     $("fx-wybrana-meta").textContent = meta;
     boxWybrana.hidden = false;
     boxWyniki.hidden = true;
-    boxNowa.hidden = true;
     poleSzukaj.hidden = true;
-    $("fx-nowa-otworz").hidden = true;
     zapiszSzkic();
   }
 
@@ -169,20 +164,8 @@
     boxWybrana.hidden = true;
     poleSzukaj.hidden = false;
     poleSzukaj.value = "";
-    $("fx-nowa-otworz").hidden = false;
     poleSzukaj.focus();
     pokazMoje();
-    zapiszSzkic();
-  });
-
-  $("fx-nowa-otworz").addEventListener("click", function () {
-    stan.nowa = true;
-    stan.wybrana = null;
-    boxNowa.hidden = false;
-    boxWyniki.hidden = true;
-    boxWybrana.hidden = true;
-    this.hidden = true;
-    $("fx-nowa-nazwa").focus();
     zapiszSzkic();
   });
 
@@ -207,8 +190,7 @@
       selInnyTrener.hidden = true;
       return;
     }
-    var miasto = stan.wybrana ? (stan.wybrana.miejscowosc || "")
-                              : ($("fx-nowa-miasto").value || "");
+    var miasto = stan.wybrana ? (stan.wybrana.miejscowosc || "") : "";
     var url = "/api/kandydaci?data=" + encodeURIComponent(data) +
       "&godz_od=" + encodeURIComponent($("fx-dt-od").value || "") +
       "&godz_do=" + encodeURIComponent($("fx-dt-do").value || "") +
@@ -402,13 +384,9 @@
     czyscBledy();
     if (nr === 1) {
       if (stan.wybrana) return true;
-      if (!stan.nowa) {
-        bladPola(poleSzukaj, "Wybierz szkołę z listy albo dodaj nową.");
-        poleSzukaj.scrollIntoView({ behavior: "smooth", block: "center" });
-        return false;
-      }
-      return wymagane([["fx-nowa-nazwa", "Podaj nazwę placówki."],
-                       ["fx-nowa-miasto", "Wybierz miejscowość."]]);
+      bladPola(poleSzukaj, "Wybierz szkołę z listy.");
+      poleSzukaj.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
     }
     if (nr === 2) {
       if (!wymagane([["fx-dt-data", "Podaj datę DT."],
@@ -457,8 +435,7 @@
   function rysujPodsumowanie() {
     var szkola = stan.wybrana
       ? stan.wybrana.nazwa + (stan.wybrana.miejscowosc ? ", " + stan.wybrana.miejscowosc : "")
-      : ($("fx-nowa-nazwa").value + (($("fx-nowa-miasto").value)
-          ? ", " + $("fx-nowa-miasto").value : "") + "  (nowa placówka)");
+      : "";
 
     var godziny = $("fx-dt-od").value + ($("fx-dt-do").value ? "–" + $("fx-dt-do").value : "");
     var html = '<h3 class="fx-podsum-tytul">Placówka</h3><dl class="fx-podsum-lista">' +
@@ -497,17 +474,10 @@
   /* =============================================================== ZAPIS */
 
   function zbierz() {
+    // Krok 1 nie przepuszcza dalej bez wybranej szkoły, więc tu zawsze jest.
     var d = { handlowiec: stan.handlowiec };
-    if (stan.wybrana) {
-      d.lead_id = stan.wybrana.lead_id;
-    } else {
-      d.placowka = {
-        nazwa: $("fx-nowa-nazwa").value.trim(),
-        miejscowosc: $("fx-nowa-miasto").value,
-        typ: $("fx-nowa-typ").value,
-        adres: $("fx-nowa-adres").value.trim()
-      };
-    }
+    if (stan.wybrana.lead_id) d.lead_id = stan.wybrana.lead_id;
+    else d.placowka_id = stan.wybrana.placowka_id;
     d.kontakt = {
       osoba_kontakt: $("fx-osoba").value.trim(),
       telefon: $("fx-telefon").value.trim(),
@@ -600,8 +570,8 @@
      ochrona przed utratą wpisanego tekstu — telefon do ucha, przełączenie
      aplikacji, wygaszony ekran, zerwana sesja. */
 
-  var POLA = ["fx-osoba", "fx-telefon", "fx-mail", "fx-nowa-nazwa", "fx-nowa-miasto",
-              "fx-nowa-typ", "fx-nowa-adres", "fx-dt-data", "fx-dt-od", "fx-dt-do",
+  var POLA = ["fx-osoba", "fx-telefon", "fx-mail",
+              "fx-dt-data", "fx-dt-od", "fx-dt-do",
               "fx-dt-sala", "fx-dt-klas", "fx-dt-dzieci", "fx-mail-rodzice",
               "fx-dt-uwagi", "fx-cykl-dzien", "fx-cykl-od", "fx-cykl-do",
               "fx-cykl-sala", "fx-cykl-sprzet", "fx-cykl-uwagi"];
@@ -619,7 +589,6 @@
           handlowiec: stan.handlowiec,
           krok: stan.krok,
           wybrana: stan.wybrana,
-          nowa: stan.nowa,
           trener: stan.trener,
           cyklPominiety: stan.cyklPominiety,
           pola: pola
@@ -653,7 +622,7 @@
     var kiedy = new Date(s.kiedy);
     var opis = String(kiedy.getHours()).padStart(2, "0") + ":" +
                String(kiedy.getMinutes()).padStart(2, "0");
-    var nazwa = s.wybrana ? s.wybrana.nazwa : (s.pola["fx-nowa-nazwa"] || "");
+    var nazwa = s.wybrana ? s.wybrana.nazwa : "";
     if (!confirm("Masz niedokończony formularz z godz. " + opis +
                  (nazwa ? " (" + nazwa + ")" : "") + ".\n\nPrzywrócić go?")) {
       localStorage.removeItem(KLUCZ_SZKICU);
@@ -669,13 +638,7 @@
       $("fx-cykl-pomin").textContent = "Jednak ustalamy zajęcia cykliczne";
       $("fx-cykl-pomin").classList.add("on");
     }
-    if (s.wybrana) {
-      wybierz(s.wybrana);
-    } else if (s.nowa) {
-      stan.nowa = true;
-      boxNowa.hidden = false;
-      $("fx-nowa-otworz").hidden = true;
-    }
+    if (s.wybrana) wybierz(s.wybrana);
     pokazKrok(s.krok || 1);
     toast("Przywrócono szkic");
   }
@@ -693,7 +656,7 @@
 
   function czyCosWpisane() {
     if (zapisano) return false;
-    if (stan.wybrana || stan.nowa || stan.trener) return true;
+    if (stan.wybrana || stan.trener) return true;
     return POLA.some(function (id) {
       var el = $(id);
       return el && String(el.value || "").trim();

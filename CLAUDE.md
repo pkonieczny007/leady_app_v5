@@ -592,7 +592,42 @@ chipy „co ustaliłeś" (kilka rodzajów naraz), zapis samej wizyty bez żadneg
 chipa. API rozszerzone ADDYTYWNIE o listę `zajecia`; jest test-zapora, że
 v1–v4 wysyłają dokładnie to co dotąd.
 
+### Zakładanie placówek wypadło z formularza (Kasia, 24.08)
+
+„Usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
+dublować rzeczy, a wpisują nazwy jak popadnie". Przycisk „dodaj nową placówkę"
+zniknął z **wszystkich pięciu** wariantów — gdyby został w jednym, handlowiec
+zakładałby placówki tamtym, a porównanie wariantów przestałoby dotyczyć układu.
+
+Wolno było tak zrobić dopiero teraz: argument, dla którego ta furtka w ogóle
+powstała („brak szkoły w bazie = ustalenia na kartce"), zniknął razem
+z przejściem bazy na rejestr RSPO. Dlatego podpowiedź w miejscu przycisku
+kieruje **najpierw do filtra powiatu**, a dopiero potem do koordynatorki —
+„nie ma jej na liście" znaczy dziś prawie zawsze „szukam nie w tym powiecie".
+
+Blokada siedzi przy **zapisie**, nie w wyglądzie: `/api/formularz` odmawia
+handlowcowi bloku `placowka`, a `api_lead_create` doszedł do
+`TYLKO_KOORDYNATOR`. Sam brak przycisku nie zamyka niczego — to ta sama lekcja
+co przy K01 z 20.08. Koordynator zakłada dalej, na ekranie „Baza".
+
+⚠️ **Na `prod` ta zmiana ma sens dopiero razem z bazą RSPO.** Produkcja ma 545
+placówek i zero powiatów; sam zakaz zakładania zabrałby handlowcowi możliwość
+zapisania wizyty w przedszkolu, którego w tych 545 nie ma. Obie rzeczy jadą tą
+samą gałęzią, więc wystarczy ich nie rozdzielać przy wdrożeniu.
+
 ### Grabie z tej rundy
+- **Kontakt należy do placówki — v5 popełnił od nowa błąd naprawiony w v2–v4.**
+  Reguła „podstawiaj tylko w puste pole" (P04) chroni to, co wpisał człowiek,
+  i jest słuszna WEWNĄTRZ jednej placówki. Przy zmianie placówki ta sama reguła
+  przenosi dyrektorkę jednego przedszkola do karty drugiego. Nie ma tu czego
+  chronić: sekcja kontaktu jest zakryta, dopóki placówka nie jest wybrana, więc
+  każda wartość w niej dotyczy POPRZEDNIEJ szkoły. Nadpisujemy zawsze, także
+  pustą wartością, i mówimy o tym.
+- **v5 robił dubla placówki sam z siebie.** Przy placówce bez leada wysyłał blok
+  `placowka` z nazwą przepisaną z rekordu, w przekonaniu, że serwer rozpozna ją
+  po nazwie. Nie rozpoznawał — `/api/formularz` bez `lead_id` po prostu wstawia
+  wiersz. Komentarz w kodzie twierdził coś przeciwnego przez dwa dni. Teraz
+  jedzie `placowka_id`, a serwer zakłada lead do ISTNIEJĄCEGO rekordu.
 - **Reguła wykrywania dubli musi znać numer szkoły.** Bez niego „miejska szkoła
   podstawowa" to same słowa puste i wszystko skleja się ze wszystkim (289
   fałszywych trafień w pierwszym podejściu, SP nr 9 jako nasza SP nr 7).
