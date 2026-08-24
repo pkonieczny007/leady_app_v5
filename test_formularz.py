@@ -1174,10 +1174,19 @@ def main():
     miejsc = zawezone["osie"][1]["wartosci"]
     sprawdz("miejscowości zawężone wybranym powiatem",
             "Psary" in miejsc and "Katowice" not in miejsc, str(miejsc))
-    # Miejscowość z rejestru, w której NIE MAMY jeszcze placówki, musi być
-    # do wyboru — bo to właśnie tam handlowiec zakłada nową.
-    sprawdz("w formularzu są też miejscowości bez naszych placówek",
-            "Czeladź" in miejsc, str(miejsc))
+    # REGUŁA ZMIENIŁA SIĘ 24.08 WIECZOREM — i to jest zmiana, nie usterka.
+    #
+    # Do tego dnia lista miejscowości w formularzu szła z REJESTRU, więc były
+    # na niej także te bez ani jednej naszej placówki (tu: Czeladź). Miało to
+    # jedno uzasadnienie: handlowiec stoi w takiej miejscowości WŁAŚNIE dlatego,
+    # że jeszcze tam nie byliśmy, i musi mieć jej nazwę, żeby ZAŁOŻYĆ placówkę.
+    #
+    # Zakładanie wypadło z formularza tego samego dnia (zgłoszenie Kasi), więc
+    # uzasadnienie zniknęło, a został sam koszt: wybór, po którym lista placówek
+    # jest pusta i nic się z tym nie da zrobić. Wszystkie listy miejscowości idą
+    # dziś z DANYCH.
+    sprawdz("miejscowości bez naszych placówek NIE są już proponowane",
+            "Czeladź" not in miejsc, str(miejsc))
     conn = db.get_conn()
     sprawdz("...ale filtr na listach ich nie proponuje (pusta tabela)",
             "Czeladź" not in geografia.miasta(conn, "będziński"),
@@ -1240,6 +1249,47 @@ def main():
 
     kod, j = post("/api/formularz", {"handlowiec": H, "placowka_id": 999999})
     sprawdz("nieistniejąca placówka odrzucona", kod == 404, "kod %s" % kod)
+
+    # --- lista miejscowości w formularzu MUSI trafiać w bazę ----------------
+    #
+    # Zgłoszenie Pawła 24.08: „w ogóle nie działa v3 wybór szkół… wszystkie
+    # stare formularze". Warianty 2–4 wybierają szkołę parą list
+    # „miejscowość → placówka" i brały pierwszą ze SŁOWNIKA `miasto`, a etap M8
+    # wyczyścił nazwy w BAZIE. Słownik ma „01. Orzesze", baza „Orzesze" —
+    # CZĘŚĆ WSPÓLNA PUSTA, więc każdy wybór dawał zero szkół.
+    #
+    # Na demo tego nie było widać, bo demo nie było jeszcze zmigrowane: usterka
+    # czekała na moment migracji, czyli ujawniłaby się u handlowców. Dlatego
+    # test porównuje listę Z EKRANU z zawartością bazy, a nie sam kod.
+    print("\n-- miejscowości w formularzu idą z danych, nie ze słownika --")
+    conn = db.get_conn()
+    pid_o = conn.execute(
+        "INSERT INTO placowki (nazwa, miejscowosc, powiat, zrodlo) "
+        "VALUES ('SP W ORZESZU', 'Orzesze', 'mikołowski', 'test')").lastrowid
+    # Lead, bo stary `/api/placowki` (para list w v2–v4) robi JOIN z `leady`
+    # — placówka bez leada jest dla niego niewidoczna.
+    conn.execute("INSERT INTO leady (placowka_id, status_realizacji) VALUES (?,?)",
+                 (pid_o, "01. Próba kontaktu (Brak konkretów)"))
+    # Pozycja słownika, której NIE MA w żadnej placówce — to ona rozstrzyga,
+    # z którego źródła idzie lista. („01. Orzesze" by nie rozstrzygnęła: wcześniejsze
+    # bloki testu zakładają placówki właśnie z wartościami ze słownika.)
+    conn.execute("INSERT OR IGNORE INTO slowniki (rodzaj, wartosc, aktywny) "
+                 "VALUES ('miasto', '98. Miasto Tylko W Slowniku', 1)")
+    conn.commit()
+    conn.close()
+    for adres, w in (("/formularz/ciagly", "v2"), ("/formularz/v3", "v3"),
+                     ("/formularz/cykliczne", "v4")):
+        h = KL.get(adres).get_data(as_text=True)
+        sprawdz("%s: na liście jest nazwa Z BAZY" % w,
+                '<option value="Orzesze">' in h, adres)
+        # Słownik `miasto` ZOSTAJE w bazie — używa go `aliasy` przy imporcie
+        # arkuszy klienta. Ma tylko nie trafiać na tę listę.
+        sprawdz("%s: nazwa istniejąca TYLKO w słowniku nie trafia na listę" % w,
+                "98. Miasto Tylko W Slowniku" not in h, adres)
+    lista = KL.get("/api/placowki?miejscowosc=Orzesze").get_json()
+    sprawdz("wybór z tej listy naprawdę zwraca szkoły",
+            any(p["nazwa"] == "SP W ORZESZU" for p in lista["pozycje"]),
+            str(len(lista.get("pozycje") or [])))
 
     # KONTAKT NALEŻY DO PLACÓWKI — zgłoszenie wróciło trzeci raz.
     #

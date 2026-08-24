@@ -212,47 +212,17 @@ def miasta(conn, powiat=None):
         "WHERE miejscowosc IS NOT NULL AND miejscowosc <> '' ORDER BY miejscowosc")]
 
 
-def miasta_do_wyboru(conn, powiat):
-    """
-    Miejscowości powiatu do FORMULARZA — z rejestru, nie tylko z naszej bazy.
-
-    Różnica wobec `miasta()` jest celowa i wynika z tego, do czego służą.
-    Na liście leadów filtr po miejscowości, w której nie mamy ani jednej
-    placówki, daje pustą tabelę — czyli wybór, który tylko marnuje kliknięcie.
-    W formularzu jest odwrotnie: handlowiec stoi w Brudzowicach WŁAŚNIE dlatego,
-    że jeszcze tam nie byliśmy, i musi mieć tę nazwę do wyboru, żeby założyć
-    placówkę. W powiecie będzińskim to różnica 17 nazw (nasze) wobec 22
-    (rejestr) — te pięć brakujących to dokładnie miejsca do zdobycia.
-
-    Sumujemy oba źródła, bo placówka może siedzieć w miejscowości, której
-    rejestr nie zna pod tą nazwą (przysiółek, dzielnica, literówka sprzed lat) —
-    i wtedy zniknięcie jej z listy wyglądałoby jak zgubiony rekord.
-
-    BEZ POWIATU ZWRACAMY PUSTO. Lista 400 miejscowości województwa to nie jest
-    pomoc, tylko przewijanie kciukiem; kaskada ma sens tylko wtedy, gdy każdy
-    krok naprawdę zawęża.
-    """
-    if not (powiat or "").strip():
-        return []
-    nazwy = set(miasta(conn, powiat))
-    # Z rejestru bierzemy TYLKO to, co wpada w obszary działania firmy. Inaczej
-    # przy powiecie gliwickim — z którego bierzemy samą gminę Knurów —
-    # formularz proponowałby 31 miejscowości od Toszka po Żernicę, czyli teren,
-    # po którym nikt nie jeździ. Reguła „gmina bije powiat" żyje w `rspo_obszar`
-    # i tu po prostu z niej korzystamy, zamiast powtarzać ją drugi raz.
-    try:
-        w_obszarach = conn.execute(
-            "SELECT COUNT(*) FROM rspo_obszar").fetchone()[0]
-    except Exception:
-        w_obszarach = 0
-    sql = ("SELECT DISTINCT r.miejscowosc FROM rspo_rejestr r "
-           "%s WHERE r.powiat = ? AND r.miejscowosc IS NOT NULL AND r.miejscowosc <> ''"
-           % ("JOIN rspo_obszar o ON o.rspo = r.rspo" if w_obszarach else ""))
-    try:
-        nazwy |= {r[0] for r in conn.execute(sql, (powiat,))}
-    except Exception:
-        pass                        # profil bez lustra — zostają nasze dane
-    return sorted(nazwy, key=lambda s: _fold(s))
+# Była tu `miasta_do_wyboru()` — lista miejscowości powiatu z REJESTRU, także
+# tych, w których nie mamy ani jednej placówki. Miała jedno uzasadnienie:
+# handlowiec stoi w Brudzowicach właśnie dlatego, że jeszcze tam nie byliśmy,
+# i musi mieć tę nazwę, żeby ZAŁOŻYĆ placówkę.
+#
+# Zakładanie placówek wypadło z formularza 24.08 (zgłoszenie Kasi: „PH wpisują
+# coś z ręki sami i będą się dublować rzeczy"). Uzasadnienie zniknęło, został
+# sam koszt: wybór miejscowości, po którym lista placówek jest pusta i nic się
+# z tym nie da zrobić. Wszystkie listy miejscowości idą dziś z `miasta()`,
+# czyli z DANYCH — bo każdy ekran służy już tylko do wskazania placówki, która
+# istnieje. Gdyby zakładanie kiedyś wróciło, ta funkcja jest w historii gita.
 
 
 def podsumowanie(conn):

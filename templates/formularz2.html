@@ -97,7 +97,10 @@
         <label class="f2-etykieta" for="f2-miasto">Miejscowość <span class="f2-wym">*</span></label>
         <select id="f2-miasto" class="f2-pole">
           <option value="">Wybierz miejscowość</option>
-          {% for m in slowniki.miasto %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          {# Z DANYCH, nie ze słownika `miasto`: po M8 słownik ma nazwy
+             z prefiksami („01. Orzesze"), a baza czyste („Orzesze") — wybór
+             ze słownika nie trafiał w ani jedną placówkę. #}
+          {% for m in miejscowosci %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
         </select>
       </div>
       <div class="f2-pole-grupa">

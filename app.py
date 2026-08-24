@@ -1650,6 +1650,19 @@ def _kontekst_formularza(conn, handlowiec):
             moje.append(poz)
     return {
         "slowniki": wszystkie_slowniki(conn),
+        # MIEJSCOWOŚCI IDĄ Z DANYCH, NIE ZE SŁOWNIKA `miasto`.
+        #
+        # Warianty 2–4 wybierają szkołę parą list „miejscowość → placówka"
+        # i brały pierwszą z nich ze słownika. Po etapie M8 (czyszczenie nazw
+        # razem z przejściem na powiaty) słownik ma 33 wartości z prefiksami
+        # („01. Orzesze"), a baza 73 czyste („Orzesze") — CZĘŚĆ WSPÓLNA JEST
+        # PUSTA, więc każdy wybór dawał zero szkół. Formularz przestawał
+        # działać w ogóle, i to ten, na którym pracują handlowcy.
+        #
+        # Słownika `miasto` nie ruszamy: używa go tabela `aliasy` przy imporcie
+        # arkuszy klienta, gdzie prefiksy wciąż są tym, co przychodzi w pliku.
+        # To dwie różne role tej samej nazwy i dlatego dwa różne źródła.
+        "miejscowosci": geografia.miasta(conn),
         "handlowiec": handlowiec,
         "moje": moje,
         "ostrzezenia": zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else [],
@@ -1853,12 +1866,17 @@ def api_formularz_geografia():
     osie = [
         {"poziom": "powiat", "etykieta": "Powiat",
          "wartosci": geografia.powiaty(conn), "pusta_etykieta": "Wybierz powiat"},
-        # Miejscowości WYŁĄCZNIE z wybranego powiatu i wprost z rejestru —
-        # razem z tymi, w których nie mamy jeszcze ani jednej placówki, bo to
-        # w nich handlowiec zakłada nową. Bez powiatu lista jest PUSTA:
-        # kaskada, w której pierwszy krok niczego nie zawęża, nie jest kaskadą.
+        # Miejscowości WYŁĄCZNIE z wybranego powiatu. Bez powiatu lista jest
+        # PUSTA: kaskada, w której pierwszy krok niczego nie zawęża, nie jest
+        # kaskadą.
+        #
+        # Do 24.08 szły tu nazwy z REJESTRU, także te, w których nie mamy ani
+        # jednej placówki — bo handlowiec zakładał w nich nową. Zakładanie
+        # wypadło z formularza tego samego dnia (zgłoszenie Kasi), więc ten
+        # powód zniknął, a został sam koszt: wybór miejscowości, po którym
+        # lista placówek jest pusta i nic się z tym nie da zrobić.
         {"poziom": "miejscowosc", "etykieta": "Miejscowość (opcjonalnie)",
-         "wartosci": geografia.miasta_do_wyboru(conn, wybrany_powiat),
+         "wartosci": geografia.miasta(conn, wybrany_powiat) if wybrany_powiat else [],
          "pusta_etykieta": "Najpierw powiat" if not wybrany_powiat
                            else "Cały powiat"},
     ]
