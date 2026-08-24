@@ -18,6 +18,7 @@ os.environ["PROFIL"] = "test"
 import db                      # noqa: E402
 import rejestr_rspo            # noqa: E402
 import obszary                 # noqa: E402
+import dokladanie              # noqa: E402
 
 WYNIKI = []
 
@@ -40,11 +41,14 @@ NAGLOWKI = ("Numer RSPO;Nazwa;Typ;REGON;NIP;Województwo;Powiat;Gmina;"
             "Data założenia;Data likwidacji")
 
 
-def _wiersz(rspo, nazwa, typ, powiat, gmina, miejscowosc, telefon="", woj="ŚLĄSKIE"):
+def _wiersz(rspo, nazwa, typ, powiat, gmina, miejscowosc, telefon="", woj="ŚLĄSKIE",
+            publicznosc="", ulica="", nr_budynku=""):
     pola = [""] * 34
     pola[0] = str(rspo); pola[1] = nazwa; pola[2] = typ
     pola[5] = woj; pola[6] = powiat; pola[7] = gmina; pola[8] = miejscowosc
+    pola[11] = ulica; pola[12] = nr_budynku
     pola[16] = telefon
+    pola[21] = publicznosc
     return ";".join(pola)
 
 
@@ -62,6 +66,157 @@ def _zapisz_csv(wiersze):
         for w in wiersze:
             f.write(w + "\n")
     return p
+
+
+def _slownik(conn, rodzaj, wartosci):
+    for i, w in enumerate(wartosci):
+        conn.execute("INSERT OR IGNORE INTO slowniki (rodzaj, wartosc, sort_order)"
+                     " VALUES (?,?,?)", (rodzaj, w, i))
+    conn.commit()
+
+
+def testy_dokladania(conn):
+    """R7–R11: dołożenie brakujących placówek z lustra (M7a)."""
+    print("\nR7 — dołożenie: co wchodzi, a co świadomie nie")
+    plik = _zapisz_csv([
+        _wiersz(2001, "PRZEDSZKOLE MIEJSKIE NR 7 W KATOWICACH", "Przedszkole",
+                "Katowice", "Katowice", "Katowice", publicznosc="publiczna",
+                ulica="Orla", nr_budynku="6", telefon='="0322223344"'),
+        _wiersz(2002, "NIEPUBLICZNE PRZEDSZKOLE TĘCZOWA KRAINA", "Przedszkole",
+                "Katowice", "Katowice", "Katowice", publicznosc="niepubliczna"),
+        _wiersz(2003, "PUNKT PRZEDSZKOLNY BAJKA W SIEWIERZU", "Punkt przedszkolny",
+                "będziński", "Siewierz", "Siewierz", publicznosc="niepubliczna"),
+        _wiersz(2004, "ZESPÓŁ SZKOLNO-PRZEDSZKOLNY NR 3 W KATOWICACH",
+                "Zespół szkół i placówek oświatowych",
+                "Katowice", "Katowice", "Katowice"),
+        _wiersz(2005, "SZKOŁA PODSTAWOWA NR 99 W KATOWICACH", "Szkoła podstawowa",
+                "Katowice", "Katowice", "Katowice"),
+        _wiersz(2006, "PRZEDSZKOLE W PYSKOWICACH", "Przedszkole",
+                "gliwicki", "Pyskowice", "Pyskowice", publicznosc="publiczna"),
+    ])
+    # Zniknięcia wyłączone: to dosypka do lustra, nie obraz całego rejestru.
+    rejestr_rspo.wgraj(conn, plik, wykryj_znikniete=False)
+    obszary.przelicz(conn)
+
+    _slownik(conn, "miasto", ["08. Katowice", "15. Będzin"])
+    _slownik(conn, "status_realizacji", [dokladanie.STATUS_NOWEGO])
+    _slownik(conn, "status_szkoly", [dokladanie.STATUS_SZKOLY_NOWA])
+
+    # Najpierw BEZ pozycji przedszkolnych w słowniku typów — to ta sama pułapka,
+    # przez którą `CYKLICZNE-PRZEDSZKOLE` dawało się zapisać, ale nie poprawić.
+    plan = dokladanie.przygotuj(conn, "przedszkola")
+    sprawdz("brak pozycji w słowniku typów wykryty PRZED zapisem",
+            any(r == "typ_placowki" for r, _ in plan["braki_slownikow"]))
+    odmowa = False
+    try:
+        dokladanie.zapisz(conn, plan)
+    except ValueError:
+        odmowa = True
+    sprawdz("zapis odmawia, gdy słownik profilu nie zna wartości", odmowa)
+    sprawdz("po odmowie baza nietknięta", conn.execute(
+        "SELECT COUNT(*) FROM placowki").fetchone()[0] == 0)
+
+    _slownik(conn, "typ_placowki", [dokladanie.TYP_SP,
+                                    dokladanie.TYP_PRZEDSZKOLE_PUB,
+                                    dokladanie.TYP_PRZEDSZKOLE_NIEPUB])
+    plan = dokladanie.przygotuj(conn, "przedszkola")
+    numery = {r["rspo"] for r in plan["do_zapisu"]}
+    sprawdz("weszły oba przedszkola i punkt", numery == {2001, 2002, 2003},
+            str(sorted(numery)))
+    sprawdz("zespół szkolno-przedszkolny NIE wchodzi (rekord ma być na składową)",
+            2004 not in numery)
+    sprawdz("szkoła podstawowa nie wchodzi do grupy „przedszkola”", 2005 not in numery)
+    sprawdz("placówka spoza obszarów nie wchodzi", 2006 not in numery)
+
+    wg = {r["rspo"]: r for r in plan["do_zapisu"]}
+    sprawdz("publiczne → przedszkole miejskie",
+            wg[2001]["typ"] == dokladanie.TYP_PRZEDSZKOLE_PUB)
+    sprawdz("niepubliczne → przedszkole prywatne",
+            wg[2002]["typ"] == dokladanie.TYP_PRZEDSZKOLE_NIEPUB)
+    sprawdz("miejscowość w formacie słownika, nie czysta z rejestru",
+            wg[2001]["miejscowosc"] == "08. Katowice", wg[2001]["miejscowosc"])
+    sprawdz("wieś spoza słownika trafia do worka powiatowego",
+            wg[2003]["miejscowosc"] == "15. Będzin", wg[2003]["miejscowosc"])
+    sprawdz("prawdziwa miejscowość zapamiętana w raporcie",
+            wg[2003]["miejscowosc_rejestr"] == "Siewierz")
+    sprawdz("adres sklejony z ulicy i numeru", wg[2001]["adres"] == "Orla 6",
+            str(wg[2001]["adres"]))
+
+    dodane = dokladanie.zapisz(conn, plan, kto="test")
+    sprawdz("zapisano tyle, ile zapowiadał podgląd", dodane == 3)
+    sprawdz("każda placówka ma lead", conn.execute(
+        "SELECT COUNT(*) FROM leady").fetchone()[0] == 3)
+    bez_handlowca = conn.execute(
+        "SELECT COUNT(*) FROM leady WHERE handlowiec IS NULL AND status_realizacji=?",
+        (dokladanie.STATUS_NOWEGO,)).fetchone()[0]
+    sprawdz("leady nieprzydzielone — niczyja lista „moje szkoły” nie rośnie",
+            bez_handlowca == 3)
+    sprawdz("geografia z rejestru na placówce", conn.execute(
+        "SELECT powiat FROM placowki WHERE rspo='2003'").fetchone()[0] == "będziński")
+    sprawdz("obszar wpisany", conn.execute(
+        "SELECT obszar FROM placowki WHERE rspo='2003'").fetchone()[0] == "powiat będziński")
+
+    print("\nR8 — powtórzenie nie tworzy dubli")
+    plan2 = dokladanie.przygotuj(conn, "przedszkola")
+    sprawdz("drugi przebieg nie ma co dokładać", plan2["do_zapisu"] == [])
+    sprawdz("liczba placówek bez zmian", conn.execute(
+        "SELECT COUNT(*) FROM placowki").fetchone()[0] == 3)
+
+    print("\nR9 — kolizja z rekordem handlowca: odkładamy, nie dokładamy")
+    conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo)"
+                 " VALUES (?,?,?,?)",
+                 ("Tęczowa Kraina", "04. Inna", "08. Katowice", "reka"))
+    # Rekord SZKOŁY o mylnie podobnej nazwie NIE ma odkładać przedszkola:
+    # to ten sam operator i dwie różne placówki (289 fałszywych trafień
+    # w pierwszym podejściu wzięło się dokładnie stąd).
+    conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo)"
+                 " VALUES (?,?,?,?)",
+                 ("SZKOŁA PODSTAWOWA BAJKA W KATOWICACH", "01. Szkoła podstawowa",
+                  "08. Katowice", "reka"))
+    conn.commit()
+    conn.execute("DELETE FROM placowki WHERE rspo='2002'")
+    conn.commit()
+    plan3 = dokladanie.przygotuj(conn, "przedszkola")
+    sprawdz("kandydat pod nazwą, którą już mamy — odłożony",
+            [k["rspo"] for k in plan3["kolizje"]] == [2002],
+            str([k["rspo"] for k in plan3["kolizje"]]))
+    sprawdz("odłożonego nie ma na liście do zapisu",
+            2002 not in {r["rspo"] for r in plan3["do_zapisu"]})
+
+    plik_bajka = _zapisz_csv([
+        _wiersz(2007, "PRZEDSZKOLE BAJKA W KATOWICACH", "Przedszkole",
+                "Katowice", "Katowice", "Katowice", publicznosc="publiczna"),
+    ])
+    rejestr_rspo.wgraj(conn, plik_bajka, wykryj_znikniete=False)
+    obszary.przelicz(conn)
+    plan4 = dokladanie.przygotuj(conn, "przedszkola")
+    sprawdz("szkoła o podobnej nazwie NIE blokuje przedszkola",
+            2007 in {r["rspo"] for r in plan4["do_zapisu"]})
+
+    print("\nR10 — cofnięcie kasuje tylko to, czego nikt nie dotknął")
+    # Sierot w logu jest już jedna — z ręcznego DELETE w R9. `log` NIE MA klucza
+    # obcego celowo (ślad ma przeżyć skasowany rekord), więc mierzymy przyrost,
+    # nie wartość bezwzględną: cofnięcie ma po sobie nie zostawiać nic.
+    sieroty_przed = conn.execute(
+        "SELECT COUNT(*) FROM log WHERE lead_id NOT IN (SELECT id FROM leady)"
+    ).fetchone()[0]
+    lid = conn.execute("SELECT l.id FROM leady l JOIN placowki p ON p.id=l.placowka_id"
+                       " WHERE p.rspo='2001'").fetchone()[0]
+    conn.execute("INSERT INTO eventy (lead_id, typ, data) VALUES (?,?,?)",
+                 (lid, "DT", "2026-09-01"))
+    conn.commit()
+    r = dokladanie.cofnij(conn)
+    sprawdz("placówka z umówionym DT zostaje", conn.execute(
+        "SELECT COUNT(*) FROM placowki WHERE rspo='2001'").fetchone()[0] == 1)
+    sprawdz("nietknięta placówka skasowana", conn.execute(
+        "SELECT COUNT(*) FROM placowki WHERE rspo='2003'").fetchone()[0] == 0)
+    sprawdz("DT przeżyło cofnięcie", conn.execute(
+        "SELECT COUNT(*) FROM eventy").fetchone()[0] == 1, str(r))
+    sprawdz("cofnięcie nie zostawia sierot w logu", conn.execute(
+        "SELECT COUNT(*) FROM log WHERE lead_id NOT IN (SELECT id FROM leady)"
+    ).fetchone()[0] == sieroty_przed)
+    sprawdz("rekordy handlowca nietknięte", conn.execute(
+        "SELECT COUNT(*) FROM placowki WHERE zrodlo='reka'").fetchone()[0] == 2)
 
 
 def main():
@@ -161,6 +316,8 @@ def main():
         "SELECT COUNT(*) FROM placowki").fetchone()[0] == 0)
     sprawdz("leady puste jak były", conn.execute(
         "SELECT COUNT(*) FROM leady").fetchone()[0] == 0)
+
+    testy_dokladania(conn)
 
     conn.close()
     ok = sum(1 for _, w in WYNIKI if w)

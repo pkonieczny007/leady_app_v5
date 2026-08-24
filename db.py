@@ -143,6 +143,21 @@ EVENT_KEYS = [f[1] for f in EVENT_FIELDS]
 # gorsze niż jego brak: wygląda na decyzję, o której nikt nic nie wie.
 EVENT_KOLUMNY_TECHNICZNE = ["odwolane", "powod_odwolania", "odwolal"]
 
+# Geografia placówki z rejestru RSPO — ten sam wzorzec co wyżej: kolumny są
+# w tabeli, ale ŚWIADOMIE poza PLACOWKA_FIELDS, więc karta placówki ich nie
+# pokazuje i nie da się ich wpisać z ręki.
+#
+# Powód jest ten sam, dla którego lustro rejestru to osobna tabela: powiat
+# i gmina mają JEDNO źródło — rejestr, po numerze RSPO. Gdyby były zwykłym
+# polem karty, po miesiącu połowa bazy miałaby „będziński", a połowa „Będziński
+# (powiat)", i filtr po powiecie — czyli to, o co prosił klient — przestałby
+# odpowiadać na pytanie „ile mamy szkół w powiecie".
+#
+# `obszar` jest WYLICZANY (obszary.przelicz(): gmina bije powiat), więc tym
+# bardziej nie jest polem do wpisywania — jego wartość zmienia się sama, gdy
+# koordynatorka dołoży gminę do zakresu firmy.
+PLACOWKA_KOLUMNY_GEOGRAFIA = ["powiat", "gmina", "obszar"]
+
 
 def sql_nieodwolane(alias="e"):
     """
@@ -404,7 +419,8 @@ def migruj(conn):
     `CREATE TABLE IF NOT EXISTS` nie zmienia istniejącej tabeli, więc bez tego
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
     """
-    tabele = {"placowki": PLACOWKA_KEYS, "leady": LEAD_KEYS,
+    tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
+              "leady": LEAD_KEYS,
               "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}
