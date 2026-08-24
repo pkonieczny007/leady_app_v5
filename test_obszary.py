@@ -133,12 +133,14 @@ def testy_dokladania(conn):
             wg[2001]["typ"] == dokladanie.TYP_PRZEDSZKOLE_PUB)
     sprawdz("niepubliczne → przedszkole prywatne",
             wg[2002]["typ"] == dokladanie.TYP_PRZEDSZKOLE_NIEPUB)
-    sprawdz("miejscowość w formacie słownika, nie czysta z rejestru",
-            wg[2001]["miejscowosc"] == "08. Katowice", wg[2001]["miejscowosc"])
-    sprawdz("wieś spoza słownika trafia do worka powiatowego",
-            wg[2003]["miejscowosc"] == "15. Będzin", wg[2003]["miejscowosc"])
-    sprawdz("prawdziwa miejscowość zapamiętana w raporcie",
-            wg[2003]["miejscowosc_rejestr"] == "Siewierz")
+    # Miejscowość wprost z rejestru — od M6 osią filtrowania jest powiat, więc
+    # nie ma po co przepisywać nazwy na wartość słownika (i nie ma potem czego
+    # czyścić osobnym przebiegiem, o którym łatwo zapomnieć na produkcji).
+    sprawdz("miejscowość czysta, prosto z rejestru",
+            wg[2001]["miejscowosc"] == "Katowice", wg[2001]["miejscowosc"])
+    sprawdz("wieś spoza słownika zachowuje swoją nazwę",
+            wg[2003]["miejscowosc"] == "Siewierz", wg[2003]["miejscowosc"])
+    sprawdz("powiat wsi zgodny z rejestrem", wg[2003]["powiat"] == "będziński")
     sprawdz("adres sklejony z ulicy i numeru", wg[2001]["adres"] == "Orla 6",
             str(wg[2001]["adres"]))
 
@@ -208,14 +210,14 @@ def testy_dokladania(conn):
     print("\nR9 — kolizja z rekordem handlowca: odkładamy, nie dokładamy")
     conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo)"
                  " VALUES (?,?,?,?)",
-                 ("Tęczowa Kraina", "04. Inna", "08. Katowice", "reka"))
+                 ("Tęczowa Kraina", "04. Inna", "Katowice", "reka"))
     # Rekord SZKOŁY o mylnie podobnej nazwie NIE ma odkładać przedszkola:
     # to ten sam operator i dwie różne placówki (289 fałszywych trafień
     # w pierwszym podejściu wzięło się dokładnie stąd).
     conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo)"
                  " VALUES (?,?,?,?)",
                  ("SZKOŁA PODSTAWOWA BAJKA W KATOWICACH", "01. Szkoła podstawowa",
-                  "08. Katowice", "reka"))
+                  "Katowice", "reka"))
     conn.commit()
     conn.execute("DELETE FROM placowki WHERE rspo='2002'")
     conn.commit()

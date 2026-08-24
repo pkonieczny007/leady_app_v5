@@ -236,6 +236,72 @@ def cmd_geografia(a):
     return 0
 
 
+def cmd_dopasuj(a):
+    """M3: nadanie numerów RSPO placówkom, które ich nie mają."""
+    import collections
+    import dopasowanie
+    conn = _polacz(a.profil)
+    if conn.execute("SELECT name FROM sqlite_master WHERE name='rspo_rejestr'")\
+           .fetchone() is None:
+        print("Najpierw M1 (`lustro`).")
+        conn.close()
+        return 1
+
+    if a.decyzje:
+        if not os.path.exists(a.decyzje):
+            print("Nie ma pliku: %s" % a.decyzje)
+            conn.close()
+            return 1
+        wiersze = dopasowanie.wczytaj_decyzje(a.decyzje)
+        print("Decyzje człowieka z pliku: %d" % len(wiersze))
+        if not a.zapisz:
+            print("  To był PODGLĄD — nic nie zapisano. Dodaj --zapisz.")
+            conn.close()
+            return 0
+        print("  Wpisano numerów: %d" % dopasowanie.wpisz(conn, wiersze))
+        conn.close()
+        return 0
+
+    wiersze = dopasowanie.dopasuj(conn, a.plik)
+    ile = collections.Counter(w["werdykt"] for w in wiersze)
+    print("Profil %s — dopasowanie %d placówek bez numeru RSPO:"
+          % (a.profil, len(wiersze)))
+    for werdykt in ("zgodne", "pewne", "rozjazd", "tylko plik klienta",
+                    "niepewne", "dubel", "numer zajęty", "brak"):
+        if ile.get(werdykt):
+            znak = "→ WPISZE" if werdykt in dopasowanie.WPISYWANE else "  do decyzji"
+            print("  %-20s %4d   %s" % (werdykt, ile[werdykt], znak))
+    jak = collections.Counter(w["jak"] for w in wiersze
+                              if w["werdykt"] in dopasowanie.WPISYWANE)
+    for k, n in jak.most_common():
+        print("      trafione przez %-24s %4d" % (k, n))
+
+    for w in wiersze:
+        if w["werdykt"] == "rozjazd":
+            print("  ROZJAZD id %-5s %-38s my %s / klient %s"
+                  % (w["id"], w["nazwa"][:38], w["nasz"], w["klient"]))
+
+    if a.xlsx:
+        do_decyzji = sum(1 for w in wiersze if w["werdykt"] not in dopasowanie.WPISYWANE)
+        dopasowanie.do_xlsx(wiersze, a.xlsx)
+        print("  Plik do decyzji (%d wierszy): %s" % (do_decyzji, a.xlsx))
+
+    if not a.zapisz:
+        print()
+        print("  To był PODGLĄD — nic nie zapisano. Dodaj --zapisz.")
+        conn.close()
+        return 0
+
+    n = dopasowanie.wpisz(conn, wiersze)
+    print()
+    print("  Wpisano numerów: %d" % n)
+    zostalo = conn.execute("SELECT COUNT(*) FROM placowki "
+                           "WHERE rspo IS NULL OR rspo=''").fetchone()[0]
+    print("  Bez numeru zostało: %d" % zostalo)
+    conn.close()
+    return 0
+
+
 def cmd_stan(a):
     """Liczby kontrolne — do porównania przed/po każdym etapie."""
     conn = _polacz(a.profil)
@@ -297,6 +363,14 @@ def main():
                         "(WOLNO dopiero razem z filtrem po powiecie)")
     p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)
     p.set_defaults(fn=cmd_geografia)
+
+    p = pod.add_parser("dopasuj", help="M3: nadaj numery RSPO tym, co ich nie mają")
+    p.add_argument("--plik", help="plik klienta z numerami (drugie źródło)")
+    p.add_argument("--xlsx", help="gdzie zapisać plik decyzyjny dla koordynatorki")
+    p.add_argument("--decyzje", help="wczytaj UZUPEŁNIONY plik decyzyjny i wpisz numery")
+    p.add_argument("--zapisz", action="store_true", help="bez tego tylko liczby")
+    p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)
+    p.set_defaults(fn=cmd_dopasuj)
 
     p = pod.add_parser("stan", help="liczby kontrolne")
     p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)

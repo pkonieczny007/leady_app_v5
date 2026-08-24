@@ -17,27 +17,20 @@ szkół podstawowych, gdzie rekord z rejestru może być drugą kopią szkoły,
 którą handlowiec już obrabia. Stąd podział na grupy typów: przedszkola idą
 teraz, podstawówki po M3.
 
-MIEJSCOWOŚĆ: WARTOŚĆ ZE SŁOWNIKA, NIE CZYSTA NAZWA Z REJESTRU
-Docelowo osią filtrowania ma być obszar (powiat/gmina jak w rejestrze) —
-to etap M6, dotykający ekranów, na których handlowcy pracują. Do tego czasu
-filtry chodzą po słowniku `miasto`, a jego wartości mają prefiksy
-(`08. Katowice`). Nowy rekord z czystym „Katowice" nie wpadłby w żaden filtr
-i — co gorsze — jego karty NIE DAŁOBY SIĘ ZAPISAĆ, bo walidacja odbija
-wartości spoza słownika (ta sama pułapka, co brakujący `CYKLICZNE-PRZEDSZKOLE`
-w słowniku produkcji: wpis dawało się utworzyć, ale nie poprawić).
+GEOGRAFIA NOWEGO REKORDU: WPROST Z REJESTRU
+Powiat, gmina i miejscowość idą do bazy takie, jakie są w rejestrze — bo od
+etapu M6 osią filtrowania jest POWIAT, a miejscowość przestała być pozycją
+słownika.
 
-Dlatego nowa placówka dostaje miejscowość w formacie, którego używa dziś
-klient. Prawdziwa nazwa miejscowości nie ginie — niesie ją lustro pod tym
-samym numerem RSPO, a etap M8 przepisze ją do bazy PO przełączeniu filtrów.
-
-733 przedszkola leżą w 63 miejscowościach; 682 z nich mają w słowniku
-odpowiednik wprost. Pozostałe 51 to wsie powiatów będzińskiego
-i pszczyńskiego — czyli dokładnie tych dwóch pozycji słownika, które
-powstały z urwanego przy imporcie słowa „powiat" (`09. Pszczyna powiat`
-w pliku klienta → `09. Pszczyna` w bazie). Te pozycje SĄ workami
-powiatowymi: pod `15. Będzin` siedzi dziś 17 miejscowości. Nowe wsie trafiają
-więc tam, gdzie klient już trzyma swoje szkoły z tych powiatów — a nie do
-34 nowych pozycji słownika, których nikt nie zamawiał.
+Do 24.08 było inaczej i warto wiedzieć dlaczego, żeby nie wrócić do tamtego
+rozwiązania: dopóki filtry chodziły po słowniku `miasto` z prefiksami
+(`08. Katowice`), nowy rekord z czystym „Katowice" nie wpadłby w żaden filtr,
+a jego karty NIE DAŁOBY SIĘ ZAPISAĆ — walidacja odbija wartości spoza słownika
+(ta sama pułapka, co brakujący `CYKLICZNE-PRZEDSZKOLE` w słowniku produkcji).
+Dlatego wsie spoza słownika lądowały wtedy w workach powiatowych. Po
+przełączeniu na powiat ta sama zasada zaczęła szkodzić: każde dołożenie
+wymagało PÓŹNIEJSZEGO przebiegu czyszczącego, a zapomnienie o nim na produkcji
+zapisałoby Siewierz jako „15. Będzin".
 """
 import re
 
@@ -99,12 +92,6 @@ MAPA_TYPOW = {
     "Przedszkole": None,
     "Punkt przedszkolny": None,
     "Zespół wychowania przedszkolnego": None,
-}
-
-# Worki powiatowe w słowniku `miasto` — patrz nagłówek modułu.
-KUBLY_POWIATOWE = {
-    "będziński": "15. Będzin",
-    "pszczyński": "09. Pszczyna",
 }
 
 STATUS_NOWEGO = "00. Nieprzydzielony"
@@ -184,16 +171,6 @@ def brakujace_pozycje_slownikow(conn, typy):
     return brak
 
 
-def _mapa_miast(conn):
-    """{nazwa bez prefiksu i ogonków: wartość ze słownika}"""
-    out = {}
-    for r in conn.execute("SELECT wartosc FROM slowniki WHERE rodzaj='miasto'"):
-        klucz = _fold(_bez_prefiksu(r[0]))
-        if klucz:
-            out.setdefault(klucz, r[0])
-    return out
-
-
 def typ_roboczy(rekord):
     stały = MAPA_TYPOW.get(rekord["typ"], None)
     if stały:
@@ -202,19 +179,26 @@ def typ_roboczy(rekord):
     return TYP_PRZEDSZKOLE_PUB if publiczna else TYP_PRZEDSZKOLE_NIEPUB
 
 
-def miejscowosc_robocza(rekord, mapa_miast):
+def miejscowosc_robocza(rekord, mapa_miast=None):
     """
-    (wartość do wpisania, skąd się wzięła). `None` w pierwszym polu znaczy
-    „nie umiem przypisać" — taki rekord odkładamy, zamiast wpisywać wartość
-    spoza słownika.
+    (wartość do wpisania, skąd się wzięła). Wprost z rejestru — bo od etapu M6
+    osią filtrowania jest POWIAT, a miejscowość przestała być pozycją słownika.
+
+    Do 24.08 ta funkcja robiła coś innego: mapowała nazwę na wartość słownika
+    (`Katowice` → `08. Katowice`), a wsie spoza słownika wrzucała do worka
+    powiatowego. Miało to sens dokładnie tak długo, jak długo filtry chodziły
+    po słowniku — inaczej nowy rekord nie wpadłby w żaden z nich. Po
+    przełączeniu na powiat ta sama zasada zaczęła szkodzić: każde dołożenie
+    wymagało PÓŹNIEJSZEGO przebiegu czyszczącego, a kto by o nim zapomniał na
+    produkcji, dostałby Siewierz zapisany jako „15. Będzin".
+
+    `mapa_miast` zostaje w sygnaturze i jest ignorowana — wołający nie muszą
+    wiedzieć, że reguła się zmieniła.
     """
-    wprost = mapa_miast.get(_fold(rekord["miejscowosc"]))
-    if wprost:
-        return wprost, "słownik"
-    kubel = KUBLY_POWIATOWE.get((rekord["powiat"] or "").lower())
-    if kubel and kubel in mapa_miast.values():
-        return kubel, "worek powiatowy %s" % rekord["powiat"]
-    return None, "brak odpowiednika w słowniku"
+    nazwa = (rekord["miejscowosc"] or "").strip()
+    if nazwa:
+        return nazwa, "rejestr"
+    return None, "rejestr nie podaje miejscowości"
 
 
 # ---------------------------------------------------------------------------
@@ -310,12 +294,11 @@ def przygotuj(conn, grupa="przedszkola"):
     """
     typy = GRUPY_TYPOW[grupa]
     braki = brakujace_pozycje_slownikow(conn, typy)
-    mapa_miast = _mapa_miast(conn)
     istniejace = podobne_istniejace(conn, grupa)
 
     do_zapisu, odlozone, kolizje = [], [], []
     for k in kandydaci(conn, typy):
-        miejsc, skad = miejscowosc_robocza(k, mapa_miast)
+        miejsc, skad = miejscowosc_robocza(k)
         if miejsc is None:
             odlozone.append({"rspo": k["rspo"], "nazwa": k["nazwa"],
                              "miejscowosc": k["miejscowosc"], "powod": skad})

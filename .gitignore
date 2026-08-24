@@ -25,3 +25,7 @@ dostepy/
 # Notatki tekstowe i projekty zostają w repo, arkusze klienta nie.
 docs/poprawka */**/Kopia *.xlsx
 docs/poprawka */**/PH *.xlsx
+# Pliki decyzyjne migracji niosą nazwy i adresy placówek klienta, a repo jest
+# publiczne. Dwa razy w tej rundzie `git add <katalog>` zgarnął arkusz klienta —
+# reguła jest szersza niż konkretna nazwa właśnie dlatego.
+docs/poprawka */*.xlsx
