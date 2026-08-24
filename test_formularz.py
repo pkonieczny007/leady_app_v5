@@ -1362,6 +1362,37 @@ def main():
     sprawdz("v5: bez godziny startu panel ostrzega, że nie liczy kolizji",
             "żeby sprawdzić kolizje" in js5)
 
+    # --- ekran potwierdzenia po zapisie -------------------------------------
+    #
+    # Zgłoszenie Pawła 24.08: „po zapisie myśli i potem przeskakuje na widok
+    # wpisywania v5 formularza od nowa". v5 robił `location.reload()`, czyli
+    # oddawał pusty formularz i żadnej odpowiedzi na pytanie, co poszło do bazy.
+    # W v5 to pytanie jest ostrzejsze niż w v1–v4, bo jednym zapisem można
+    # umówić DT, cykl i festyn naraz: „zapisało się wszystko czy jedno?".
+    sprawdz("v5: po zapisie pokazuje potwierdzenie, nie pustą stronę",
+            "pokazSukces(j, z.odlozone)" in js5 and 'id="f5-sukces"' in html5)
+    sprawdz("v5: potwierdzenie wypisuje rodzaje zajęć z terminem",
+            "f5-sukces-lista" in js5)
+    sprawdz("v5: potwierdzenie mówi o sekcjach wypełnionych, ale odznaczonych",
+            "chip był odznaczony" in js5)
+    sprawdz("v5: z potwierdzenia da się wejść na kartę szkoły",
+            'id="f5-do-leada"' in html5 and "/lead/" in js5)
+    sprawdz("v5: szkoła schodzi z „Planu na dziś” bez przeładowania (P23)",
+            "FX_PLAN_ZROBIONE" in js5)
+
+    # Ekran potwierdzenia ma KAŻDY wariant — to jest odpowiedź na „czy się
+    # zapisało", a nie ozdoba jednego z układów.
+    for w, tpl in (("v1", "formularz.html"), ("v2", "formularz2.html"),
+                   ("v3", "formularz3.html"), ("v4", "formularz4.html"),
+                   ("v5", "formularz5.html")):
+        h = open("templates/%s" % tpl, encoding="utf-8").read()
+        sprawdz("%s: ma ekran potwierdzenia po zapisie" % w, "fx-sukces" in h)
+    # Styl tego ekranu siedzi w `formularz2.css`, bo wczytują go wszystkie
+    # warianty poza v1 — do 24.08 potwierdzenie w v2–v5 było BEZ stylu, czyli
+    # gołym tekstem zamiast zielonego znacznika.
+    sprawdz("styl potwierdzenia jest tam, gdzie sięgają wszystkie warianty",
+            ".fx-sukces{" in open("static/formularz2.css", encoding="utf-8").read())
+
     # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
     l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
     kod, j = post("/api/formularz", {

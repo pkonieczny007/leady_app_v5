@@ -739,6 +739,13 @@
       return;
     }
 
+    if (el.id === "f5-nowy") {
+      localStorage.removeItem(KLUCZ_SZKICU);
+      location.href = "/formularz/v5" +
+        (HANDLOWIEC ? "?handlowiec=" + encodeURIComponent(HANDLOWIEC) : "");
+      return;
+    }
+
     if (el.id === "f5-wyczysc") {
       if (!confirm("Wyczyścić formularz? Wpisane dane przepadną.")) return;
       localStorage.removeItem(KLUCZ_SZKICU);
@@ -835,14 +842,69 @@
     return { zajecia: out, braki: braki, odlozone: odlozone };
   }
 
+  /* EKRAN POTWIERDZENIA ZAMIAST CICHEGO PRZEŁADOWANIA.
+
+     Zgłoszenie Pawła 24.08: „po zapisie myśli i potem przeskakuje na widok
+     wpisywania od nowa". v5 robił `location.reload()` — handlowiec dostawał
+     pusty formularz i żadnej odpowiedzi na pytanie, co właściwie poszło do
+     bazy. W v5 to pytanie jest ostrzejsze niż w v1–v4, bo jednym zapisem można
+     umówić DT, cykl i festyn naraz: „zapisało się wszystko czy jedno?".
+
+     Wypisujemy więc rodzaje wprost, z datą albo dniem tygodnia — czyli tym,
+     co człowiek wpisał, a nie identyfikatorami z bazy. */
+  function pokazSukces(j, odlozone) {
+    root.querySelectorAll(".f2-sekcja, .f5-akcje, .fx-alarm, #f5-szkic")
+        .forEach(function (el) { el.hidden = true; });
+
+    $("f5-sukces-tytul").textContent = "Zapisano: " + j.placowka;
+
+    var wiersze = (j.eventy || []).map(function (e) {
+      var z = stan.zajecia[e.typ] || {};
+      var kiedy = e.terminy
+        ? e.terminy + " " + odmiana(e.terminy, "termin", "terminy", "terminów")
+        : (z.data || z.cykl_dzien || "termin do ustalenia");
+      var kto = z.trener ? " · " + z.trener : " · bez prowadzącego";
+      return "<li><b>" + esc(etykietaChipa(e.typ)) + "</b> — " + esc(kiedy) +
+             esc(kto) + "</li>";
+    });
+    var html = wiersze.length
+      ? "<ul class=\"f5-sukces-lista\">" + wiersze.join("") + "</ul>"
+      : "<p>Sama wizyta — bez wpisu do kalendarza.</p>";
+    if ($("f5-status").value) {
+      html += "<p>Wynik wizyty: <b>" + esc($("f5-status").value) + "</b></p>";
+    }
+    // Sekcja wypełniona, ale ODZNACZONA nie poszła do bazy. To jedyny moment,
+    // w którym da się to powiedzieć — potem zostaje tylko cisza i zdziwienie.
+    if (odlozone && odlozone.length) {
+      html += "<p class=\"f5-sukces-uwaga\">NIE zapisano: " +
+              esc(odlozone.join(", ")) +
+              " — wypełnione, ale chip był odznaczony.</p>";
+    }
+    $("f5-sukces-tresc").innerHTML = html;
+
+    if (j.kolizja) {
+      $("f5-sukces-kolizja").textContent = "Uwaga: " + j.kolizja;
+      $("f5-sukces-kolizja").hidden = false;
+    }
+    $("f5-do-leada").href = "/lead/" + j.lead_id;
+    // P23: szkoła schodzi z „Planu na dziś" od razu — ekran sukcesu nie
+    // przeładowuje strony, a licznik „N do zrobienia" musi odpowiadać na
+    // wykonaną pracę, inaczej ludzie przestają na niego patrzeć.
+    if (typeof window.FX_PLAN_ZROBIONE === "function") {
+      window.FX_PLAN_ZROBIONE(j.lead_id);
+    }
+    $("f5-sukces").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
   var awaria = window.FxAwaria ? window.FxAwaria.utworz({
     klucz: KLUCZ_AWARII, kontener: root, handlowiec: HANDLOWIEC, toast: toast,
-    naSukces: function () {
-      // Ta sama flaga co przy zwykłym zapisie — udane ponowienie też kończy się
-      // przeładowaniem, więc też odbiłoby się od ostrzeżenia przy wyjściu.
+    naSukces: function (j) {
+      // Ta sama flaga co przy zwykłym zapisie — bez niej ostrzeżenie przy
+      // wyjściu blokowałoby wyjście z ekranu potwierdzenia.
       zapisano = true;
       localStorage.removeItem(KLUCZ_SZKICU);
-      location.reload();
+      pokazSukces(j, []);
     }
   }) : null;
 
@@ -903,18 +965,10 @@
     api("/api/formularz", payload)
       .then(function (j) {
         zapisano = true;                     // zdejmuje ostrzeżenie przy wyjściu
-        btn.textContent = "Zapisano ✓";      // „Zapisuję…" przez 1,5 s wygląda jak zawieszenie
+        btn.textContent = "Zapisano ✓";
         localStorage.removeItem(KLUCZ_SZKICU);
         if (awaria) awaria.wyczysc();
-        var ile = (j.eventy || []).length;
-        var tekst = "Zapisano: " + j.placowka +
-                    (ile ? " · " + ile + (ile === 1 ? " wpis" : " wpisy") : " (sama wizyta)");
-        if (z.odlozone.length) {
-          tekst += " · UWAGA: " + z.odlozone.join(", ") +
-                   " — wypełnione, ale odznaczone, więc NIE zapisane";
-        }
-        toast(tekst);
-        setTimeout(function () { location.reload(); }, z.odlozone.length ? 6000 : 1500);
+        pokazSukces(j, z.odlozone);
       })
       .catch(function (e) {
         btn.disabled = false;

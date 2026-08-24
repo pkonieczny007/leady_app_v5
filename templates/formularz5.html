@@ -194,6 +194,26 @@
   <p class="f2-szkic" id="f5-szkic" hidden></p>
 
   </form>
+
+  {# EKRAN POTWIERDZENIA — taki sam jak w wariantach 1–4.
+     Do 24.08 v5 po zapisie po prostu przeładowywał stronę. Handlowiec widział
+     wtedy pusty formularz i nie miał JAK sprawdzić, co poszło do bazy —
+     zgłoszenie Pawła: „po zapisie myśli i potem przeskakuje na widok wpisywania
+     od nowa". Przy kilku rodzajach zajęć naraz to szczególnie boli: zapisało
+     się DT i cykl, czy tylko jedno?
+
+     Wypisujemy więc CO powstało, ostrzeżenie o kolizji godzin (ostrzegamy, nie
+     blokujemy) i dwa wyjścia: kolejny formularz albo karta szkoły. #}
+  <div class="fx-sukces" id="f5-sukces" hidden>
+    <div class="fx-sukces-znak">✓</div>
+    <h2 id="f5-sukces-tytul">Zapisano</h2>
+    <div id="f5-sukces-tresc" class="fx-sukces-tresc"></div>
+    <div id="f5-sukces-kolizja" class="fx-sukces-kolizja" hidden></div>
+    <div class="fx-sukces-akcje">
+      <button type="button" class="fx-btn fx-btn-dalej" id="f5-nowy">Wypełnij kolejny</button>
+      <a class="fx-btn fx-btn-lekki" id="f5-do-leada" href="#">Otwórz kartę szkoły</a>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

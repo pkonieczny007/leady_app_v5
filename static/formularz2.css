@@ -190,3 +190,45 @@ select.f2-pole{
 .fw-nota{
   margin:24px 0 0;font-size:13px;line-height:1.6;color:var(--muted);
 }
+
+/* --- ekran po zapisie ------------------------------------------------------
+   Reguły przeniesione z `formularz.css` (wariant 1). Warianty 2–5 używają tej
+   samej klasy `fx-sukces` w szablonie, ale tamtego arkusza NIE wczytują — więc
+   ich ekran potwierdzenia był dotąd bez stylu: goły tekst zamiast zielonego
+   znacznika i dwóch przycisków. Kładziemy je tutaj, bo `formularz2.css`
+   wczytują wszystkie cztery; osobna kopia w każdym wariancie rozjechałaby się
+   przy pierwszej poprawce koloru. */
+.fx-sukces{padding:32px 16px;text-align:center}
+.fx-sukces-znak{
+  width:64px;height:64px;margin:0 auto 14px;border-radius:50%;
+  background:linear-gradient(135deg,#2fbf6b 0%,#1d9350 100%);
+  color:#fff;font-size:34px;line-height:64px;
+}
+.fx-sukces h2{margin:0 0 6px;font-size:20px;color:var(--brand);line-height:1.3}
+.fx-sukces-tresc{margin:0 0 18px;font-size:15px;color:var(--ink-2)}
+.fx-sukces-kolizja{
+  padding:10px 12px;margin-bottom:18px;border-radius:var(--radius-md);
+  background:var(--warn-l);border:1px solid var(--warn);color:var(--warn-d);
+  font-size:14px;text-align:left;
+}
+.fx-sukces-akcje{display:flex;flex-direction:column;gap:10px}
+.fx-sukces-akcje .fx-btn{
+  width:100%;margin-top:0;display:flex;align-items:center;justify-content:center;
+  text-decoration:none;
+}
+
+/* v5 zapisuje kilka rodzajów zajęć jednym żądaniem, więc potwierdzenie jest
+   LISTĄ, nie zdaniem — „zapisało się wszystko czy jedno?" to pierwsze pytanie
+   handlowca po naciśnięciu Zapisz. */
+.f5-sukces-lista{
+  list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px;text-align:left;
+}
+.f5-sukces-lista li{
+  padding:8px 11px;border-radius:var(--radius-sm);background:var(--panel-2);
+  border-left:3px solid var(--ok);font-size:14px;
+}
+.f5-sukces-uwaga{
+  margin:12px 0 0;padding:9px 11px;border-radius:var(--radius-sm);
+  background:var(--amber-l);border:1px solid var(--amber-d);color:var(--amber-t,#7a4b00);
+  font-size:13.5px;text-align:left;
+}
