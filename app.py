@@ -1845,9 +1845,15 @@ def api_formularz_geografia():
     conn = get_conn()
     osie = [
         {"poziom": "powiat", "etykieta": "Powiat",
-         "wartosci": geografia.powiaty(conn)},
+         "wartosci": geografia.powiaty(conn), "pusta_etykieta": "Wybierz powiat"},
+        # Miejscowości WYŁĄCZNIE z wybranego powiatu i wprost z rejestru —
+        # razem z tymi, w których nie mamy jeszcze ani jednej placówki, bo to
+        # w nich handlowiec zakłada nową. Bez powiatu lista jest PUSTA:
+        # kaskada, w której pierwszy krok niczego nie zawęża, nie jest kaskadą.
         {"poziom": "miejscowosc", "etykieta": "Miejscowość (opcjonalnie)",
-         "wartosci": geografia.miasta(conn, wybrany_powiat or None)},
+         "wartosci": geografia.miasta_do_wyboru(conn, wybrany_powiat),
+         "pusta_etykieta": "Najpierw powiat" if not wybrany_powiat
+                           else "Cały powiat"},
     ]
     conn.close()
     return jsonify(ok=True, osie=osie)

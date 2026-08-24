@@ -213,17 +213,21 @@
 
   function rysujOsie() {
     var box = $("f5-osie");
-    box.innerHTML = stan.osie.map(function (o) {
+    box.innerHTML = stan.osie.map(function (o, i) {
       var id = "f5-os-" + o.poziom;
-      var opcje = ['<option value="">Wybierz…</option>'].concat(
-        o.wartosci.map(function (w) {
+      // Oś bez wartości jest ZABLOKOWANA i mówi dlaczego. Pusta lista, którą
+      // da się rozwinąć, wygląda jak brak danych; zablokowana z podpisem
+      // „Najpierw powiat" mówi, co zrobić.
+      var pusto = !o.wartosci.length;
+      var opcje = ['<option value="">' + (o.pusta_etykieta || "Wybierz…") + "</option>"]
+        .concat(o.wartosci.map(function (w) {
           return '<option value="' + w + '"' +
                  (stan.wybor[o.poziom] === w ? " selected" : "") + ">" + w + "</option>";
         })).join("");
       return '<div class="f2-pole-grupa"><label class="f2-etykieta" for="' + id + '">' +
-             o.etykieta + ' <span class="f2-wym">*</span></label>' +
-             '<select id="' + id + '" class="f2-pole" data-os="' + o.poziom + '">' +
-             opcje + "</select></div>";
+             o.etykieta + (i === 0 ? ' <span class="f2-wym">*</span>' : "") + "</label>" +
+             '<select id="' + id + '" class="f2-pole" data-os="' + o.poziom + '"' +
+             (pusto ? " disabled" : "") + ">" + opcje + "</select></div>";
     }).join("");
   }
 
@@ -532,6 +536,15 @@
     }
     if (stan.nowa && !$("f5-nowa-nazwa").value.trim()) {
       blad.textContent = "Podaj nazwę nowej placówki.";
+      blad.hidden = false;
+      return;
+    }
+    if (stan.nowa && !stan.wybor.miejscowosc) {
+      // Sam powiat nie wystarczy: powiat nowej placówki serwer wywodzi
+      // z NAZWY MIEJSCOWOŚCI przez rejestr. Bez niej rekord wylądowałby bez
+      // powiatu, czyli poza filtrem, po którym pracuje cała firma.
+      blad.textContent = "Wybierz miejscowość — bez niej nowa placówka nie " +
+                         "trafi do żadnego filtra.";
       blad.hidden = false;
       return;
     }

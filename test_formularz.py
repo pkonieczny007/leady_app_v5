@@ -22,6 +22,7 @@ os.environ["DATA_DIR"] = TMP
 
 import app as A                      # noqa: E402
 import db                            # noqa: E402
+import geografia                     # noqa: E402
 import zwrot                         # noqa: E402
 from seed import bootstrap           # noqa: E402
 
@@ -1110,12 +1111,36 @@ def main():
     conn = db.get_conn()
     conn.execute("INSERT INTO placowki (nazwa, miejscowosc, powiat, zrodlo) "
                  "VALUES (?,?,?,?)", ("SP W PSARACH", "Psary", "będziński", "test"))
+    # Lustro rejestru zna w tym powiecie także Czeladź, w której NIE MAMY
+    # jeszcze ani jednej placówki — i to jest przypadek, o który tu chodzi.
+    import rejestr_rspo
+    rejestr_rspo.zaloz_tabele(conn)
+    for rspo, nazwa, miejsc in ((8001, "SP W PSARACH", "Psary"),
+                                (8002, "SP W CZELADZI", "Czeladź")):
+        conn.execute("INSERT OR REPLACE INTO rspo_rejestr "
+                     "(rspo, nazwa, typ, wojewodztwo, powiat, gmina, miejscowosc) "
+                     "VALUES (?,?,?,?,?,?,?)",
+                     (rspo, nazwa, "Szkoła podstawowa", "ŚLĄSKIE", "będziński",
+                      miejsc, miejsc))
     conn.commit()
     conn.close()
+    sprawdz("bez powiatu lista miejscowości jest PUSTA, nie „wszystkie”",
+            geo["osie"][1]["wartosci"] == [],
+            str(geo["osie"][1]["wartosci"])[:60])
+
     zawezone = KL.get("/api/formularz/geografia?powiat=będziński").get_json()
+    miejsc = zawezone["osie"][1]["wartosci"]
     sprawdz("miejscowości zawężone wybranym powiatem",
-            zawezone["osie"][1]["wartosci"] == ["Psary"],
-            str(zawezone["osie"][1]["wartosci"]))
+            "Psary" in miejsc and "Katowice" not in miejsc, str(miejsc))
+    # Miejscowość z rejestru, w której NIE MAMY jeszcze placówki, musi być
+    # do wyboru — bo to właśnie tam handlowiec zakłada nową.
+    sprawdz("w formularzu są też miejscowości bez naszych placówek",
+            "Czeladź" in miejsc, str(miejsc))
+    conn = db.get_conn()
+    sprawdz("...ale filtr na listach ich nie proponuje (pusta tabela)",
+            "Czeladź" not in geografia.miasta(conn, "będziński"),
+            str(geografia.miasta(conn, "będziński")))
+    conn.close()
 
     # Placówka BEZ leada — powstaje przy dokładaniu bazy z rejestru RSPO.
     # Stary `/api/placowki` robi JOIN z `leady` i takiej nie pokazuje wcale.
