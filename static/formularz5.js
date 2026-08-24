@@ -785,7 +785,21 @@
     } catch (e) { /* pamięć pełna albo tryb prywatny — szkic to wygoda, nie warunek */ }
   }
 
+  /* PO UDANYM ZAPISIE NIE MA JUŻ CZEGO PILNOWAĆ.
+
+     Bez tej flagi formularz „zacinał się przy zapisie" (zgłoszenie Pawła,
+     24.08) i nie było w tym nic losowego: `pilnujWyjscia` wiesza na oknie
+     `beforeunload`, który pyta „na pewno wyjść?", gdy jest co stracić.
+     Po zapisie robimy `location.reload()` — czyli WYJŚCIE ze strony. Przeglądarka
+     blokowała je własnym okienkiem, a ekran stał z napisem „Zapisuję…", bo
+     przycisk już się nie odblokowuje. Zapis dochodził do bazy; zacinał się
+     powrót.
+
+     Warianty 1–4 mają tę flagę od czerwca — v5 jej nie przejął. */
+  var zapisano = false;
+
   function czyCosJest() {
+    if (zapisano) return false;
     return !!(stan.placowka || $("f5-notatka").value ||
               Object.keys(stan.zajecia).length);
   }
@@ -823,7 +837,13 @@
 
   var awaria = window.FxAwaria ? window.FxAwaria.utworz({
     klucz: KLUCZ_AWARII, kontener: root, handlowiec: HANDLOWIEC, toast: toast,
-    naSukces: function () { localStorage.removeItem(KLUCZ_SZKICU); location.reload(); }
+    naSukces: function () {
+      // Ta sama flaga co przy zwykłym zapisie — udane ponowienie też kończy się
+      // przeładowaniem, więc też odbiłoby się od ostrzeżenia przy wyjściu.
+      zapisano = true;
+      localStorage.removeItem(KLUCZ_SZKICU);
+      location.reload();
+    }
   }) : null;
 
   $("f5-form").addEventListener("submit", function (ev) {
@@ -882,6 +902,8 @@
 
     api("/api/formularz", payload)
       .then(function (j) {
+        zapisano = true;                     // zdejmuje ostrzeżenie przy wyjściu
+        btn.textContent = "Zapisano ✓";      // „Zapisuję…" przez 1,5 s wygląda jak zawieszenie
         localStorage.removeItem(KLUCZ_SZKICU);
         if (awaria) awaria.wyczysc();
         var ile = (j.eventy || []).length;

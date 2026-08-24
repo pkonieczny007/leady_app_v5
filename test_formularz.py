@@ -832,6 +832,21 @@ def main():
         sprawdz("%s: placówkę bez leada wysyła jako `placowka_id`" % w,
                 "placowka_id = stan.wybrana.placowka_id" in js
                 or "placowka_id = stan.placowka.placowka_id" in js)
+        # OSTRZEŻENIE PRZY WYJŚCIU MUSI GASNĄĆ PO ZAPISIE.
+        #
+        # Zgłoszenie Pawła 24.08: „w v5 przy zapisie zacina się" — i nie było
+        # w tym nic losowego. `FxAwaria.pilnujWyjscia` wiesza na oknie
+        # `beforeunload`, a udany zapis kończy się `location.reload()`, czyli
+        # WYJŚCIEM ze strony. Bez flagi „już zapisane" przeglądarka blokuje
+        # przeładowanie własnym okienkiem, a ekran stoi z napisem „Zapisuję…",
+        # bo przycisk się nie odblokowuje. Zapis DOCHODZI do bazy; zacina się
+        # powrót — czyli najgorszy rodzaj usterki, bo wygląda na utratę pracy.
+        #
+        # Warianty 1–4 mają tę flagę od czerwca, v5 jej nie przejął. Sprawdzamy
+        # komplet, bo to jest dokładnie ta klasa różnic między wariantami,
+        # która ma nie istnieć.
+        sprawdz("%s: ostrzeżenie przy wyjściu gaśnie po udanym zapisie" % w,
+                "if (zapisano) return false;" in js and "zapisano = true" in js)
 
     # --- P06: lista szkół to CAŁA baza miejscowości (zgłoszenie K04) ---------
     #
