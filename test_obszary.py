@@ -190,12 +190,40 @@ def testy_dokladania(conn):
     sprawdz("„wszystkie” świadomie pomija zespoły", 3003 not in wszystkie)
     sprawdz("„wszystkie” obejmuje pozaszkolne i przedszkolne",
             3001 in wszystkie and 3004 in wszystkie, str(sorted(wszystkie)))
-    zesp = {r["rspo"]: r["typ"] for r in dokladanie.przygotuj(conn, "zespoly")["do_zapisu"]}
-    sprawdz("zespół wchodzi dopiero na wyraźne życzenie",
-            zesp.get(3003) == dokladanie.TYP_ZESPOL, str(zesp))
+    plan_z = dokladanie.przygotuj(conn, "zespoly")
+    zesp = {r["rspo"]: r["typ"] for r in plan_z["do_zapisu"]}
+    sprawdz("zespół szkolno-przedszkolny wchodzi na wyraźne życzenie",
+            zesp.get(2004) == dokladanie.TYP_ZESPOL, str(zesp))
+    # Zespół szkół ponadpodstawowych to nie ten produkt: na obszarach firmy
+    # 92 takie zespoły niosą technika, branżówki i licea, a ani jednej
+    # podstawówki. W bazie byłyby szumem na liście „do kogo zadzwonić".
+    sprawdz("zespół bez podstawówki i przedszkola NIE wchodzi",
+            3003 in {z["rspo"] for z in plan_z["obce_typy"]},
+            str([z["rspo"] for z in plan_z["obce_typy"]]))
     sprawdz("zespół wychowania przedszkolnego liczy się jak przedszkole",
             {r["rspo"]: r["typ"] for r in dokladanie.przygotuj(conn, "przedszkola")
              ["do_zapisu"]}.get(3004) == dokladanie.TYP_PRZEDSZKOLE_NIEPUB)
+
+    # Zespół, którego szkołę mamy pod SAMĄ NAZWĄ ULICY (504 z 536 rekordów
+    # klienta nie ma numeru budynku) — bez porównania po ulicy wyglądałby na
+    # nieobecny w bazie i wszedłby jako dubel.
+    plik_ulica = _zapisz_csv([
+        _wiersz(3005, "ZESPÓŁ SZKOLNO-PRZEDSZKOLNY NR 9 W KATOWICACH",
+                "Zespół szkół i placówek oświatowych",
+                "Katowice", "Katowice", "Katowice", ulica="ul. Sztolniowa",
+                nr_budynku="29b"),
+    ])
+    rejestr_rspo.wgraj(conn, plik_ulica, wykryj_znikniete=False)
+    obszary.przelicz(conn)
+    conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, adres, zrodlo)"
+                 " VALUES (?,?,?,?,?)",
+                 ("SZKOŁA PODSTAWOWA NR 36", "01. Szkoła podstawowa", "Katowice",
+                  "ul. Sztolniowa", "reka"))
+    conn.commit()
+    plan_u = dokladanie.przygotuj(conn, "zespoly")
+    sprawdz("zespół pod ulicą, przy której mamy szkołę — pominięty",
+            3005 in {z["rspo"] for z in plan_u["ze_skladowymi"]},
+            str([z["rspo"] for z in plan_u["ze_skladowymi"]]))
 
     print("\nR8 — powtórzenie nie tworzy dubli")
     plan2 = dokladanie.przygotuj(conn, "przedszkola")
@@ -205,7 +233,7 @@ def testy_dokladania(conn):
             not ({2001, 2002, 2003} & {r["rspo"] for r in plan2["do_zapisu"]}),
             str([r["rspo"] for r in plan2["do_zapisu"]]))
     sprawdz("liczba placówek bez zmian", conn.execute(
-        "SELECT COUNT(*) FROM placowki").fetchone()[0] == 3)
+        "SELECT COUNT(*) FROM placowki").fetchone()[0] == 4)
 
     print("\nR9 — kolizja z rekordem handlowca: odkładamy, nie dokładamy")
     conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo)"
@@ -287,7 +315,7 @@ def testy_dokladania(conn):
         "SELECT COUNT(*) FROM log WHERE lead_id NOT IN (SELECT id FROM leady)"
     ).fetchone()[0] == sieroty_przed)
     sprawdz("rekordy handlowca nietknięte", conn.execute(
-        "SELECT COUNT(*) FROM placowki WHERE zrodlo='reka'").fetchone()[0] == 3)
+        "SELECT COUNT(*) FROM placowki WHERE zrodlo='reka'").fetchone()[0] == 4)
 
 
 def main():

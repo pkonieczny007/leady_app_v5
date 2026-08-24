@@ -284,6 +284,76 @@ def podobne_istniejace(conn, grupa):
     return out
 
 
+def zespoly_ze_skladowymi(conn):
+    """
+    Numery zespołów, których SKŁADOWE już mamy w bazie roboczej.
+
+    Takiego zespołu nie dokładamy — i to jest cała różnica między „dokładamy
+    zespoły" a „dokładamy zespoły, których nie widać". Przykład z mikołowskiego:
+    ZESPÓŁ SZKOLNO-PRZEDSZKOLNY W MIKOŁOWIE ma u nas SZKOŁĘ PODSTAWOWĄ NR 11
+    i PRZEDSZKOLE NR 13 jako osobne rekordy — dołożenie zespołu dałoby trzeci
+    wiersz pod tym samym adresem i handlowiec nie wiedziałby, na którym zapisać
+    DT. Zespół bez ani jednej składowej u nas to co innego: to placówka, której
+    w bazie naprawdę NIE MA w żadnej postaci.
+    """
+    KOLUMNA_NADRZEDNA = """
+        SELECT DISTINCT CAST(r.rspo_nadrzedny AS INTEGER)
+          FROM rspo_rejestr r
+          JOIN placowki p ON CAST(p.rspo AS INTEGER) = r.rspo
+         WHERE r.rspo_nadrzedny IS NOT NULL AND r.rspo_nadrzedny <> ''"""
+    # DRUGI SYGNAŁ: WSPÓLNY ADRES. Kolumna `RSPO podmiotu nadrzędnego` bywa
+    # w rejestrze PUSTA — w całym Orzeszu nie ma jej ani jedna placówka, choć
+    # ZESPÓŁ SZKOLNO-PRZEDSZKOLNY NR 6 stoi tam pod tym samym adresem co SZKOŁA
+    # PODSTAWOWA NR 6, którą mamy. Poleganie na samej kolumnie kazałoby nam
+    # dołożyć zespół jako „niewidoczny w bazie", czyli zrobić dokładnie tego
+    # dubla, którego unikamy.
+    # Porównujemy też SAMĄ ULICĘ, bez numeru budynku. 504 z 536 rekordów
+    # klienta ma w adresie samą nazwę ulicy — numeru nikt nigdy nie wpisał.
+    # Bez tego ZESPÓŁ SZKOLNO-PRZEDSZKOLNY NR 17 przy ul. Sztolniowej 29b
+    # wyglądałby na nieobecny w bazie, choć stoi tam nasza SZKOŁA PODSTAWOWA
+    # NR 36 zapisana jako „ul. Sztolniowa".
+    TEN_SAM_ADRES = """
+        SELECT DISTINCT z.rspo FROM rspo_rejestr z
+          JOIN placowki p
+            ON p.miejscowosc = z.miejscowosc
+           AND (p.adres = TRIM(COALESCE(z.ulica,'') || ' ' || COALESCE(z.nr_budynku,''))
+                OR p.adres = TRIM(COALESCE(z.ulica,'')))
+         WHERE z.typ = 'Zespół szkół i placówek oświatowych'
+           AND TRIM(COALESCE(z.ulica,'')) <> ''"""
+    out = {r[0] for r in conn.execute(KOLUMNA_NADRZEDNA) if r[0]}
+    out |= {r[0] for r in conn.execute(TEN_SAM_ADRES) if r[0]}
+    return out
+
+
+def zespoly_z_naszymi_typami(conn):
+    """
+    Numery zespołów, w których rejestr widzi CHOĆ JEDNĄ szkołę podstawową,
+    przedszkole albo punkt przedszkolny.
+
+    Drugi warunek dokładania zespołów, obok „nie mamy jego składowych".
+    Bez niego wchodzą zespoły szkół ponadpodstawowych: na naszych obszarach
+    93 takie zespoły zawierają 68 techników, 53 branżówki, 30 liceów i siedem
+    szkół muzycznych — a ani jednej podstawówki i ani jednego przedszkola.
+    Firma prowadzi zajęcia z druku 3D dla szkół i przedszkoli, więc te rekordy
+    nie są brakującą bazą, tylko szumem w liście, po której handlowiec wybiera,
+    do kogo zadzwonić.
+    """
+    nasze = GRUPY_TYPOW["przedszkola"] + GRUPY_TYPOW["szkoly"]
+    out = {r[0] for r in conn.execute("""
+        SELECT DISTINCT CAST(rspo_nadrzedny AS INTEGER) FROM rspo_rejestr
+         WHERE rspo_nadrzedny IS NOT NULL AND rspo_nadrzedny <> ''
+           AND typ IN (%s)""" % ",".join("?" * len(nasze)), nasze) if r[0]}
+    # Nazwa też jest sygnałem, i to mocnym: „zespół szkolno-przedszkolny" ma
+    # podstawówkę i przedszkole z definicji. Potrzebne, bo kolumna nadrzędna
+    # bywa pusta — bez tego cztery takie zespoły wylądowały w kubełku
+    # „technika i licea", w którym nie mają czego szukać.
+    out |= {r["rspo"] for r in conn.execute(
+        "SELECT rspo, nazwa FROM rspo_rejestr "
+        "WHERE typ = 'Zespół szkół i placówek oświatowych'")
+        if re.search(r"szkoln\w*\s*-?\s*przedszkoln", r["nazwa"] or "", re.I)}
+    return out
+
+
 def _kolizja(kandydat_nazwa, miejscowosc, istniejace):
     """
     Czy kandydat wygląda na placówkę, którą już mamy pod skrótem handlowca.
@@ -326,7 +396,20 @@ def przygotuj(conn, grupa="przedszkola"):
     istniejace = podobne_istniejace(conn, grupa)
 
     do_zapisu, odlozone, kolizje = [], [], []
+    ze_skladowymi, obce_typy = [], []
+    czy_zespoly = bool(set(typy) & set(GRUPY_TYPOW["zespoly"]))
+    z_wlasnymi = zespoly_ze_skladowymi(conn) if czy_zespoly else set()
+    z_naszymi_typami = zespoly_z_naszymi_typami(conn) if czy_zespoly else set()
+
     for k in kandydaci(conn, typy):
+        if czy_zespoly and k["rspo"] not in z_naszymi_typami:
+            obce_typy.append({"rspo": k["rspo"], "nazwa": k["nazwa"],
+                              "miejscowosc": k["miejscowosc"]})
+            continue
+        if k["rspo"] in z_wlasnymi:
+            ze_skladowymi.append({"rspo": k["rspo"], "nazwa": k["nazwa"],
+                                  "miejscowosc": k["miejscowosc"]})
+            continue
         miejsc, skad = miejscowosc_robocza(k)
         if miejsc is None:
             odlozone.append({"rspo": k["rspo"], "nazwa": k["nazwa"],
@@ -352,7 +435,8 @@ def przygotuj(conn, grupa="przedszkola"):
             "obszar": k["obszar"],
         })
     return {"grupa": grupa, "typy": list(typy), "braki_slownikow": braki,
-            "do_zapisu": do_zapisu, "odlozone": odlozone, "kolizje": kolizje}
+            "do_zapisu": do_zapisu, "odlozone": odlozone, "kolizje": kolizje,
+            "ze_skladowymi": ze_skladowymi, "obce_typy": obce_typy}
 
 
 def zapisz(conn, plan, kto="migracja"):

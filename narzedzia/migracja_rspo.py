@@ -144,12 +144,9 @@ def cmd_doloz(a):
 
     wg_obszaru = collections.Counter()
     wg_typu = collections.Counter()
-    workiem = collections.Counter()
     for r in plan["do_zapisu"]:
         wg_obszaru[r["obszar"]] += 1
         wg_typu[r["typ"]] += 1
-        if r["miejscowosc_skad"] != "słownik":
-            workiem[r["miejscowosc"]] += 1
 
     print("  DO DOŁOŻENIA: %d" % len(plan["do_zapisu"]))
     for nazwa, n in sorted(wg_obszaru.items()):
@@ -157,10 +154,26 @@ def cmd_doloz(a):
     print("  wg typu:")
     for nazwa, n in sorted(wg_typu.items()):
         print("      %-38s %4d" % (nazwa, n))
-    if workiem:
-        print("  miejscowość wzięta z worka powiatowego (wieś spoza słownika):")
-        for nazwa, n in sorted(workiem.items()):
-            print("      %-24s %4d" % (nazwa, n))
+
+    if plan.get("obce_typy"):
+        print()
+        print("  POMINIĘTE — zespół bez ani jednej podstawówki i przedszkola (%d):"
+              % len(plan["obce_typy"]))
+        for z in plan["obce_typy"][:6]:
+            print("      %s (%s)" % (z["nazwa"][:64], z["miejscowosc"]))
+        if len(plan["obce_typy"]) > 6:
+            print("      … i %d dalszych" % (len(plan["obce_typy"]) - 6))
+        print("    To technika, branżówki i licea — nie ten produkt.")
+
+    if plan.get("ze_skladowymi"):
+        print()
+        print("  POMINIĘTE — zespół, którego szkołę albo przedszkole już mamy (%d):"
+              % len(plan["ze_skladowymi"]))
+        for z in plan["ze_skladowymi"][:10]:
+            print("      %s (%s)" % (z["nazwa"][:64], z["miejscowosc"]))
+        if len(plan["ze_skladowymi"]) > 10:
+            print("      … i %d dalszych" % (len(plan["ze_skladowymi"]) - 10))
+        print("    Dołożenie dałoby trzeci rekord pod tym samym adresem.")
 
     if plan["kolizje"]:
         print()
