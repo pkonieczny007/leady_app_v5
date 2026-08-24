@@ -663,8 +663,27 @@ nie ma. Po każdej migracji danych trzeba przejść ekrany ręcznie.
 - **Podgląd musi liczyć tym samym kodem co zapis** — `przygotuj()` jest wspólnym
   jądrem obu.
 
+### ✅ PRODUKCJA ZMIGROWANA 24.08 o 16:22
+`https://ph.silesia3d.site` stoi na rejestrze RSPO: **557 placówek → 1614,
+leady 556 → 1613, EVENTY 90 → 90**, 1587 z numerem RSPO (27 do decyzji Kasi),
+jeden rekord bez powiatu (znane P28). Kopia do cofnięcia:
+`/data/kopie/prod_2026-08-24_1622.db` + `.xlsx`.
+
+Różnica wobec próby na kopii z 08:24 (555 → 1614, eventy 87) to praca z tego
+dnia: 2 placówki i 3 DT dopisane między rankiem a wieczorem. **Zgodność co do
+tej różnicy jest lepszym dowodem niż zgodność co do liczby** — pokazuje, że
+migracja wzięła bazę taką, jaka była.
+
+⚠️ **Produkcja stoi na gałęzi `poprawki-2026-08`, nie na `main`.** Dopóki tego
+nie scalimy, dotychczasowe wyjście awaryjne (`git checkout main && ./wdroz.sh
+prod`) jest PUŁAPKĄ: cofa kod, ale nie bazę, a kod z `main` szuka miejscowości
+w słowniku (`01. Orzesze`), których baza po M8 już nie ma (`Orzesze`) — wybór
+szkoły w formularzach przestałby działać. Cofać trzeba jedno i drugie naraz.
+
 ### Do zrobienia w pierwszej kolejności
-1. ✅ **Demo wdrożone i zmigrowane 24.08 wieczorem.** Migrowaliśmy W MIEJSCU,
+0. **Scalić `poprawki-2026-08` do `main`** (`--no-ff`) i otagować, żeby `main`
+   znów znaczyło „to, co działa u klienta". Dalsza praca z nowych gałęzi.
+1. ✅ **Demo wdrożone i zmigrowane 24.08 po południu.** Migrowaliśmy W MIEJSCU,
    nie wgrywając gotowego `.db` — odwrotnie niż produkcję w sierpniu, bo tamta
    reguła („baza powstaje lokalnie i jedzie plikiem") straciła podstawę:
    produkcja od 11.08 ŻYJE, więc jej bazy nie da się podmienić, trzeba ją
@@ -672,14 +691,20 @@ nie ma. Po każdej migracji danych trzeba przejść ekrany ręcznie.
    przećwiczyć. ⚠️ **Od teraz NIE uruchamiać `odswiez_demo.sh`** — zasiewa demo
    kopią produkcji i skasowałby migrację. Znów będzie miał sens po migracji
    produkcji.
-2. **PRODUKCJA — następny krok.** `docs/poprawka 24.08.2026/WDROZENIE_NA_PRODUKCJE.md`
-   + `narzedzia/migracja_na_produkcje.sh`, przećwiczone na kopii produkcji
-   z 24.08 08:24: 555 placówek → 1614, **eventy 87 → 87**, przydzielone leady
-   438 → 438, konta 49 → 49. Trzy różnice wobec demo: kopia z eksportem `.xlsx`,
-   **zatrzymanie usługi** na czas migracji (~2 min, wieczorem), sprawdzenie
-   liczby eventów przed i po. Osobny plik skryptu, nie `--profil prod`
-   w skrypcie demo — inaczej produkcję dałoby się ruszyć poleceniem wklejonym
-   z pamięci
+2. ✅ **Produkcja zmigrowana** — `WDROZENIE_NA_PRODUKCJE.md` +
+   `narzedzia/migracja_na_produkcje.sh`. Trzy rzeczy odróżniły ją od demo
+   i każda kosztowała osobny krok: kopia z eksportem `.xlsx` (plik do otwarcia
+   bez tej aplikacji), **zatrzymanie usługi** na czas migracji (~2 min), oraz
+   sprawdzenie liczby eventów przed i po — skrypt sam kończy się błędem, gdy
+   się rozjedzie. Osobny plik skryptu, nie `--profil prod` w skrypcie demo:
+   inaczej produkcję dałoby się ruszyć poleceniem wklejonym z pamięci
+3. **Po migracji, bez pośpiechu:** 27 placówek bez numeru RSPO → plik decyzyjny
+   dla Kasi (`dopasuj --decyzje <plik> --zapisz`) · **M4 scalanie 18 par dubli**
+   (narzędzia NIE MA; eventy i log przepiąć PRZED skasowaniem rekordu, bo
+   `ON DELETE CASCADE` zabiera DT bez śladu) · P28 „SP 5" bez miejscowości ·
+   konto handlowca dla Zuzi · **12 placówek dopisanych ręcznie przez handlowców
+   między 10.08 a 24.08** (557 wobec 545) — to jest materiał dowodowy do prośby
+   Kasi o zamknięcie zakładania placówek z formularza
 2. Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx` do Kasi (25 placówek)
 3. **M4 — scalanie par** (narzędzia jeszcze nie ma; po wypełnionym pliku)
 4. Konto handlowca dla Zuzi

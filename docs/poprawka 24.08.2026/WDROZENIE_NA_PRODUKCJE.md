@@ -1,30 +1,29 @@
-# Wdrożenie na produkcję — przygotowanie
+# Wdrożenie na produkcję
 
-**Demo działa** (24.08 wieczorem, potwierdzone przez Pawła). Ten plik opisuje
-to samo dla produkcji: `https://ph.silesia3d.site`, katalog
-`/home/ubuntu/apps/ph.silesia3d.site`, usługa `leady_v5`, port 5301.
+## ✅ WYKONANE 24.08, godz. 16:22 — produkcja działa na rejestrze RSPO
 
-Ścieżka jest **przećwiczona na kopii produkcji z 24.08, godz. 08:24** — czyli
-na realnej pracy handlowców, nie na starym zrzucie.
+`https://ph.silesia3d.site`, katalog `/home/ubuntu/apps/ph.silesia3d.site`,
+usługa `leady_v5`, port 5301. Kopia do cofnięcia:
+`/data/kopie/prod_2026-08-24_1622.db` (+ `.xlsx`).
 
 ---
 
-## 1. Liczby z próby
+## 1. Liczby — próba i wykonanie
 
-| | przed | po |
+| | próba (kopia 08:24) | **wykonanie (16:22)** |
 |---|---|---|
-| placówki | 555 | **1614** |
-| leady | 554 | 1613 |
-| **eventy** | **87** (86 DT + 1 cykliczne) | **87 — bez zmian** |
-| leady przydzielone handlowcom | 438 | **438 — bez zmian** |
-| konta z PIN-ami | 49 | **49 — bez zmian** |
-| z numerem RSPO | 0 | 1587 (27 bez numeru) |
-| bez powiatu | 555 | 1 (znane P28: „SP 5", brak miejscowości) |
+| placówki | 555 → 1614 | **557 → 1614** |
+| leady | 554 → 1613 | **556 → 1613** |
+| **eventy** | 87 → 87 | **90 → 90 ✓** |
+| z numerem RSPO | 0 → 1587 | **0 → 1587** (27 bez numeru) |
+| bez powiatu | 555 → 1 | **→ 1** (znane P28: „SP 5") |
+
+**Różnica między próbą a wykonaniem to praca z tego dnia**: między 08:24
+a 16:22 handlowcy dopisali 2 placówki i umówili 3 DT. Zgodność co do tej
+różnicy jest lepszym dowodem poprawności niż zgodność co do liczby — pokazuje,
+że migracja wzięła bazę taką, jaka była, i niczego po drodze nie zgubiła.
 
 Kontrola po migracji: **mikołowski 88** (tyle co w rejestrze), **Czeladź 18**.
-
-Typy po migracji: SP 575 · PM 462 · PP 266 · ZSP 278 · Instytucja kultury 29 ·
-Inna 4.
 
 **Eventy to liczba, na którą się patrzy.** Migracja dokłada placówki i nadaje
 geografię — nie ma prawa dotknąć kalendarza. Skrypt sam porównuje ją przed i po
@@ -74,6 +73,17 @@ Dopiero potem:
 
 Potwierdzenie: wpisz `PRODUKCJA`. Na końcu skrypt sam sprawdzi liczbę eventów
 i odpowiedź aplikacji, i wypisze polecenie cofające.
+
+### ⚠️ Po migracji cofnięcie SAMEGO KODU już nie wystarcza
+
+Przed migracją wyjściem awaryjnym było `git checkout main && ./wdroz.sh prod`.
+**Po migracji to jest pułapka**: baza ma wyczyszczone nazwy miejscowości
+(`Orzesze`), a kod z `main` bierze je w formularzach ze słownika (`01. Orzesze`)
+— wybór szkoły przestałby działać, dokładnie tak jak 24.08 lokalnie.
+
+Cofać trzeba **jedno i drugie naraz**: najpierw bazę z kopii, potem kod.
+Albo — prościej i bezpieczniej — scalić tę gałąź do `main`, żeby `main` znów
+znaczyło „to, co działa na produkcji".
 
 ---
 

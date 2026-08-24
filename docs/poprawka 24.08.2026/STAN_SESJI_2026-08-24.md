@@ -5,12 +5,12 @@ Poprzedni: `docs/poprawka 23.08.2026/STAN_SESJI_2026-08-23.md`.
 
 | | |
 |---|---|
-| Gałąź | `poprawki-2026-08`, ostatni commit **`c20b7ed`** |
-| Produkcja | nietknięta, `main` = `6a3e181`; cofnięcie: tag `przed-poprawkami-2026-08-20` |
-| Demo | ✅ **WDROŻONE i ZMIGROWANE 24.08 wieczorem** — potwierdzone przez Pawła |
+| Gałąź | `poprawki-2026-08` — **na niej stoi dziś PRODUKCJA** |
+| Demo | ✅ wdrożone i zmigrowane 24.08 po południu |
+| **Produkcja** | ✅ **ZMIGROWANA 24.08 o 16:22** — 557 placówek → 1614, **eventy 90 → 90** |
+| Cofnięcie danych | `/data/kopie/prod_2026-08-24_1622.db` (+ `.xlsx`) |
 | Testy | 11 plików, **982 sprawdzenia** + 93 (`test_parsers`) + 17 w node, komplet OK |
-| Profil `test` | **1618 placówek**, 1593 z numerem RSPO, 69 eventów |
-| Produkcja (VPS) | **NIETKNIĘTA** — 555 placówek, 87 eventów, zero RSPO. Ścieżka przećwiczona, `WDROZENIE_NA_PRODUKCJE.md` |
+| Profil `test` (lokalnie) | 1618 placówek, 1593 z numerem RSPO |
 
 ---
 
@@ -285,6 +285,26 @@ funkcją, a nie układem.
 Przy okazji: klasa `fx-sukces` siedziała w `formularz.css`, którego warianty
 2–5 nie wczytują — ich ekran potwierdzenia był BEZ STYLU od czerwca i nikt
 tego nie zgłosił, bo działał, tylko wyglądał jak nieskończony.
+
+---
+
+## 6f. ⚠️ Produkcja stoi na GAŁĘZI, nie na `main`
+
+`git checkout poprawki-2026-08` na serwerze produkcyjnym znaczy, że `main`
+przestało opisywać to, co działa u klienta. Dwa skutki, oba realne:
+
+1. **Dotychczasowe wyjście awaryjne stało się pułapką.** `git checkout main
+   && ./wdroz.sh prod` cofa KOD, ale nie bazę — a baza ma po M8 wyczyszczone
+   nazwy miejscowości (`Orzesze`), których kod z `main` szuka w formularzach
+   pod postacią ze słownika (`01. Orzesze`). Wybór szkoły przestałby działać,
+   dokładnie tak jak lokalnie 24.08 wieczorem. Cofać trzeba jedno i drugie:
+   najpierw bazę z kopii, potem kod.
+2. **Konwencja z CLAUDE.md przestała obowiązywać w praktyce** — „main zawsze
+   działa, gałęzie funkcji żyją 1–2 dni". Ta żyje piąty dzień i jest produkcją.
+
+**Do domknięcia: scalić `poprawki-2026-08` do `main` (`--no-ff`) i otagować.**
+Wtedy `main` znów znaczy „to, co działa u klienta", a dalsza praca (M4, konto
+Zuzi, P28) idzie z nowych gałęzi od `main`.
 
 ---
 
