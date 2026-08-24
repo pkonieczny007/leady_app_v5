@@ -550,12 +550,69 @@ mobilnej `flex:0 0 auto`, czyli ZAKAZ kurczenia, przy zawartości ~370 px.
 Poprawka z 10.08 objęła nawigację i tabele, ale nie ten blok, nie `.seg`
 (ucinał zakładki bez możliwości dojechania) i nie kartę szkoły.
 
+---
+
+## 8d. 24.08.2026 — baza przeszła na rejestr RSPO
+
+Stan, liczby i plan: **`docs/poprawka 24.08.2026/STAN_SESJI_2026-08-24.md`**.
+Skrót tego, co zmienia sposób myślenia o projekcie:
+
+**Baza `test` ma 1618 placówek i pokrywa rejestr co do wiersza** (0 braków wobec
+1589 wierszy rejestru w typach klienta × 17 obszarach). Było 545. Doszły
+732 przedszkola i punkty, 34 brakujące szkoły, 29 domów kultury i ognisk,
+278 zespołów. `prod` jest NIETKNIĘTY.
+
+**Osią filtrowania jest POWIAT, nie miejscowość.** Filtr „Powiat" stoi przed
+„Miejscowością" na `/baza`, `/leady`, `/zbiorczy`, `/niewykorzystane`
+i `/tydzien`; miejscowość zawęża się wybranym powiatem. Formularz v5 ma kaskadę
+powiat → miejscowość → placówka.
+
+**Import urwał słowo „powiat" — to jest źródło zgłoszenia „nie ma bazy
+w Czeladzi".** W pliku klienta były wartości `09. Pszczyna powiat`
+i `15. Będzin powiat`. Czeladź nie zniknęła, tylko wpadła do worka razem
+z 16 innymi miejscowościami. Po nadaniu numerów RSPO 68 rekordów odzyskało
+prawdziwą miejscowość; Czeladź ma dziś 12 placówek.
+
+**Powiat da się nadać BEZ numerów RSPO** — po nazwie miejscowości przez lustro
+rejestru. To był warunek, żeby przełączenie filtrów nie musiało czekać na
+decyzje koordynatorki przy kilkudziesięciu wierszach.
+
+**`miejscowosc` przestała być pozycją słownika** (`text` w `PLACOWKA_FIELDS`).
+Musiała: miejscowości w zakresie jest ~150, w tym wsie, których słownik nigdy
+nie zawierał — twarda blokada zamieniłaby każdą nową wieś z rejestru w rekord
+NIE DO POPRAWIENIA w karcie. Słownik `miasto` ZOSTAJE, bo używa go `aliasy`
+przy imporcie arkuszy klienta.
+
+**Listy filtrów idą z DANYCH, listy formularza z REJESTRU.** Filtr po
+miejscowości bez placówek daje pustą tabelę; formularz służy do ZAKŁADANIA
+placówki, więc musi mieć nazwę, w której nas jeszcze nie ma.
+
+**Formularz v5 istnieje** — piąty przycisk na `/formularz`, kaskada od placówki,
+chipy „co ustaliłeś" (kilka rodzajów naraz), zapis samej wizyty bez żadnego
+chipa. API rozszerzone ADDYTYWNIE o listę `zajecia`; jest test-zapora, że
+v1–v4 wysyłają dokładnie to co dotąd.
+
+### Grabie z tej rundy
+- **Reguła wykrywania dubli musi znać numer szkoły.** Bez niego „miejska szkoła
+  podstawowa" to same słowa puste i wszystko skleja się ze wszystkim (289
+  fałszywych trafień w pierwszym podejściu, SP nr 9 jako nasza SP nr 7).
+- **`RSPO podmiotu nadrzędnego` bywa w rejestrze puste** — w całym Orzeszu nie
+  ma go ani jedna placówka. Do wiązania zespołu ze składowymi trzeba też adresu.
+- **504 z 536 rekordów klienta ma w adresie samą ulicę, bez numeru budynku** —
+  porównanie adresów musi umieć obie postaci.
+- **Sprawdzać ZAWARTOŚĆ, nie tylko liczbę.** 93 zespoły „brakujące w bazie"
+  okazały się technikami i liceami, gdy policzyłem, co zawierają.
+- **Podgląd musi liczyć tym samym kodem co zapis** — `przygotuj()` jest wspólnym
+  jądrem obu.
+
 ### Do zrobienia w pierwszej kolejności
 1. **Wdrożenie na demo** — bez tego wszystko powyżej jest niewidoczne
-   (`./wdroz.sh demo`, potem `slowniki_kontrola.py --zapisz` i `statusy.py --zapisz`)
-2. Konto handlowca dla Zuzi
-3. Odpowiedzi Kasi → M3 (numery RSPO) i M4 (scalanie dubli)
-4. P29 „zgłoś do usunięcia" · P28 placówka 532 „SP 5" bez miejscowości
+   (`./wdroz.sh demo`, potem `slowniki_kontrola.py --zapisz` i `statusy.py --zapisz`,
+   a następnie migracja RSPO w kolejności z `STAN_SESJI_2026-08-24.md`)
+2. Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx` do Kasi (25 placówek)
+3. **M4 — scalanie par** (narzędzia jeszcze nie ma; po wypełnionym pliku)
+4. Konto handlowca dla Zuzi
+5. P29 „zgłoś do usunięcia" · P28 placówka 532 „SP 5" bez miejscowości
 
 ---
 

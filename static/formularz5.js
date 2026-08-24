@@ -79,7 +79,11 @@
     placowka: null,     // wybrany rekord
     nowa: false,        // dodajemy placówkę spoza listy
     zajecia: {},        // typ → { pola }
-    wlaczone: {}        // typ → czy chip zaznaczony
+    wlaczone: {},       // typ → czy chip zaznaczony
+    // Które pola kontaktu podstawiła aplikacja, a których dotknął człowiek.
+    // Bez tego rozróżnienia zmiana placówki albo gubi to, co wpisał handlowiec,
+    // albo zostawia kontakt do poprzedniej szkoły — obie odpowiedzi są złe.
+    kontaktAuto: { "f5-osoba": true, "f5-telefon": true, "f5-mail": true }
   };
 
   // ------------------------------------------------- definicje pól sekcji
@@ -319,18 +323,45 @@
   }
 
   function podstawKontakt(p) {
-    // Podstawiamy tylko w PUSTE pola i mówimy o tym wprost (P04). Ciche
-    // nadpisanie tego, co handlowiec zdążył wpisać, jest gorsze niż brak
-    // podpowiedzi — dowiaduje się o nim dopiero po zapisie.
-    var zrodla = { "f5-osoba": p.osoba_kontakt, "f5-telefon": p.telefon, "f5-mail": p.mail };
-    var wziete = [];
+    /*
+      KONTAKT NALEŻY DO PLACÓWKI, WIĘC PRZY ZMIANIE PLACÓWKI MUSI SIĘ ZMIENIĆ.
+
+      Zgłoszenie Pawła z 24.08: „po wybraniu przedszkola uzupełnia się osoba
+      kontaktowa, ale gdy zmienię placówkę, osoba kontaktowa zostaje ta sama".
+      Pierwsza wersja podstawiała tylko w PUSTE pola — regułą z P04, która
+      chroni to, co handlowiec zdążył wpisać. Przy zmianie szkoły ta sama reguła
+      zaczyna szkodzić: dyrektorka poprzedniego przedszkola zostaje w polu
+      i wjeżdża do bazy pod nową placówką.
+
+      Rozróżniamy więc, SKĄD wzięła się zawartość pola:
+        · podstawione z bazy  → przy zmianie placówki podmieniamy bez pytania,
+        · wpisane przez człowieka → zostaje, ale mówimy o tym wprost, bo to
+          jedyny przypadek, w którym karta placówki i formularz się rozjeżdżają.
+    */
+    var zrodla = { "f5-osoba": p.osoba_kontakt || "", "f5-telefon": p.telefon || "",
+                   "f5-mail": p.mail || "" };
+    var wziete = 0, wlasne = [];
     Object.keys(zrodla).forEach(function (id) {
       var el = $(id);
-      if (el && !el.value && zrodla[id]) { el.value = zrodla[id]; wziete.push(id); }
+      if (!el) return;
+      if (!el.value || stan.kontaktAuto[id]) {
+        el.value = zrodla[id];
+        stan.kontaktAuto[id] = true;
+        if (zrodla[id]) wziete++;
+      } else if (el.value !== zrodla[id]) {
+        wlasne.push(el.previousElementSibling
+                    ? el.previousElementSibling.textContent : id);
+      }
     });
-    $("f5-kontakt-info").textContent = wziete.length
-      ? "Podstawiono kontakt z bazy — popraw, jeśli się zmienił."
-      : "";
+    var info = $("f5-kontakt-info");
+    if (wlasne.length) {
+      info.textContent = "Zostawiono to, co wpisałeś (" + wlasne.join(", ") +
+                         ") — reszta jest z karty nowej placówki.";
+    } else {
+      info.textContent = wziete
+        ? "Kontakt z karty placówki — popraw, jeśli się zmienił."
+        : "";
+    }
   }
 
   // -------------------------------------------------------------- zdarzenia
@@ -390,6 +421,11 @@
 
   root.addEventListener("input", function (ev) {
     if (ev.target.id === "f5-szukaj") rysujListe();
+    // Dotknięcie pola kontaktu znaczy „to jest moje" — od tej chwili zmiana
+    // placówki go nie podmieni.
+    if (stan.kontaktAuto.hasOwnProperty(ev.target.id)) {
+      stan.kontaktAuto[ev.target.id] = false;
+    }
   });
 
   root.addEventListener("click", function (ev) {

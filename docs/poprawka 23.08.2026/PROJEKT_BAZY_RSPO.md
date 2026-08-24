@@ -1,7 +1,16 @@
 # Projekt migracji bazy na rejestr RSPO
 
-**Data:** 23.08.2026. **Status:** projekt do decyzji — NIC z tego dokumentu nie
-jest jeszcze wdrożone. **Zastępuje** plan z `docs/12_RSPO.md` w części dotyczącej
+**Data:** 23.08.2026. **Status na 24.08:** WYKONANE na profilu `test` — etapy
+M1, M2, M3 (514 z 545 numerów), M5, M6, M7 i M8. Zostało **M4** (scalanie 25 par,
+narzędzia jeszcze nie ma) i **M9** (ekran rejestru dla koordynatorki).
+Profil `prod` NIETKNIĘTY. Liczby i odstępstwa od tego projektu:
+`docs/poprawka 24.08.2026/STAN_SESJI_2026-08-24.md`.
+
+Dwa świadome odstępstwa od tego, co niżej: (1) `miejscowosc` czyszczona jest
+RAZEM z przejściem na powiat, a nie tydzień później — bo filtr i tak się
+przełącza w tym samym commicie; (2) zespoły szkolno-przedszkolne wchodzą do bazy
+WSZYSTKIE (decyzja Pawła: „wolę mieć za dużo niż za mało"), choć pkt 1.4 tego
+projektu zakładał rekord tylko dla składowych. **Zastępuje** plan z `docs/12_RSPO.md` w części dotyczącej
 modelu danych (tamten dokument zakładał „dosypanie" rejestru do istniejącej
 tabeli; ten projekt rozdziela lustro rejestru od bazy roboczej — powody niżej).
 

@@ -1163,6 +1163,19 @@ def main():
             all(p["typ"].startswith(("02.", "03.")) for p in tylko_p["pozycje"])
             and len(tylko_p["pozycje"]) >= 1)
 
+    # Kontakt należy do PLACÓWKI, więc przy zmianie placówki musi się zmienić.
+    # Zgłoszenie Pawła 24.08: „po wybraniu przedszkola uzupełnia się osoba
+    # kontaktowa, ale gdy zmienię placówkę, zostaje ta sama". Podstawianie
+    # wyłącznie w puste pola (reguła P04) chroni to, co wpisał człowiek — ale
+    # przy zmianie szkoły zostawia kontakt do poprzedniej.
+    js5 = open("static/formularz5.js", encoding="utf-8").read()
+    sprawdz("v5 rozróżnia kontakt podstawiony od wpisanego ręcznie",
+            "kontaktAuto" in js5)
+    sprawdz("dotknięcie pola kontaktu zdejmuje z niego automat",
+            "stan.kontaktAuto[ev.target.id] = false" in js5)
+    sprawdz("zmiana placówki podmienia to, co podstawiła aplikacja",
+            "if (!el.value || stan.kontaktAuto[id])" in js5)
+
     # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
     l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
     kod, j = post("/api/formularz", {
