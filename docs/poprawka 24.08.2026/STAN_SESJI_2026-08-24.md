@@ -141,17 +141,18 @@ liczby i wychodzą.
 
 ## 6. Co dalej, w kolejności
 
-1. **Wdrożenie na demo** — dalej blokuje wszystko inne i dalej nie zostało
-   zrobione. Klient nie widzi ANI JEDNEJ zmiany z 20–24.08.
+1. **Wdrożenie na demo** — dalej blokuje wszystko inne. Klient nie widzi ANI
+   JEDNEJ zmiany z 20–24.08. Instrukcja gotowa i **przećwiczona lokalnie na
+   kopii bazy produkcyjnej**: `docs/poprawka 24.08.2026/WDROZENIE_NA_DEMO.md`.
+   Dwa polecenia:
    ```bash
    cd /home/ubuntu/apps/demo-ph.silesia3d.site
    git fetch origin && git checkout poprawki-2026-08 && ./wdroz.sh demo
-   docker compose exec leady_v5_demo python narzedzia/statusy.py --zapisz
-   docker compose exec leady_v5_demo python narzedzia/slowniki_kontrola.py --zapisz
+   ./narzedzia/migracja_na_demo.sh ~/rspo_2026_08_13.csv
    ```
-   Po wdrożeniu migracja na demo, w tej kolejności:
-   `lustro` → `obszary` → `geografia --miejscowosci` → `dopasuj --plik …` →
-   `doloz --grupa wszystkie` → `doloz --grupa zespoly --wszystkie-zespoly`.
+   Na serwer trzeba przenieść **jeden plik** — rejestr CSV (41 MB). Arkusz
+   klienta z numerami okazał się niepotrzebny: przy tej kolejności kroków
+   dopasowanie po samym rejestrze trafia 520 z 545, czyli tyle samo.
 2. **Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx`** do Kasi — 25
    placówek, dwie kolumny decyzji („numer RSPO" i „scalić z id").
 3. **M4 — scalanie par.** Narzędzia jeszcze NIE MA; piszemy je, gdy wróci
@@ -200,8 +201,51 @@ wartością, i mówi o podmianie.
 wiersz. Teraz jedzie `placowka_id`, a serwer zakłada lead do ISTNIEJĄCEGO
 rekordu — z testem na liczbę placówek i leadów przed zapisem i po nim.
 
-Testy po tej rundzie: **11 plików, 928 sprawdzeń + 93 (`test_parsers`) + 17
+**Prowadzący przy zajęciach cyklicznych.** Sekcja cykliczna v5 rysowała sam
+harmonogram, więc definicje jej pól (prowadzący, godziny, sprzęt, grupa, uwagi)
+były MARTWYM kodem — cykl dało się umówić, ale nie dało się powiedzieć, kto go
+poprowadzi. Pola rodzaju rysuje teraz jedna funkcja wspólna dla obu gałęzi.
+Prowadzący **nieobowiązkowy** (decyzja Pawła).
+
+**Panel dostępności prowadzących w v5**, przeniesiony z v3 w komplecie:
+kandydaci w grupach, plakietka statusu wybranej osoby, „co się dzieje tego
+dnia". Różnica wobec v3 wynika z kaskady — panel jest PRZY SEKCJI, bo v5 umawia
+kilka rzeczy naraz i każda ma własną datę. Odpowiedzi buforowane kluczem
+`data|od|do|miasto`, bo `rysujSekcje()` przerysowuje wszystko przy każdym
+kliknięciu chipa.
+
+Testy po tej rundzie: **11 plików, 959 sprawdzeń + 93 (`test_parsers`) + 17
 w node**, komplet OK.
+
+---
+
+## 6c. Próba wdrożenia — przećwiczona lokalnie 24.08 wieczorem
+
+Cała ścieżka migracji przeszła na **kopii bazy produkcyjnej** (`data/prod`,
+545 placówek) w osobnym `DATA_DIR`, czyli na tym, co realnie stoi na demo:
+
+```
+545 placówek → 1613     eventy 65 → 65 (BEZ ZMIAN)
+numery RSPO: 520 z 545, 25 do decyzji Kasi
+mikołowski 88 (= rejestr)   Czeladź 18   bez powiatu 1 (znane P28)
+```
+
+Trzy rzeczy, które ta próba ustaliła i których nie dało się przewidzieć:
+
+- **Arkusz klienta przy `dopasuj` jest niepotrzebny.** Przy kolejności
+  `geografia` PRZED `dopasuj` czyste nazwy miejscowości wystarczą: 520 z 545
+  po samym rejestrze. Na serwer jedzie więc JEDEN plik zamiast dwóch, i to
+  publiczny rejestr zamiast arkusza z danymi osobowymi.
+- **Druga tura `geografia` nie jest zapasowa.** Po nadaniu numerów 520 rekordów
+  bierze powiat i miejscowość z REJESTRU zamiast z nazwy — to tam Czeladź
+  wychodzi z worka „15. Będzin powiat". Bez tego kroku zostaje w worku.
+- **`| head` w skrypcie z `pipefail` zabija polecenie.** `head` zamyka potok,
+  python dostaje SIGPIPE, skrypt kończy się „błędem", którego nie było
+  (potknąłem się o to najpierw w PowerShellu, przy `Select-Object -First`).
+
+Wynik: `narzedzia/migracja_na_demo.sh` — jedno polecenie zamiast dwunastu,
+z kopią bazy jako pierwszym krokiem i poleceniem cofającym na końcu.
+Instrukcja: `WDROZENIE_NA_DEMO.md`.
 
 ---
 

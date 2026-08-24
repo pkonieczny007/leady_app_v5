@@ -641,9 +641,18 @@ samą gałęzią, więc wystarczy ich nie rozdzielać przy wdrożeniu.
   jądrem obu.
 
 ### Do zrobienia w pierwszej kolejności
-1. **Wdrożenie na demo** — bez tego wszystko powyżej jest niewidoczne
-   (`./wdroz.sh demo`, potem `slowniki_kontrola.py --zapisz` i `statusy.py --zapisz`,
-   a następnie migracja RSPO w kolejności z `STAN_SESJI_2026-08-24.md`)
+1. **Wdrożenie na demo** — bez tego wszystko powyżej jest niewidoczne.
+   Instrukcja przećwiczona na kopii produkcji:
+   `docs/poprawka 24.08.2026/WDROZENIE_NA_DEMO.md`. Dwa polecenia:
+   `./wdroz.sh demo`, potem `./narzedzia/migracja_na_demo.sh ~/rspo_2026_08_13.csv`.
+   Na serwer jedzie JEDEN plik — rejestr CSV (41 MB); arkusz klienta okazał się
+   niepotrzebny. **Migrujemy demo W MIEJSCU, nie wgrywamy gotowego `.db`** —
+   odwrotnie niż produkcję w sierpniu, bo tamta reguła („baza powstaje lokalnie
+   i jedzie plikiem") straciła podstawę: produkcja od 11.08 ŻYJE, więc jej bazy
+   nie da się podmienić, trzeba ją migrować w miejscu — a demo jest jedynym
+   miejscem, gdzie da się to przećwiczyć. Wgranie pliku odebrałoby też PIN-y
+   43 z 46 kont na demo. **Po migracji NIE uruchamiać `odswiez_demo.sh`** —
+   zasiewa demo kopią produkcji i skasowałby całą migrację
 2. Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx` do Kasi (25 placówek)
 3. **M4 — scalanie par** (narzędzia jeszcze nie ma; po wypełnionym pliku)
 4. Konto handlowca dla Zuzi
