@@ -1246,6 +1246,23 @@ def main():
     sprawdz("v5: mówi o podmianie zamiast robić ją po cichu",
             "Kontakt podmieniony" in cialo5)
 
+    # KAŻDY rodzaj zajęć musi dać się przypisać PROWADZĄCEMU — bez tego wpis nie
+    # ma jak trafić do grafiku trenera, czyli do jedynego miejsca, dla którego
+    # kalendarz w ogóle istnieje.
+    #
+    # Zgłoszenie Pawła 24.08: „w formularzu nie ma wyboru prowadzącego". Sekcja
+    # cykliczna rysowała sam harmonogram, więc `polaRodzaju()` dla cyklu — z
+    # prowadzącym, godzinami, sprzętem i uwagami — było MARTWYM kodem, choć
+    # wyglądało na kompletne. Pilnujemy więc nie tekstu, tylko struktury:
+    # ma być JEDNA ścieżka rysująca pola rodzaju, wspólna dla obu gałęzi.
+    sprawdz("v5: pola rodzaju rysuje jedna funkcja dla obu gałęzi",
+            js5.count("function polaHtml(") == 1
+            and js5.count("polaRodzaju(typ).map(") == 1)
+    sprawdz("v5: sekcja cykliczna dokłada wspólne pola do harmonogramu",
+            "sekcjaCyklu(typ) + polaHtml(typ)" in js5)
+    sprawdz("v5: prowadzący jest w definicji każdego rodzaju",
+            js5.count("POLE_TRENER") == 4)          # 1 definicja + 3 rodzaje
+
     # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
     l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
     kod, j = post("/api/formularz", {
@@ -1263,6 +1280,33 @@ def main():
         "SELECT typ FROM eventy WHERE lead_id=? ORDER BY typ", (l_v5,))]
     conn.close()
     sprawdz("każdy z osobnym typem", typy == ["CYKLICZNE", "DT", "FESTYN"], str(typy))
+
+    # PROWADZĄCY PRZY CYKLU: do wpisania, ale NIEOBOWIĄZKOWY (decyzja Pawła,
+    # 24.08). Zgodne z zasadą projektu — ostrzegamy, nie blokujemy: w terenie
+    # cykl umawia się często zanim wiadomo, kto go poprowadzi, a odmowa zapisu
+    # znaczy notatkę na kartce. Wpis bez prowadzącego ma w kalendarzu własny,
+    # bursztynowy wiersz „— bez prowadzącego —" (S17), więc nie ginie.
+    conn = db.get_conn()
+    cykl_bez = conn.execute("SELECT trener FROM eventy WHERE lead_id=? AND typ='CYKLICZNE'",
+                            (l_v5,)).fetchone()["trener"]
+    conn.close()
+    sprawdz("cykl zapisuje się BEZ prowadzącego", not cykl_bez, "jest %r" % cykl_bez)
+
+    l_cyk = dodaj_lead(db.get_conn(), "SP CYKL Z TRENEREM", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_cyk,
+        "zajecia": [{"typ": "CYKLICZNE", "cykl_dzien": "środa", "godz_od": "14:00",
+                     "trener": T, "sprzet": sprzet[0], "grupa": "kl. 3a"}],
+    })
+    conn = db.get_conn()
+    ev_c = dict(conn.execute("SELECT * FROM eventy WHERE lead_id=?", (l_cyk,)).fetchone())
+    conn.close()
+    sprawdz("...a wpisany prowadzący przy cyklu naprawdę zapada w bazę",
+            kod == 200 and ev_c["trener"] == T, str(ev_c.get("trener")))
+    sprawdz("razem z godziną, sprzętem i grupą — reszta pól cyklu też działa",
+            ev_c["godz_od"] == "14:00" and ev_c["sprzet"] == sprzet[0]
+            and ev_c["grupa"] == "kl. 3a",
+            "%s %s %s" % (ev_c["godz_od"], ev_c["sprzet"], ev_c["grupa"]))
 
     # Wpis, którego kalendarz nie pokazuje, jest gorszy niż odmowa (10.08).
     import calendar_view as _cv5

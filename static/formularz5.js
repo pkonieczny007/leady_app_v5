@@ -148,6 +148,17 @@
     return html + "</div>";
   }
 
+  /* Wspólne pola rodzaju — „kto, o której, czym, dla kogo". Osobna funkcja,
+     bo potrzebują ich OBIE gałęzie rysowania: jednorazowa i cykliczna. Zanim
+     powstała, cykl dostawał sam harmonogram i nie dało się w nim wskazać
+     prowadzącego (zgłoszenie Pawła, 24.08) — definicje w `polaRodzaju` były
+     martwe, choć wyglądały na kompletne. */
+  function polaHtml(typ) {
+    return '<div class="f2-siatka f2-siatka-3">' +
+           polaRodzaju(typ).map(function (p) { return polePodpis(typ, p); }).join("") +
+           "</div>";
+  }
+
   function sekcjaCyklu(typ) {
     var z = stan.zajecia[typ] || {};
     var tryb = z.__tryb || domyslnyTryb();
@@ -274,11 +285,11 @@
     var box = $("f5-sekcje");
     var wlaczone = Object.keys(stan.wlaczone).filter(function (t) { return stan.wlaczone[t]; });
     box.innerHTML = wlaczone.map(function (typ) {
+      // Cykl ma NAJPIERW harmonogram (co wtorek / pakiet dat), POTEM resztę —
+      // bo tak brzmi rozmowa w szkole: najpierw kiedy, potem kto i czym.
       var wewnatrz = czyCykl(typ)
-        ? sekcjaCyklu(typ)
-        : '<div class="f2-siatka f2-siatka-3">' +
-          polaRodzaju(typ).map(function (p) { return polePodpis(typ, p); }).join("") +
-          "</div>";
+        ? sekcjaCyklu(typ) + polaHtml(typ)
+        : polaHtml(typ);
       return '<div class="f5-sekcja" data-sekcja="' + typ + '">' +
              '<h3 class="f5-sekcja-tytul">' + etykietaChipa(typ) + "</h3>" +
              wewnatrz + "</div>";
