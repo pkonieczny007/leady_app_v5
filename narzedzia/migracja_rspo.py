@@ -130,7 +130,7 @@ def cmd_doloz(a):
         conn.close()
         return 0
 
-    plan = dokladanie.przygotuj(conn, a.grupa)
+    plan = dokladanie.przygotuj(conn, a.grupa, pomijaj_zespoly=not a.wszystkie_zespoly)
     print("Profil %s — dołożenie „%s” (typy z rejestru: %s)"
           % (a.profil, a.grupa, ", ".join(plan["typy"])))
     print()
@@ -366,6 +366,9 @@ def main():
                    help="bez tego pokazuje tylko liczby")
     p.add_argument("--cofnij", action="store_true",
                    help="kasuje dołożone rekordy BEZ śladu pracy")
+    p.add_argument("--wszystkie-zespoly", action="store_true",
+                   help="zespoły WSZYSTKIE, także stojące obok własnych składowych "
+                        "— gdy liczby mają się pokrywać z rejestrem co do sztuki")
     p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)
     p.set_defaults(fn=cmd_doloz)
 

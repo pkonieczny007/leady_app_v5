@@ -386,7 +386,7 @@ def _kolizja(kandydat_nazwa, miejscowosc, istniejace):
 # Podgląd i zapis
 # ---------------------------------------------------------------------------
 
-def przygotuj(conn, grupa="przedszkola"):
+def przygotuj(conn, grupa="przedszkola", pomijaj_zespoly=True):
     """
     Wspólne jądro podglądu i zapisu — jedna decyzja per kandydat, policzona
     raz. Podgląd, który liczyłby inaczej niż zapis, byłby gorszy niż jego brak.
@@ -397,7 +397,14 @@ def przygotuj(conn, grupa="przedszkola"):
 
     do_zapisu, odlozone, kolizje = [], [], []
     ze_skladowymi, obce_typy = [], []
-    czy_zespoly = bool(set(typy) & set(GRUPY_TYPOW["zespoly"]))
+    # `pomijaj_zespoly=False` — decyzja Pawła z 24.08: „chcę, żeby pokrywały się
+    # ilości z RSPO, wolę mieć za dużo niż za mało". Wtedy zespoły wchodzą
+    # WSZYSTKIE, także te stojące obok własnych składowych i te złożone z samych
+    # techników. Skutek trzeba znać: pod jednym adresem staną wtedy trzy rekordy
+    # (zespół, jego szkoła, jego przedszkole), a handlowiec nie będzie wiedział,
+    # na którym zapisać DT. Rozróżnia je typ `04. ZSP`, więc da się je odfiltrować
+    # jednym chipem, a `doloz --cofnij` kasuje je bez śladu.
+    czy_zespoly = bool(set(typy) & set(GRUPY_TYPOW["zespoly"])) and pomijaj_zespoly
     z_wlasnymi = zespoly_ze_skladowymi(conn) if czy_zespoly else set()
     z_naszymi_typami = zespoly_z_naszymi_typami(conn) if czy_zespoly else set()
 

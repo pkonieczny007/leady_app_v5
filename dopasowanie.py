@@ -67,10 +67,11 @@ def kategoria(nazwa, typ=""):
 
 
 def _indeksy(conn):
-    """Trzy sposoby trafienia w rekord rejestru — od najpewniejszego."""
+    """Cztery sposoby trafienia w rekord rejestru — od najpewniejszego."""
     po_nazwie_miejsc = collections.defaultdict(list)
     po_nazwie_powiat = collections.defaultdict(list)
     po_numerze = collections.defaultdict(list)
+    po_numerze_miejsc = collections.defaultdict(list)
     for r in conn.execute("SELECT rspo, nazwa, typ, powiat, miejscowosc "
                           "FROM rspo_rejestr WHERE nieobecna_od IS NULL"):
         kat = kategoria(r["nazwa"], r["typ"])
@@ -79,7 +80,27 @@ def _indeksy(conn):
         nr = _numer(r["nazwa"], z_rejestru=True)
         if nr is not None:
             po_numerze[(_fold(r["powiat"]), nr, kat)].append(r)
-    return po_nazwie_miejsc, po_nazwie_powiat, po_numerze
+            po_numerze_miejsc[(_fold(r["miejscowosc"]), nr, kat)].append(r)
+    return po_nazwie_miejsc, po_nazwie_powiat, po_numerze, po_numerze_miejsc
+
+
+def _po_nazwie_wlasnej(conn, nazwa, miejscowosc):
+    """
+    Rekordy rejestru z tej samej miejscowości, których nazwa zawiera WSZYSTKIE
+    znaczące słowa naszej. Ta sama reguła, którą `dokladanie` odmawia dołożenia
+    dubla — trzymamy ją w jednym miejscu, żeby nie rozjechały się dwie kopie.
+    """
+    import dokladanie
+    slowa = dokladanie._slowa_znaczace(nazwa, miejscowosc)
+    if not slowa:
+        return []
+    out = []
+    for r in conn.execute(
+            "SELECT rspo, nazwa, typ, powiat, miejscowosc FROM rspo_rejestr "
+            "WHERE miejscowosc = ? AND nieobecna_od IS NULL", (miejscowosc,)):
+        if slowa <= set(dokladanie._fold(r["nazwa"]).split()):
+            out.append(r)
+    return out
 
 
 def _po_wsi_w_nazwie(conn, nazwa, powiat, kat):
@@ -148,7 +169,7 @@ def dopasuj(conn, plik_klienta=None):
       3. numer szkoły + powiat + kategoria, gdy w rejestrze jest DOKŁADNIE
          jeden taki kandydat.
     """
-    po_nm, po_np, po_nr = _indeksy(conn)
+    po_nm, po_np, po_nr, po_nr_miejsc = _indeksy(conn)
     klient = _z_pliku_klienta(plik_klienta)
 
     wynik = []
@@ -167,12 +188,28 @@ def dopasuj(conn, plik_klienta=None):
             jak = "nazwa+powiat"
         if len(trafienia) != 1:
             nr = _numer(nazwa)
+            kat = kategoria(nazwa, p["typ"] or "")
             if nr is not None:
-                trafienia = po_nr.get((_fold(p["powiat"]), nr,
-                                       kategoria(nazwa, p["typ"] or ""))) or []
-                jak = "numer w nazwie+powiat"
+                # Najpierw po MIEJSCOWOŚCI — od czasu, gdy worki powiatowe
+                # zostały rozpakowane, miejscowość znów coś znaczy i „Sp 1"
+                # w Woli jest jednoznaczne, choć „SP nr 1" w powiecie
+                # pszczyńskim jest kilka.
+                trafienia = po_nr_miejsc.get((_fold(p["miejscowosc"]), nr, kat)) or []
+                jak = "numer w nazwie+miejscowość"
+                if len(trafienia) != 1:
+                    trafienia = po_nr.get((_fold(p["powiat"]), nr, kat)) or []
+                    jak = "numer w nazwie+powiat"
             else:
                 trafienia = []
+
+        if len(trafienia) != 1:
+            # Nazwa własna placówki wewnątrz nazwy urzędowej. „Zając Poziomka"
+            # to w rejestrze „NIEPUBLICZNE PRZEDSZKOLE ZAJĄC POZIOMKA
+            # W DĄBROWIE GÓRNICZEJ". Tej samej reguły używamy przy dokładaniu,
+            # żeby ODMÓWIĆ utworzenia dubla — skoro dowód jest dość mocny, by
+            # wstrzymać zapis, jest dość mocny i na powiązanie.
+            trafienia = _po_nazwie_wlasnej(conn, nazwa, p["miejscowosc"])
+            jak = "nazwa własna w nazwie urzędowej"
         if len(trafienia) != 1 and not trafienia:
             # OSTATNIA PRÓBA: miejscowość schowana w NAZWIE, nie w kolumnie.
             # „Sp Miedźna", „Sp Góra", „Sp Frydyk" siedzą pod miejscowością
@@ -227,11 +264,38 @@ def dopasuj(conn, plik_klienta=None):
     licznik = collections.Counter(w["nasz"] for w in wynik if w["nasz"])
     zajete = {int(r[0]) for r in conn.execute(
         "SELECT rspo FROM placowki WHERE rspo IS NOT NULL AND rspo <> ''")}
+
+    # ROZSTRZYGNIĘCIE PARY: numer dostaje rekord o nazwie ZGODNEJ Z REJESTREM.
+    # To ta sama reguła, którą i tak przewiduje scalanie dubli (M4): zostaje
+    # rekord z pełną nazwą, skrót handlowca („MSP 1", „ZS 3 Rybnik") idzie do
+    # scalenia. Bez tego para blokuje się nawzajem i placówka, którą MAMY,
+    # wygląda w rozliczeniu z rejestrem na brakującą — a to jedyne 6 wierszy,
+    # o które nie zgadzały się liczby.
+    #
+    # Rozstrzygamy TYLKO wtedy, gdy zgodność nazwy ma dokładnie jeden rekord.
+    # Dwa jednakowo pasujące to prawdziwy remis i idą do człowieka.
+    zgodni = collections.defaultdict(list)
+    for w in wynik:
+        if w["nasz"] and licznik[w["nasz"]] > 1 \
+                and _fold(w["nazwa"]) == _fold(w["nazwa_rspo"]):
+            zgodni[w["nasz"]].append(w["id"])
+    rozstrzygniete = {numer: ident[0] for numer, ident in zgodni.items()
+                      if len(ident) == 1}
+
     for w in wynik:
         if w["nasz"] and licznik[w["nasz"]] > 1:
+            if rozstrzygniete.get(w["nasz"]) == w["id"]:
+                w["jak"] = (w["jak"] or "") + " (nazwa zgodna z rejestrem)"
+                w["werdykt"] = "zgodne" if w["klient"] == w["nasz"] else "pewne"
+                continue
             w["werdykt"] = "dubel"
-            w["alternatywy"] = ("%d nasze rekordy wskazują ten sam numer"
-                                % licznik[w["nasz"]])
+            w["alternatywy"] = ("%d nasze rekordy wskazują ten sam numer%s"
+                                % (licznik[w["nasz"]],
+                                   "; numer dostał id %d (nazwa zgodna z rejestrem), "
+                                   "ten wiersz do scalenia"
+                                   % rozstrzygniete[w["nasz"]]
+                                   if w["nasz"] in rozstrzygniete else ""))
+            w["nasz"] = None if w["nasz"] in rozstrzygniete else w["nasz"]
         elif w["nasz"] and w["nasz"] in zajete:
             # Numer wzięty już przez inną placówkę (np. dołożoną z rejestru).
             w["werdykt"] = "numer zajęty"
