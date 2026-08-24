@@ -194,7 +194,8 @@ def main():
     sprawdz("pokazuje linki, nie kafelki", html.count("fw-link") >= 4)
     sprawdz("linki prowadzą do wszystkich wariantów",
             "/formularz/kroki" in html and "/formularz/ciagly" in html
-            and "/formularz/v3" in html and "/formularz/cykliczne" in html)
+            and "/formularz/v3" in html and "/formularz/cykliczne" in html
+            and "/formularz/v5" in html)
     # Wersaliki „FORMULARZ v1" wyglądały jak wyróżnienie jednego wariantu
     # przy trzech pisanych normalnie — stąd jednolita pisownia (prośba 17.08).
     sprawdz("nazwy wariantów jak ustalone",
@@ -204,6 +205,10 @@ def main():
     sprawdz("v3 opisany jako rekomendowany", "Rekomendowany" in html)
     sprawdz("wariant cykliczny opisany jako testowy",
             "testowy: CYKLICZNE-PRZEDSZKOLE" in html)
+    # Piąty kafelek MUSI być opisany jako testowy — kto wejdzie z ciekawości,
+    # ma wiedzieć, na czym stoi. To był warunek decyzji „v5 obok, nie zamiast".
+    sprawdz("piąty wariant jest i jest opisany jako testowy",
+            "Formularz v5" in html and "testowy: kaskada" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -1061,6 +1066,142 @@ def main():
         # nawzajem — ostrzeżenia muszą iść jednym komunikatem.
         sprawdz("%s: ostrzeżenia zbierane w jedno" % w,
                 "var ostrz = []" in kod_js)
+
+    # ==================================================== F7 — wariant 5 (kaskada)
+    print("\nF7 — wariant 5: kaskada od placówki")
+    r5 = KL.get("/formularz/v5")
+    sprawdz("/formularz/v5 zwraca 200", r5.status_code == 200)
+    html5 = KL.get("/formularz/v5?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("cztery kroki kaskady", html5.count('class="f2-sekcja f5-krok"') == 4)
+    sprawdz("kroki 2–4 zwinięte do czasu wyboru placówki",
+            html5.count('data-krok="2" id="f5-sek-kontakt" hidden') == 1)
+    sprawdz("dołącza własny arkusz stylów", "formularz5.css" in html5)
+    # Chipy rodzajów mają iść ze SŁOWNIKA — inaczej dołożenie rodzaju zajęć
+    # wymagałoby zmiany w kodzie, a klient dokłada pozycje sam.
+    sprawdz("chipy rodzajów z tego, co jest w słowniku",
+            'data-typ="DT"' in html5 and 'data-typ="FESTYN"' in html5)
+    sprawdz("START nie jest chipem — nie wpisuje go handlowiec w terenie",
+            'data-typ="START"' not in html5)
+    sprawdz("przedszkolny typ cyklu nie jest osobnym chipem",
+            'data-typ="CYKLICZNE-PRZEDSZKOLE"' not in html5)
+
+    geo = KL.get("/api/formularz/geografia").get_json()
+    sprawdz("geografia oddaje osie, nie kolumny",
+            geo["ok"] and len(geo["osie"]) == 1
+            and geo["osie"][0]["poziom"] == "miejscowosc"
+            and isinstance(geo["osie"][0]["wartosci"], list),
+            str(geo["osie"][0]["etykieta"] if geo.get("osie") else geo))
+
+    # Placówka BEZ leada — powstaje przy dokładaniu bazy z rejestru RSPO.
+    # Stary `/api/placowki` robi JOIN z `leady` i takiej nie pokazuje wcale.
+    conn = db.get_conn()
+    p_bez = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, typ, zrodlo)"
+                         " VALUES (?,?,?,?)",
+                         ("PRZEDSZKOLE 99", "01. Orzesze", "02. Przedszkole miejskie (PM)",
+                          "rspo")).lastrowid
+    conn.commit()
+    conn.close()
+    lista = KL.get("/api/formularz/placowki?miejscowosc=01.%20Orzesze").get_json()
+    sprawdz("placówka bez leada JEST na liście v5",
+            any(p["placowka_id"] == p_bez for p in lista["pozycje"]))
+    stara = KL.get("/api/placowki?miejscowosc=01.%20Orzesze").get_json()
+    sprawdz("stary endpoint jej nie pokazuje — dlatego v5 ma własny",
+            not any(p["placowka_id"] == p_bez for p in stara["pozycje"]))
+    tylko_p = KL.get("/api/formularz/placowki?miejscowosc=01.%20Orzesze"
+                     "&rodzaj=przedszkola").get_json()
+    sprawdz("filtr rodzaju zawęża listę",
+            all(p["typ"].startswith(("02.", "03.")) for p in tylko_p["pozycje"])
+            and len(tylko_p["pozycje"]) >= 1)
+
+    # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
+    l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_v5,
+        "zajecia": [
+            {"typ": "DT", "data": dni(7), "godz_od": "09:00", "ilosc_klas": 3},
+            {"typ": "FESTYN", "data": dni(20), "grupa": "cała szkoła"},
+            {"typ": "CYKLICZNE", "cykl_dzien": "wtorek", "co_ile_tygodni": 1},
+        ],
+    })
+    sprawdz("trzy rodzaje zajęć w jednym żądaniu", kod == 200 and len(j["eventy"]) == 3,
+            str(j)[:120])
+    conn = db.get_conn()
+    typy = [r["typ"] for r in conn.execute(
+        "SELECT typ FROM eventy WHERE lead_id=? ORDER BY typ", (l_v5,))]
+    conn.close()
+    sprawdz("każdy z osobnym typem", typy == ["CYKLICZNE", "DT", "FESTYN"], str(typy))
+
+    # Wpis, którego kalendarz nie pokazuje, jest gorszy niż odmowa (10.08).
+    import calendar_view as _cv5
+    conn = db.get_conn()
+    widoczne = [e["typ"] for e in _cv5.events_for_month(conn, dni(7)[:7])
+                if e["lead_id"] == l_v5]
+    conn.close()
+    sprawdz("zapisane rodzaje są widoczne w kalendarzu", "DT" in widoczne,
+            str(widoczne))
+
+    # Status „03. DT umówione" ma stawiać WYŁĄCZNIE DT. Gdyby festyn albo VR
+    # go stawiały, raport „ile DT" kłamałby w jedyną stronę, która boli.
+    l_fest = dodaj_lead(db.get_conn(), "SP FESTYN", "08. Katowice", handlowiec=H,
+                        status="01. Próba kontaktu (Brak konkretów)")
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_fest,
+        "zajecia": [{"typ": "FESTYN", "data": dni(9)}],
+    })
+    conn = db.get_conn()
+    st = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                      (l_fest,)).fetchone()["status_realizacji"]
+    conn.close()
+    sprawdz("sam festyn NIE ustawia „DT umówione”",
+            kod == 200 and not st.startswith("03."), st)
+
+    # Rodzaj spoza słownika TEGO profilu — twarda blokada w obie strony.
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_v5,
+        "zajecia": [{"typ": "PIKNIK-WYMYSLONY", "data": dni(3)}],
+    })
+    sprawdz("rodzaj spoza słownika odrzucony", kod == 400 and "Nieznany rodzaj" in j["error"],
+            str(j)[:80])
+
+    # Zajęcie bez daty pomijamy zamiast tworzyć wpis-widmo (niewidoczny
+    # w kalendarzu, a wyglądający na zrobiony).
+    conn = db.get_conn()
+    przed = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                         (l_fest,)).fetchone()["c"]
+    conn.close()
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_fest,
+        "zajecia": [{"typ": "VR", "godz_od": "10:00"}],
+    })
+    conn = db.get_conn()
+    po = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                      (l_fest,)).fetchone()["c"]
+    conn.close()
+    sprawdz("zajęcie bez daty nie tworzy wpisu-widma", kod == 200 and po == przed,
+            "%d → %d" % (przed, po))
+
+    # --- ZAPORA: stare warianty mają tego nie zauważyć ----------------------
+    # Cztery warianty istnieją po to, żeby klient porównywał UKŁAD. Gdyby v5
+    # zmienił kontrakt API, porównanie przestałoby cokolwiek znaczyć.
+    l_stary = dodaj_lead(db.get_conn(), "SP STARE API", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_stary,
+        "dt": {"data": dni(5), "godz_od": "08:00", "ilosc_klas": 2, "ilosc_dzieci": 40},
+        "cykl": {"typ": "CYKLICZNE", "cykl_dzien": "środa", "co_ile_tygodni": 1},
+    })
+    conn = db.get_conn()
+    stare_typy = [r["typ"] for r in conn.execute(
+        "SELECT typ FROM eventy WHERE lead_id=? ORDER BY typ", (l_stary,))]
+    st_stary = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                            (l_stary,)).fetchone()["status_realizacji"]
+    conn.close()
+    sprawdz("payload sprzed v5 przechodzi bez zmian",
+            kod == 200 and stare_typy == ["CYKLICZNE", "DT"]
+            and st_stary == "03. DT umówione", str(stare_typy))
+    for w in ("formularz", "formularz2", "formularz3", "formularz4"):
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s nie wysyła listy zajęć — kontrakt bez zmian" % w,
+                "zajecia" not in kod_js)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

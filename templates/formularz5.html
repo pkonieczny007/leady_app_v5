@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Formularz v5 — kaskada{% endblock %}
+{% block wrap_class %}f2-strona f5-strona{% endblock %}
+{% block body_class %}f-pelny-ekran{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz2.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='formularz5.css') }}">
+{% endblock %}
+
+{% block topbar %}
+<header class="f-pasek">
+  <span class="f-pasek-tytul">Formularz ustaleń <span class="f-pasek-wariant">v5 · kaskada</span></span>
+  <a class="f-pasek-wyjscie" href="{{ url_for('formularz') }}" id="f5-zakoncz">Zakończ</a>
+</header>
+{% endblock %}
+
+{% block stopka %}{% endblock %}
+
+{#
+  WARIANT 5 — KASKADA OD PLACÓWKI
+
+  Czego chce klient: jeden formularz, w którym mieści się CAŁA praca w terenie —
+  szkoły i przedszkola, DT, cykle, jednorazówki, festyny, VR, i sama wizyta,
+  po której nic nie zostało umówione.
+
+  DLACZEGO KASKADA, A NIE SZÓSTA SEKCJA W v4
+  Warianty 1–4 mają stałą kolejność sekcji i jeden wyłącznik („czy było DT").
+  Sześć rodzajów zajęć w tym układzie znaczyłoby sześć wyłączników nad dwoma
+  istniejącymi i ekran, w którym handlowiec przewija kciukiem obok pól, których
+  akurat nie dotyczy. Tutaj kolejność jest odwrotna i wynika z rozmowy, którą
+  handlowiec naprawdę prowadzi: NAJPIERW wiadomo, w jakiej jest placówce,
+  POTEM co z nią ustalono. Sekcja rozsuwa się dopiero, gdy zaznaczysz jej chip.
+
+  WIZYTA NIE JEST RODZAJEM ZAJĘĆ
+  „Byłem, rozmawiałem, nic nie umówiliśmy" to nie jest wpis do kalendarza —
+  kalendarz jest grafikiem zajęć trenerów. To wynik wizyty i notatka na leadzie,
+  więc sekcja 4 jest widoczna ZAWSZE i da się zapisać sam formularz bez
+  jednego zaznaczonego chipa. Dokładnie tego brakowało Zuzi (P22/P27): praca,
+  której nie da się zapisać, nie znika — dzieje się dalej, tylko poza aplikacją.
+
+  Zapis: jedno żądanie `POST /api/formularz` z `klucz_zapisu` (ponowienie po
+  zerwanym LTE nie tworzy drugiego leada) — to samo API, ta sama walidacja
+  i ta sama kolejka awaryjna co w v1–v4.
+#}
+
+{% block content %}
+<div class="f2 f5" id="f5"
+     data-handlowiec="{{ handlowiec }}"
+     data-dzis="{{ dzis_iso }}">
+
+  <p class="f2-kto">
+    {% if handlowiec %}
+      Wypełnia: <b>{{ handlowiec }}</b>
+    {% else %}
+      <a href="{{ url_for('formularz') }}">Wybierz, kto wypełnia →</a>
+    {% endif %}
+  </p>
+
+  {% if ostrzezenia %}
+  <div class="fx-alarm">
+    <strong>Uwaga — kończy się termin</strong>
+    <ul>
+      {% for o in ostrzezenia[:5] %}
+      <li>
+        <span class="fx-alarm-szkola">{{ o.placowka }}</span>
+        <span class="muted">{{ o.miejscowosc }}</span>
+        {% if o.dni_do_zwrotu <= 0 %}
+          <b class="fx-alarm-dzis">wraca do puli lada moment</b>
+        {% else %}
+          <b>wraca do puli za {{ o.dni_do_zwrotu }} dni</b>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form id="f5-form" autocomplete="off" novalidate>
+
+  {# ═══════════════════════════════════════════════ 1. PLACÓWKA (zawsze) #}
+  <section class="f2-sekcja f5-krok" data-krok="1">
+    <h2 class="f2-tytul"><span class="f5-nr">1</span> Gdzie jesteś?</h2>
+
+    {# Selecty geografii rysuje JS z `/api/formularz/geografia`. Dziś jedna oś
+       (miejscowość), po migracji na RSPO dwie (powiat → miejscowość) — i to
+       BEZ zmian tutaj ani w formularz5.js. #}
+    <div id="f5-osie" class="f2-siatka f2-siatka-2"></div>
+
+    <div class="f5-typy" role="group" aria-label="Rodzaj placówki">
+      <button type="button" class="f5-chip f5-chip-on" data-rodzaj="">Wszystkie</button>
+      <button type="button" class="f5-chip" data-rodzaj="szkoly">Szkoły</button>
+      <button type="button" class="f5-chip" data-rodzaj="przedszkola">Przedszkola</button>
+    </div>
+
+    <input type="search" id="f5-szukaj" class="f2-pole f5-szukaj"
+           placeholder="Filtruj po nazwie — np. „12” albo „słoneczko”"
+           autocomplete="off" hidden>
+
+    {# Lista, nie `<select>`: przy 150 przedszkolach w Katowicach rozwijana lista
+       na telefonie jest nie do przewinięcia kciukiem, a gwiazdki „twoje" nie
+       mają się w niej gdzie pokazać. #}
+    <div id="f5-lista" class="f5-lista" role="radiogroup" aria-label="Placówka">
+      <p class="f2-info">Wybierz miejscowość, żeby zobaczyć placówki.</p>
+    </div>
+
+    <button type="button" class="f2-link" id="f5-nowa-otworz">
+      + Nie ma jej na liście — dodaj nową placówkę
+    </button>
+
+    <div id="f5-nowa" class="f2-nowa" hidden>
+      <div class="f2-siatka f2-siatka-2">
+        <div class="f2-pole-grupa">
+          <label class="f2-etykieta" for="f5-nowa-nazwa">Nazwa placówki <span class="f2-wym">*</span></label>
+          <input type="text" id="f5-nowa-nazwa" class="f2-pole" placeholder="np. SP nr 12">
+        </div>
+        <div class="f2-pole-grupa">
+          <label class="f2-etykieta" for="f5-nowa-typ">Typ</label>
+          <select id="f5-nowa-typ" class="f2-pole">
+            <option value="">—</option>
+            {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f5-nowa-adres">Adres</label>
+        <input type="text" id="f5-nowa-adres" class="f2-pole">
+      </div>
+    </div>
+  </section>
+
+  {# ═══════════════════════════════════════ 2. KONTAKT (po wyborze placówki) #}
+  <section class="f2-sekcja f5-krok" data-krok="2" id="f5-sek-kontakt" hidden>
+    <h2 class="f2-tytul"><span class="f5-nr">2</span> Z kim rozmawiałeś?</h2>
+    <div class="f2-siatka f2-siatka-3">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f5-osoba">Osoba kontaktowa</label>
+        <input type="text" id="f5-osoba" class="f2-pole">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f5-telefon">Telefon</label>
+        <input type="tel" id="f5-telefon" class="f2-pole" inputmode="tel">
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f5-mail">Mail</label>
+        <input type="email" id="f5-mail" class="f2-pole" inputmode="email">
+      </div>
+    </div>
+    {# Nadpisanie danych z bazy jest JAWNE (P04): handlowiec ma widzieć, że
+       zmienia to, co ktoś wpisał wcześniej, a nie dowiadywać się po fakcie. #}
+    <p class="f2-info" id="f5-kontakt-info"></p>
+  </section>
+
+  {# ═══════════════════════════════════ 3. CO USTALIŁEŚ (po wyborze placówki) #}
+  <section class="f2-sekcja f5-krok" data-krok="3" id="f5-sek-zajecia" hidden>
+    <h2 class="f2-tytul"><span class="f5-nr">3</span> Co ustaliłeś?</h2>
+    <p class="f2-info">
+      Zaznacz wszystko, co umówiłeś — można kilka naraz.
+      Nic nie zaznaczasz? To była sama wizyta, wypełnij tylko krok 4.
+    </p>
+
+    <div class="f5-chipy" role="group" aria-label="Rodzaje zajęć">
+      {% for t in chipy %}
+      <button type="button" class="f5-chip f5-chip-rodzaj" data-typ="{{ t }}">{{ t }}</button>
+      {% endfor %}
+    </div>
+
+    {# Sekcje rodzajów rysuje JS — jedna definicja pól na rodzaj zamiast sześciu
+       bloków HTML, które i tak trzeba by trzymać zgodne ze sobą. #}
+    <div id="f5-sekcje"></div>
+  </section>
+
+  {# ═══════════════════════════════════════════ 4. WYNIK WIZYTY (zawsze) #}
+  <section class="f2-sekcja f5-krok" data-krok="4" id="f5-sek-wynik" hidden>
+    <h2 class="f2-tytul"><span class="f5-nr">4</span> Jak poszło?</h2>
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f5-status">Wynik wizyty</label>
+      <select id="f5-status" class="f2-pole">
+        <option value="">— nie zmieniaj statusu —</option>
+        {% for s in slowniki.status_realizacji %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="f2-pole-grupa">
+      <label class="f2-etykieta" for="f5-notatka">Notatka</label>
+      <textarea id="f5-notatka" class="f2-pole f2-pole-txt" rows="3"
+                placeholder="Co ustalone, co dalej, na kiedy oddzwonić…"></textarea>
+      {# Podpis z SESJI, nie z pola do wpisania — inaczej dałoby się podpisać
+         cudzym nazwiskiem, a `kto` w historii zmian jest podstawą kontroli
+         „czy handlowiec ruszył lead przed terminem". #}
+      <p class="f2-info">
+        Podpisze się: <b>{{ handlowiec or "—" }}</b>, {{ dzis_iso }} —
+        notatka dopisuje się do poprzednich, nie kasuje ich.
+      </p>
+    </div>
+  </section>
+
+  <div class="f2-akcje f5-akcje">
+    <button type="button" class="f2-btn f2-btn-wyczysc" id="f5-wyczysc">Wyczyść</button>
+    <button type="submit" class="f2-btn f2-btn-zapisz" id="f5-zapisz">Zapisz</button>
+  </div>
+  <p class="f2-blad" id="f5-blad" hidden></p>
+  <p class="f2-szkic" id="f5-szkic" hidden></p>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* Słowniki dla sekcji rysowanych z JS. Wstrzykiwane z serwera, a nie pobierane
+     osobnym żądaniem: formularz musi dać się otworzyć i wypełnić przy jednym
+     słupku zasięgu, a każde dodatkowe żądanie to kolejna okazja, żeby ekran
+     został pusty. */
+  window.F5_SLOWNIKI = {{ {
+      'trener': slowniki.trener,
+      'dzien_tyg': slowniki.dzien_tyg,
+      'sprzet': slowniki.sprzet,
+      'typ_eventu': slowniki.typ_eventu
+  }|tojson }};
+</script>
+<script src="{{ url_for('static', filename='formularz_awaria.js') }}"></script>
+<script src="{{ url_for('static', filename='formularz5.js') }}"></script>
+{% endblock %}

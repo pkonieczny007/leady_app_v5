@@ -57,6 +57,16 @@
       <span class="fw-link-nazwa">Formularz CYKLICZNE</span>
       <span class="fw-znacznik">testowy: CYKLICZNE-PRZEDSZKOLE</span>
     </a>
+    {# PIĄTY KAFELEK — v5 powstaje OBOK czterech, nie zamiast któregoś.
+       Dzięki temu można go budować w dowolnym momencie: handlowiec dalej
+       klika swój v3, a to jest ścieżka, w którą nikt nie wchodzi przypadkiem.
+       Plakietka „testowy" jest tu warunkiem, nie ozdobą — kto wejdzie
+       z ciekawości, ma wiedzieć, na czym stoi. #}
+    <a class="fw-link" href="{{ url_for('formularz_v5') }}"
+       data-cel="{{ url_for('formularz_v5') }}">
+      <span class="fw-link-nazwa">Formularz v5</span>
+      <span class="fw-znacznik">testowy: kaskada</span>
+    </a>
   </nav>
 
   <p class="fw-nota">
@@ -65,6 +75,8 @@
     <br>v3: jak v2, ale widać, kto jest wolny, kto ma kolizję i co się dzieje tego dnia
     <br>CYKLICZNE: jak v3, ale zajęcia powtarzalne można umówić na konkretne daty
     (pakiet „5 zajęć"), a nie tylko regułą „co wtorek"
+    <br>v5: kaskada — najpierw placówka, potem chipy „co ustaliłeś"; kilka rodzajów
+    zajęć naraz i sama wizyta bez umawiania czegokolwiek
   </p>
 </div>
 {% endblock %}

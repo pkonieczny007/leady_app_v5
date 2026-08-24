@@ -1766,6 +1766,130 @@ def formularz_cykliczne():
     return render_template("formularz4.html", **ctx)
 
 
+@app.route("/formularz/v5")
+def formularz_v5():
+    """
+    WARIANT 5 — kaskada od placówki. Piąty kafelek na ekranie wyboru.
+
+    Klient chce docelowo JEDEN formularz, w którym mieści się wszystko: szkoły
+    i przedszkola, DT, cykle, jednorazówki, festyny, VR i sama wizyta bez
+    umówienia czegokolwiek. Cztery istniejące warianty są zbudowane wokół
+    stałej kolejności sekcji z wyłącznikiem DT — dołożenie do nich sześciu
+    rodzajów zajęć dałoby trzecią warstwę przełączników na dwóch istniejących.
+    Tutaj sterowanie jest odwrócone: najpierw placówka, potem CO z nią ustalono,
+    a sekcje rozsuwają się dopiero po zaznaczeniu.
+
+    DLACZEGO OSOBNY WARIANT, A NIE PRZEBUDOWA v4
+    v4 jest właśnie przedmiotem testu u klienta; przebudowa w miejscu
+    zniszczyłaby punkt odniesienia w połowie porównania. Piąty przycisk to
+    ścieżka, w którą nikt nie wchodzi przypadkiem — handlowiec dalej klika v3,
+    a rozgrzebany v5 nikomu nie blokuje pracy.
+
+    Zapis idzie tym samym `POST /api/formularz`, tym samym `klucz_zapisu`
+    i tą samą walidacją co v1–v4 — rozszerzonymi ADDYTYWNIE o listę `zajecia`.
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
+    conn.close()
+    # Chipy rodzajów biorą się ze SŁOWNIKA, nie z listy wpisanej w HTML —
+    # inaczej dołożenie rodzaju zajęć wymagałoby zmiany w kodzie, a klient
+    # dodaje pozycje słownika sam, ekranem „Słowniki".
+    ctx["chipy"] = [t for t in ctx["slowniki"].get("typ_eventu", [])
+                    if t not in CHIPY_POMIJANE]
+    return render_template("formularz5.html", **ctx)
+
+
+# Rodzaje zajęć, których NIE pokazujemy jako chipa w kaskadzie v5.
+#   START               — inauguracja grupy; powstaje u koordynatora i z importu,
+#                         handlowiec w terenie tego nie wpisuje
+#   CYKLICZNE-PRZEDSZKOLE — to nie osobny wybór dla człowieka, tylko ten sam chip
+#                         „Cykliczne" przy placówce typu przedszkole (patrz
+#                         `typCyklu` w formularz5.js). Handlowiec nie musi
+#                         wiedzieć, że w bazie to dwa typy
+CHIPY_POMIJANE = ("START", "CYKLICZNE-PRZEDSZKOLE")
+
+
+@app.route("/api/formularz/geografia")
+def api_formularz_geografia():
+    """
+    Osie geograficzne kaskady v5 — ADAPTER, którego zadaniem jest przeżyć
+    migrację na RSPO bez zmiany choćby linijki w przeglądarce.
+
+    Dziś zwraca JEDNĄ oś (miejscowość ze słownika — to samo, co v2–v4 mają
+    dziś w `<select id="f2-miasto">`). Po etapach M5/M6 migracji zwróci dwie
+    (powiat → miejscowość) i JS narysuje dwa selecty, bo rysuje tyle, ile
+    dostał — nie zna nazw kolumn ani liczby poziomów.
+
+    Bez adaptera v5 byłby piątym ekranem do przerobienia przy przełączeniu
+    geografii; z nim jest pierwszym, który jest na nie gotowy.
+    """
+    conn = get_conn()
+    # Wartości ze SŁOWNIKA, nie `SELECT DISTINCT` z placówek: słownik trzyma
+    # kolejność klienta (prefiksy `01. `–`33. `, po których sortuje), a lista
+    # z danych gubi miejscowości, w których akurat nie ma jeszcze ani jednej
+    # placówki — czyli dokładnie te, do których dopiero wchodzimy.
+    wartosci = slownik_values(conn, "miasto")
+    conn.close()
+    return jsonify(ok=True, osie=[{
+        "poziom": "miejscowosc",
+        "etykieta": "Miejscowość",
+        "wartosci": wartosci,
+    }])
+
+
+@app.route("/api/formularz/placowki")
+def api_formularz_placowki():
+    """
+    Lista placówek do kaskady v5 — własna, bo `/api/placowki` ma dwa defekty,
+    których NIE naprawiamy tam, żeby nie ruszać ekranów będących w teście:
+
+      · robi JOIN z `leady`, więc placówka bez leada jest niewidoczna,
+        a placówka z dwoma leadami pokazuje się dwa razy;
+      · `/api/placowki/szukaj` tnie LIMIT-em przed wyniesieniem „moich" na górę.
+
+    Tutaj: LEFT JOIN po leadzie (placówka istnieje niezależnie od procesu
+    sprzedażowego) i filtr typu, bo po dołożeniu przedszkoli w Katowicach jest
+    ich 150 obok 82 szkół — bez filtru lista przestaje być listą.
+    """
+    os1 = (request.args.get("miejscowosc") or "").strip()
+    rodzaj = (request.args.get("rodzaj") or "").strip()     # szkoly | przedszkola | ""
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    if not os1:
+        return jsonify(ok=True, pozycje=[])
+
+    warunki = ["p.miejscowosc = ?"]
+    param = [os1]
+    if rodzaj == "szkoly":
+        warunki.append("COALESCE(p.typ,'') LIKE '01.%'")
+    elif rodzaj == "przedszkola":
+        warunki.append("(COALESCE(p.typ,'') LIKE '02.%' OR COALESCE(p.typ,'') LIKE '03.%')")
+
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT p.id AS placowka_id, p.nazwa, p.miejscowosc, p.typ, p.adres,
+               p.osoba_kontakt, p.telefon, p.mail,
+               (SELECT l.id FROM leady l WHERE l.placowka_id = p.id
+                 ORDER BY l.id LIMIT 1) AS lead_id,
+               (SELECT l.handlowiec FROM leady l WHERE l.placowka_id = p.id
+                 ORDER BY l.id LIMIT 1) AS handlowiec
+          FROM placowki p
+         WHERE %s
+         ORDER BY p.nazwa
+    """ % " AND ".join(warunki), param).fetchall()
+    conn.close()
+
+    poz = []
+    for r in rows:
+        d = dict(r)
+        d["moja"] = bool(handlowiec and d["handlowiec"] == handlowiec)
+        poz.append(d)
+    # „Moje" na górze — w terenie handlowiec w 9 przypadkach na 10 wypełnia
+    # formularz dla własnej szkoły (P06). Sortowanie po WYBRANIU wszystkich,
+    # nie przez LIMIT w zapytaniu — to był defekt starego szukania.
+    poz.sort(key=lambda x: (not x["moja"], x["nazwa"] or ""))
+    return jsonify(ok=True, pozycje=poz)
+
+
 @app.route("/api/placowki")
 def api_placowki():
     """
@@ -1993,10 +2117,22 @@ def api_formularz():
             conn.execute("UPDATE leady SET %s=?, updated_at=datetime('now') WHERE id=?"
                          % k, (v, lead_id))
 
-    # --- 3. spotkania: DT i cykl -------------------------------------------
+    # --- 3. spotkania: DT, cykl i (v5) lista zajęć ---------------------------
+    #
+    # ROZSZERZENIE JEST ADDYTYWNE — TO WARUNEK, NIE STYL
+    # v5 umawia w jednym wyjściu w teren kilka rzeczy naraz (DT + festyn, cykl
+    # w dwóch grupach), więc wysyła listę `zajecia`. Stare warianty wysyłają
+    # dwa bloki `dt`/`cykl` jak dotąd i mają tego NIE ZAUWAŻYĆ: cztery warianty
+    # istnieją po to, żeby klient porównywał UKŁAD, a nie funkcje. Gdyby v5
+    # zmienił kontrakt, porównanie przestałoby cokolwiek znaczyć.
+    zajecia_v5 = []
+    for z in (d.get("zajecia") or []):
+        if isinstance(z, dict) and (z.get("typ") or "").strip():
+            zajecia_v5.append(((z.get("typ") or "").strip(), z))
+
     utworzone, kolizja = [], None
-    for typ, pole_bloku in (("DT", "dt"), ("CYKLICZNE", "cykl")):
-        blok = d.get(pole_bloku) or {}
+    for typ, blok in ([("DT", d.get("dt") or {}), ("CYKLICZNE", d.get("cykl") or {})]
+                      + zajecia_v5):
         if not blok:
             continue
 
@@ -2010,6 +2146,13 @@ def api_formularz():
                 if zadany not in TYPY_CYKLICZNE:
                     return blad("Nieznany typ zajęć cyklicznych: %s" % zadany)
                 typ = zadany
+        elif typ != "DT":
+            # Rodzaj z chipa v5. Twarda blokada po słowniku TEGO profilu, nie po
+            # stałej w kodzie: `CYKLICZNE-PRZEDSZKOLE" dawało się kiedyś zapisać
+            # (walidacja szła po stałej), ale nie poprawić — bo słownik produkcji
+            # go nie znał. Jedna blokada w obie strony zamyka tę klasę usterek.
+            if typ not in slownik_values(conn, "typ_eventu"):
+                return blad("Nieznany rodzaj zajęć: %s" % typ)
 
         # Terminy z listy — pakiet konkretnych dat zamiast reguły „co wtorek".
         terminy = _terminy_cyklu(blok) if typ in TYPY_CYKLICZNE else []
@@ -2018,11 +2161,13 @@ def api_formularz():
                         "Podziel zajęcia na dwa wpisy."
                         % (len(terminy), MAX_TERMINOW_CYKLU))
 
-        # DT bez daty nie ma sensu; cykl bez dnia tygodnia I bez listy dat też nie
-        if typ == "DT" and not (blok.get("data") or "").strip():
-            continue
-        if typ in TYPY_CYKLICZNE and not (blok.get("cykl_dzien") or "").strip() \
-                and not terminy:
+        # Wpis bez daty jest wpisem NIEWIDOCZNYM w kalendarzu — a taki jest
+        # gorszy niż jego brak, bo wygląda na zrobiony (lekcja z 10.08). Cykl
+        # ma dwie drogi do daty: regułę „co wtorek" albo listę terminów.
+        if typ in TYPY_CYKLICZNE:
+            if not (blok.get("cykl_dzien") or "").strip() and not terminy:
+                continue
+        elif not (blok.get("data") or "").strip():
             continue
 
         dane = {"typ": typ}
