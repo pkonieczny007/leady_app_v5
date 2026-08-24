@@ -228,6 +228,32 @@ def testy_dokladania(conn):
     sprawdz("odłożonego nie ma na liście do zapisu",
             2002 not in {r["rspo"] for r in plan3["do_zapisu"]})
 
+    # NUMER SZKOŁY ROZSTRZYGA. „MIEJSKA SZKOŁA PODSTAWOWA NR 7 W KNUROWIE" to
+    # same słowa puste plus miejscowość — bez numeru sklejała się i z SP nr 9,
+    # i z „NIEPUBLICZNĄ SP »DOBRE MIEJSCE«" w tym samym mieście.
+    conn.execute("INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo) VALUES (?,?,?,?)",
+                 ("MIEJSKA SZKOŁA PODSTAWOWA NR 7 W KNUROWIE",
+                  "01. Szkoła podstawowa", "Knurów", "reka"))
+    conn.commit()
+    _slownik(conn, "miasto", ["Knurów"])
+    plik_knurow = _zapisz_csv([
+        _wiersz(2101, "MIEJSKA SZKOŁA PODSTAWOWA NR 7 W KNUROWIE", "Szkoła podstawowa",
+                "gliwicki", "Knurów", "Knurów"),
+        _wiersz(2102, "MIEJSKA SZKOŁA PODSTAWOWA NR 9 IM. MARII KONOPNICKIEJ",
+                "Szkoła podstawowa", "gliwicki", "Knurów", "Knurów"),
+        _wiersz(2103, "NIEPUBLICZNA SZKOŁA PODSTAWOWA DOBRE MIEJSCE",
+                "Szkoła podstawowa", "gliwicki", "Knurów", "Knurów"),
+    ])
+    rejestr_rspo.wgraj(conn, plik_knurow, wykryj_znikniete=False)
+    obszary.przelicz(conn)
+    plan_sz = dokladanie.przygotuj(conn, "szkoly")
+    odlozone_sz = {k["rspo"] for k in plan_sz["kolizje"]}
+    dodawane_sz = {r["rspo"] for r in plan_sz["do_zapisu"]}
+    sprawdz("ta sama szkoła z tym samym numerem — odłożona", 2101 in odlozone_sz,
+            str(sorted(odlozone_sz)))
+    sprawdz("szkoła z INNYM numerem wchodzi normalnie", 2102 in dodawane_sz)
+    sprawdz("szkoła bez numeru nie skleja się z naszą „nr 7”", 2103 in dodawane_sz)
+
     plik_bajka = _zapisz_csv([
         _wiersz(2007, "PRZEDSZKOLE BAJKA W KATOWICACH", "Przedszkole",
                 "Katowice", "Katowice", "Katowice", publicznosc="publiczna"),
@@ -261,7 +287,7 @@ def testy_dokladania(conn):
         "SELECT COUNT(*) FROM log WHERE lead_id NOT IN (SELECT id FROM leady)"
     ).fetchone()[0] == sieroty_przed)
     sprawdz("rekordy handlowca nietknięte", conn.execute(
-        "SELECT COUNT(*) FROM placowki WHERE zrodlo='reka'").fetchone()[0] == 2)
+        "SELECT COUNT(*) FROM placowki WHERE zrodlo='reka'").fetchone()[0] == 3)
 
 
 def main():

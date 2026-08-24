@@ -104,10 +104,25 @@ LOG_CO = "migracja-rspo: dołożenie"
 # sama placówka, którą już mamy pod inną nazwą".
 SLOWA_PUSTE = {
     "szkola", "podstawowa", "przedszkole", "punkt", "przedszkolny",
-    "publiczne", "publiczna", "niepubliczne", "niepubliczna", "miejskie",
-    "samorzadowe", "zespol", "szkolno", "placowek", "oswiatowych",
-    "integracyjne", "sportowa", "specjalna", "imienia",
+    "publiczne", "publiczna", "niepubliczne", "niepubliczna",
+    "miejskie", "miejska", "miejski", "samorzadowe", "samorzadowa",
+    "zespol", "szkolno", "placowek", "oswiatowych", "oddzialami",
+    "integracyjne", "integracyjnymi", "sportowa", "specjalna", "imienia",
 }
+
+# NUMER SZKOŁY JEST CZĘŚCIĄ TOŻSAMOŚCI, NIE OZDOBĄ NAZWY
+# Bez tego „MIEJSKA SZKOŁA PODSTAWOWA NR 9" z rejestru dopasowała się do naszej
+# „MIEJSKIEJ SZKOŁY PODSTAWOWEJ NR 7 W KNUROWIE": po odrzuceniu słów pustych
+# i nazwy miejscowości z obu nazw zostawało to samo, a sam numer wypadał, bo ma
+# jeden znak. Numer bierzemy z „NR 7" albo ze skrótu handlowca („MSP7", „ZSP1").
+_RE_NR = re.compile(r"\bnr\s*(\d+)")
+_RE_NR_SKROT = re.compile(r"^(?:m|z)?(?:sp|pm|pp|ps|zsp|zpo|zs)\s*(\d+)")
+
+
+def numer_szkoly(nazwa):
+    f = _fold(nazwa)
+    m = _RE_NR.search(f) or _RE_NR_SKROT.match(f)
+    return m.group(1) if m else None
 
 
 def _fold(s):
@@ -261,8 +276,11 @@ def podobne_istniejace(conn, grupa):
     out = []
     for r in conn.execute(sql, tuple(wykluczone)):
         slowa = _slowa_znaczace(r["nazwa"], r["miejscowosc"])
-        if slowa:
-            out.append((r["id"], r["nazwa"], r["miejscowosc"], slowa))
+        nr = numer_szkoly(r["nazwa"])
+        # Rekord bez ani jednego znaczącego słowa I bez numeru nie ma czym się
+        # identyfikować — porównywanie go z czymkolwiek daje same przypadki.
+        if slowa or nr:
+            out.append((r["id"], r["nazwa"], r["miejscowosc"], slowa, nr))
     return out
 
 
@@ -275,8 +293,19 @@ def _kolizja(kandydat_nazwa, miejscowosc, istniejace):
     różne przedszkola miejskie w jednym mieście się nie sklejają.
     """
     slowa_kandydata = set(_fold(kandydat_nazwa).split())
-    for pid, nazwa, miejsc, slowa in istniejace:
+    nr_kandydata = numer_szkoly(kandydat_nazwa)
+    for pid, nazwa, miejsc, slowa, nr in istniejace:
         if miejsc != miejscowosc:
+            continue
+        # Różny numer to różna szkoła — i to rozstrzyga PRZED porównaniem słów.
+        if nr_kandydata and nr and nr_kandydata != nr:
+            continue
+        # Nasz rekord bez ani jednego znaczącego słowa („MIEJSKA SZKOŁA
+        # PODSTAWOWA NR 7 W KNUROWIE" to same słowa puste plus miejscowość)
+        # identyfikuje się WYŁĄCZNIE numerem. Wtedy pusty zbiór słów jest
+        # podzbiorem czegokolwiek i bez tego warunku sklejał się z dowolną
+        # szkołą w mieście — np. z „NIEPUBLICZNĄ SP »DOBRE MIEJSCE«".
+        if not slowa and not (nr and nr_kandydata and nr == nr_kandydata):
             continue
         if slowa <= slowa_kandydata:
             return {"id": pid, "nazwa": nazwa}
