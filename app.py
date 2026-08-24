@@ -28,6 +28,7 @@ from flask import (Flask, render_template, request, jsonify, redirect,
 import calendar_view as cv
 import dostepnosc_view as dv
 import filtry as fl
+import geografia
 import obszary
 import przydzial as pz
 import repo
@@ -519,6 +520,11 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
         "rows": rows, "f": f, "total": policz, "pokazano": len(rows),
         "strona": strona, "stron": stron, "na_strone": NA_STRONE,
         "slowniki": wszystkie_slowniki(conn),
+        # Powiat i miejscowość idą z DANYCH, nie ze słownika — i miejscowość
+        # zawęża się wybranym powiatem, żeby lista pod „powiat będziński"
+        # miała 8 pozycji, a nie 60 z całego województwa.
+        "powiaty": geografia.powiaty(conn),
+        "miasta": geografia.miasta(conn, f["powiat"] or None),
         "kolory": trener_colors(conn),
         "lead_fields": LEAD_FIELDS, "julia_fields": JULIA_FIELDS,
         "placowka_fields": PLACOWKA_FIELDS,
@@ -906,6 +912,14 @@ def api_lead_update(lead_id):
                              (row["placowka_id"],)).fetchone()["v"]
         conn.execute("UPDATE placowki SET %s=?, updated_at=datetime('now') WHERE id=?"
                      % field, (value, row["placowka_id"]))
+        # Poprawiona miejscowość pociąga za sobą powiat — inaczej rekord po
+        # sprostowaniu literówki dalej siedziałby w starym powiecie, czyli
+        # w filtrze, w którym nikt by go nie szukał.
+        if field == "miejscowosc":
+            powiat, gmina = geografia.dla_nowej(conn, value)
+            if powiat:
+                conn.execute("UPDATE placowki SET powiat=?, gmina=? WHERE id=?",
+                             (powiat, gmina, row["placowka_id"]))
         zapisz_log(conn, lead_id=lead_id, co="zmiana placówki", pole=field,
                    przed=przed, po=value)
         conn.commit()
@@ -1084,9 +1098,11 @@ def api_lead_create():
         if blad:
             conn.close(); return jsonify(ok=False, error="%s: %s" % (pole, blad)), 400
         d[pole] = v
+    powiat, gmina = geografia.dla_nowej(conn, d.get("miejscowosc"))
     cur = conn.execute(
-        "INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo) VALUES (?,?,?,?)",
-        (nazwa, d.get("typ"), d.get("miejscowosc"), "reka"))
+        "INSERT INTO placowki (nazwa, typ, miejscowosc, powiat, gmina, zrodlo) "
+        "VALUES (?,?,?,?,?,?)",
+        (nazwa, d.get("typ"), d.get("miejscowosc"), powiat, gmina, "reka"))
     pid = cur.lastrowid
     cur = conn.execute(
         "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) VALUES (?,?,?)",
@@ -1815,26 +1831,26 @@ def api_formularz_geografia():
     Osie geograficzne kaskady v5 — ADAPTER, którego zadaniem jest przeżyć
     migrację na RSPO bez zmiany choćby linijki w przeglądarce.
 
-    Dziś zwraca JEDNĄ oś (miejscowość ze słownika — to samo, co v2–v4 mają
-    dziś w `<select id="f2-miasto">`). Po etapach M5/M6 migracji zwróci dwie
-    (powiat → miejscowość) i JS narysuje dwa selecty, bo rysuje tyle, ile
-    dostał — nie zna nazw kolumn ani liczby poziomów.
+    Zwraca DWIE osie: powiat → miejscowość. Druga zawęża się wybraną wartością
+    pierwszej, więc pod „powiat będziński" jest 8 miejscowości, a nie 60
+    z województwa. JS rysuje tyle selectów, ile dostał — nie zna nazw kolumn
+    ani liczby poziomów, więc dołożenie trzeciej osi (gmina) nie dotknie
+    przeglądarki.
 
-    Bez adaptera v5 byłby piątym ekranem do przerobienia przy przełączeniu
-    geografii; z nim jest pierwszym, który jest na nie gotowy.
+    Wartości biorą się z DANYCH, nie ze słownika `miasto`: słownik ma 11 pozycji
+    bez ani jednej placówki i nie zna miejscowości, które doszły z rejestru —
+    kłamałby w obie strony naraz.
     """
+    wybrany_powiat = (request.args.get("powiat") or "").strip()
     conn = get_conn()
-    # Wartości ze SŁOWNIKA, nie `SELECT DISTINCT` z placówek: słownik trzyma
-    # kolejność klienta (prefiksy `01. `–`33. `, po których sortuje), a lista
-    # z danych gubi miejscowości, w których akurat nie ma jeszcze ani jednej
-    # placówki — czyli dokładnie te, do których dopiero wchodzimy.
-    wartosci = slownik_values(conn, "miasto")
+    osie = [
+        {"poziom": "powiat", "etykieta": "Powiat",
+         "wartosci": geografia.powiaty(conn)},
+        {"poziom": "miejscowosc", "etykieta": "Miejscowość (opcjonalnie)",
+         "wartosci": geografia.miasta(conn, wybrany_powiat or None)},
+    ]
     conn.close()
-    return jsonify(ok=True, osie=[{
-        "poziom": "miejscowosc",
-        "etykieta": "Miejscowość",
-        "wartosci": wartosci,
-    }])
+    return jsonify(ok=True, osie=osie)
 
 
 @app.route("/api/formularz/placowki")
@@ -1851,14 +1867,18 @@ def api_formularz_placowki():
     sprzedażowego) i filtr typu, bo po dołożeniu przedszkoli w Katowicach jest
     ich 150 obok 82 szkół — bez filtru lista przestaje być listą.
     """
+    powiat = (request.args.get("powiat") or "").strip()
     os1 = (request.args.get("miejscowosc") or "").strip()
     rodzaj = (request.args.get("rodzaj") or "").strip()     # szkoly | przedszkola | ""
     handlowiec = (request.args.get("handlowiec") or "").strip()
-    if not os1:
+    if not powiat and not os1:
         return jsonify(ok=True, pozycje=[])
 
-    warunki = ["p.miejscowosc = ?"]
-    param = [os1]
+    warunki, param = [], []
+    if powiat:
+        warunki.append("p.powiat = ?"); param.append(powiat)
+    if os1:
+        warunki.append("p.miejscowosc = ?"); param.append(os1)
     if rodzaj == "szkoly":
         warunki.append("COALESCE(p.typ,'') LIKE '01.%'")
     elif rodzaj == "przedszkola":
@@ -2076,11 +2096,16 @@ def api_formularz():
             pola[k] = v
         for k in ("adres", "osoba_kontakt", "telefon", "mail"):
             pola[k] = (nowa.get(k) or "").strip() or None
+        # Powiat od razu przy zakładaniu, nie w nocnej migracji: to po nim idzie
+        # filtr, więc placówka bez powiatu byłaby niewidoczna dla wszystkich
+        # poza tym, kto ją właśnie wpisał.
+        powiat, gmina = geografia.dla_nowej(conn, pola["miejscowosc"])
         cur = conn.execute(
             "INSERT INTO placowki (nazwa, typ, miejscowosc, adres, osoba_kontakt, "
-            "telefon, mail, zrodlo) VALUES (?,?,?,?,?,?,?,?)",
+            "telefon, mail, powiat, gmina, zrodlo) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (nazwa, pola["typ"], pola["miejscowosc"], pola["adres"],
-             pola["osoba_kontakt"], pola["telefon"], pola["mail"], "formularz"))
+             pola["osoba_kontakt"], pola["telefon"], pola["mail"],
+             powiat, gmina, "formularz"))
         placowka_id = cur.lastrowid
         cur = conn.execute(
             "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) VALUES (?,?,?)",

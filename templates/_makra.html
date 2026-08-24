@@ -435,9 +435,25 @@
     <option value="{{ v }}"{{ ' selected' if v == f.handlowiec else '' }}>{{ v }}</option>{% endfor %}
   </select>
 
+  {# POWIAT PRZED MIEJSCOWOŚCIĄ — i to nie jest kwestia kolejności na pasku.
+     Klient prowadzi sprzedaż powiatami i tak samo jest w rejestrze RSPO, a nasza
+     lista miejscowości powstała z ręcznych wpisów w arkuszu: miesza miasta
+     (`Katowice`), wsie (`Strzyżowice`) i worki powiatowe po urwanym przy imporcie
+     słowie „powiat" (`Będzin` = 17 miejscowości, w tym Czeladź — stąd zgłoszenie
+     „nie ma bazy w Czeladzi"). Miejscowość ZOSTAJE obok, bo Kasia prosiła
+     wprost — ale jako druga oś, zawężana wybranym powiatem. #}
+  <select class="input input-auto" name="powiat" onchange="this.form.submit()">
+    <option value="">— powiat —</option>
+    {% for v in powiaty|default([]) %}
+    <option value="{{ v }}"{{ ' selected' if v == f.powiat else '' }}>{{ v }}</option>{% endfor %}
+  </select>
+
+  {# Lista miejscowości idzie z DANYCH, nie ze słownika: słownik ma 11 pozycji
+     bez ani jednej placówki i jednocześnie nie zna miejscowości, które doszły
+     z rejestru. Lista ze słownika kłamałaby w obie strony naraz. #}
   <select class="input input-auto" name="miasto" onchange="this.form.submit()">
     <option value="">— miejscowość —</option>
-    {% for v in slowniki.get('miasto', []) %}
+    {% for v in miasta|default(slowniki.get('miasto', [])) %}
     <option value="{{ v }}"{{ ' selected' if v == f.miasto else '' }}>{{ v }}</option>{% endfor %}
   </select>
 

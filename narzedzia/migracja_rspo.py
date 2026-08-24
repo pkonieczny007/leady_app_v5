@@ -197,6 +197,45 @@ def cmd_doloz(a):
     return 0
 
 
+def cmd_geografia(a):
+    """M5+M8: powiat i gmina dla wszystkich placówek, potem czyste miejscowości."""
+    import geografia
+    conn = _polacz(a.profil)
+    if conn.execute("SELECT name FROM sqlite_master WHERE name='rspo_rejestr'")\
+           .fetchone() is None:
+        print("Najpierw M1 (`lustro`) — powiaty biorą się z rejestru.")
+        conn.close()
+        return 1
+
+    r = geografia.uzupelnij(conn, zapisz=a.zapisz)
+    print("Profil %s — powiat i gmina:" % a.profil)
+    print("  z rejestru (po numerze RSPO): %d" % r["z_rejestru"])
+    print("  po nazwie miejscowości:       %d" % r["z_nazwy"])
+    print("  bez odpowiedzi:               %d" % len(r["bez_odpowiedzi"]))
+    for b in r["bez_odpowiedzi"][:20]:
+        print("      id %-5s %-40s miejscowość: %s"
+              % (b["id"], (b["nazwa"] or "")[:40], b["miejscowosc"] or "(puste)"))
+
+    if a.miejscowosci:
+        zmiany = geografia.czysc_miejscowosci(conn, zapisz=a.zapisz)
+        print("  miejscowości do wyczyszczenia: %d" % len(zmiany))
+        from collections import Counter
+        pary = Counter((str(z[1]), str(z[2])) for z in zmiany)
+        for (bylo, jest), n in sorted(pary.items())[:25]:
+            print("      %-28s → %-24s %d" % (bylo, jest, n))
+
+    if a.zapisz:
+        print()
+        for w in geografia.podsumowanie(conn):
+            print("  %-24s %5d  (szkoły %d, przedszkola %d)"
+                  % (w["powiat"], w["ile"], w["szkoly"], w["przedszkola"]))
+    else:
+        print()
+        print("  To był PODGLĄD — nic nie zapisano. Dodaj --zapisz.")
+    conn.close()
+    return 0
+
+
 def cmd_stan(a):
     """Liczby kontrolne — do porównania przed/po każdym etapie."""
     conn = _polacz(a.profil)
@@ -247,6 +286,14 @@ def main():
                    help="kasuje dołożone rekordy BEZ śladu pracy")
     p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)
     p.set_defaults(fn=cmd_doloz)
+
+    p = pod.add_parser("geografia", help="M5: powiat i gmina dla wszystkich placówek")
+    p.add_argument("--zapisz", action="store_true", help="bez tego tylko liczby")
+    p.add_argument("--miejscowosci", action="store_true",
+                   help="M8: przy okazji czyste nazwy miejscowości "
+                        "(WOLNO dopiero razem z filtrem po powiecie)")
+    p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)
+    p.set_defaults(fn=cmd_geografia)
 
     p = pod.add_parser("stan", help="liczby kontrolne")
     p.add_argument("--profil", default=os.environ.get("PROFIL", "test"), choices=PROFILE)

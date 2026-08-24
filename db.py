@@ -72,7 +72,16 @@ PLACOWKA_FIELDS = [
     ("Nr RSPO",        "rspo",          "text",             None),
     ("Nazwa placówki", "nazwa",         "text",             "Numer placówki"),
     ("Typ",            "typ",           "slownik:typ_placowki", None),
-    ("Miejscowość",    "miejscowosc",   "slownik:miasto",   "Miejscowość"),
+    # MIEJSCOWOŚĆ TO TEKST, NIE POZYCJA SŁOWNIKA — od przełączenia filtrów
+    # na powiat (etap M6). Powód: osią filtrowania jest teraz `powiat` (kolumna
+    # poza tą listą, patrz PLACOWKA_KOLUMNY_GEOGRAFIA), a miejscowości w zakresie
+    # firmy jest ~150 — w tym wsie powiatów będzińskiego i pszczyńskiego, których
+    # słownik nigdy nie zawierał. Lista rozwijana na 150 pozycji przestaje być
+    # pomocą, a twarda blokada „wartość spoza słownika" zamieniłaby każdą nową
+    # wieś z rejestru w rekord, którego NIE DA SIĘ POPRAWIĆ w karcie.
+    # Słownik `miasto` ZOSTAJE w bazie — używa go jeszcze tabela `aliasy` przy
+    # imporcie arkuszy klienta.
+    ("Miejscowość",    "miejscowosc",   "text",             "Miejscowość"),
     ("Adres",          "adres",         "text",             "Adres placówki"),
     ("Osoba kontaktowa", "osoba_kontakt", "text",           "Osoby decyzyjne i kontakt"),
     ("Telefon",        "telefon",       "text",             "numer telefonu"),

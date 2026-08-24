@@ -19,6 +19,7 @@ SORT_POLA = {
     "status": "l.status_realizacji",
     "deadline": "l.deadline",
     "miasto": "p.miejscowosc",
+    "powiat": "p.powiat",
     "placowka": "p.nazwa",
     "typ": "p.typ",
     "data_dt": "dt_data",
@@ -32,7 +33,8 @@ SELECT l.*,
        -- `nazwa` i `typ` pod własnymi nazwami też, bo karta leada edytuje pola
        -- placówki po ich kluczach z PLACOWKA_FIELDS (aliasy służą listom)
        p.nazwa AS nazwa, p.typ AS typ,
-       p.miejscowosc, p.adres, p.osoba_kontakt, p.telefon, p.mail,
+       p.miejscowosc, p.powiat, p.gmina,
+       p.adres, p.osoba_kontakt, p.telefon, p.mail,
        (SELECT MIN(e.data) FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
             AND (e.odwolane IS NULL OR e.odwolane = '')
@@ -110,9 +112,12 @@ def _chipy(f):
 
 
 def pusty_filtr():
-    return {"handlowiec": "", "miasto": "", "status": "", "status_szkoly": "",
-            "typ": "", "dt": "", "q": "", "osoby": "", "osoby_tryb": "",
-            "zakres": "", "sort": "", "kier": ""}
+    # `powiat` stoi PRZED `miasto`, bo to on jest osią: klient prowadzi sprzedaż
+    # powiatami, a lista miejscowości powstała z ręcznych wpisów w arkuszu
+    # i miesza miasta, wsie i worki powiatowe (`15. Będzin` = 17 miejscowości).
+    return {"handlowiec": "", "powiat": "", "miasto": "", "status": "",
+            "status_szkoly": "", "typ": "", "dt": "", "q": "",
+            "osoby": "", "osoby_tryb": "", "zakres": "", "sort": "", "kier": ""}
 
 
 def czytaj_filtr(args):
@@ -174,6 +179,8 @@ def _warunki(f, dzis):
     w, p = [], []
     if f["handlowiec"]:
         w.append("l.handlowiec = ?"); p.append(f["handlowiec"])
+    if f["powiat"]:
+        w.append("p.powiat = ?"); p.append(f["powiat"])
     if f["miasto"]:
         w.append("p.miejscowosc = ?"); p.append(f["miasto"])
     if f["status"]:
@@ -186,10 +193,11 @@ def _warunki(f, dzis):
         w.append("l.dt = ?"); p.append(f["dt"])
     if f["q"]:
         like = "%" + f["q"] + "%"
-        w.append("(p.nazwa LIKE ? OR p.miejscowosc LIKE ? OR p.adres LIKE ? "
+        w.append("(p.nazwa LIKE ? OR p.miejscowosc LIKE ? OR p.powiat LIKE ? "
+                 "OR p.adres LIKE ? "
                  "OR p.mail LIKE ? OR p.telefon LIKE ? OR p.osoba_kontakt LIKE ? "
                  "OR l.uwagi LIKE ? OR p.rspo LIKE ?)")
-        p += [like] * 8
+        p += [like] * 9
 
     war_osoby, par_osoby = _warunek_osob(f)
     if war_osoby:

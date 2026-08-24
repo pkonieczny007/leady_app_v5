@@ -240,9 +240,9 @@
 
     if (!stan.placowki.length) {
       box.innerHTML = '<p class="f2-info">' +
-        (Object.keys(stan.wybor).length
+        (Object.keys(stan.wybor).some(function (k) { return stan.wybor[k]; })
           ? "Nie ma tu placówek w wybranym rodzaju. Zmień filtr albo dodaj nową."
-          : "Wybierz miejscowość, żeby zobaczyć placówki.") + "</p>";
+          : "Wybierz powiat, żeby zobaczyć placówki.") + "</p>";
       return;
     }
     if (!poz.length) {
@@ -295,10 +295,17 @@
   // --------------------------------------------------------------- dane
 
   function wczytajPlacowki() {
-    var os = stan.osie[0];
-    var wartosc = os ? stan.wybor[os.poziom] : "";
-    if (!wartosc) { stan.placowki = []; rysujListe(); return; }
-    var q = "?miejscowosc=" + encodeURIComponent(wartosc) +
+    // Wysyłamy WSZYSTKIE wybrane osie — przy jednej wybranej (sam powiat) lista
+    // pokazuje cały powiat, co jest normalną drogą: Kasia prosiła o miejscowość
+    // jako filtr POMOCNICZY, nie jako obowiązkowy krok.
+    var czesci = [];
+    stan.osie.forEach(function (o) {
+      if (stan.wybor[o.poziom]) {
+        czesci.push(o.poziom + "=" + encodeURIComponent(stan.wybor[o.poziom]));
+      }
+    });
+    if (!czesci.length) { stan.placowki = []; rysujListe(); return; }
+    var q = "?" + czesci.join("&") +
             "&rodzaj=" + encodeURIComponent(stan.rodzaj) +
             (HANDLOWIEC ? "&handlowiec=" + encodeURIComponent(HANDLOWIEC) : "");
     fetch("/api/formularz/placowki" + q)
@@ -331,7 +338,14 @@
       stan.wybor[el.dataset.os] = el.value;
       stan.placowka = null;
       pokazKroki();
-      wczytajPlacowki();
+      // Zmiana osi WYŻSZEJ zawęża niższą — i czyści jej wybór, bo „Czeladź"
+      // wybrana przy będzińskim nie ma sensu po przełączeniu na Katowice.
+      if (el.dataset.os === stan.osie[0].poziom) {
+        stan.osie.slice(1).forEach(function (o) { delete stan.wybor[o.poziom]; });
+        wczytajOsie(el.value);
+      } else {
+        wczytajPlacowki();
+      }
       zapiszSzkic();
       return;
     }
@@ -552,11 +566,12 @@
         };
       }
     } else {
-      var os = stan.osie[0];
       payload.placowka = {
         nazwa: $("f5-nowa-nazwa").value.trim(),
         typ: $("f5-nowa-typ").value,
-        miejscowosc: os ? (stan.wybor[os.poziom] || "") : "",
+        // Miejscowość, nie powiat — powiat dopisze `geografia.uzupelnij()`
+        // z rejestru po nazwie, więc nowa placówka wpada w filtry same z siebie.
+        miejscowosc: stan.wybor.miejscowosc || "",
         adres: $("f5-nowa-adres").value.trim()
       };
     }
@@ -603,14 +618,20 @@
 
   // ------------------------------------------------------------------ start
 
-  fetch("/api/formularz/geografia")
-    .then(function (r) { return r.json(); })
-    .then(function (j) {
-      stan.osie = j.osie || [];
-      rysujOsie();
-      przywrocSzkic();
-    })
-    .catch(function () { toast("Nie udało się pobrać listy miejscowości", true); });
+  function wczytajOsie(powiat, poStarcie) {
+    return fetch("/api/formularz/geografia" +
+                 (powiat ? "?powiat=" + encodeURIComponent(powiat) : ""))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        stan.osie = j.osie || [];
+        rysujOsie();
+        if (poStarcie) poStarcie();
+        else wczytajPlacowki();
+      })
+      .catch(function () { toast("Nie udało się pobrać listy powiatów", true); });
+  }
+
+  wczytajOsie("", przywrocSzkic);
 
   function przywrocSzkic() {
     var s;

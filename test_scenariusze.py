@@ -792,6 +792,65 @@ def main():
     kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
     sprawdz("sprzątanie po S19: termin wraca", kod == 200)
 
+    # ================================================================== S20
+    print("\nS20 — M5/M6: powiat jako oś filtrowania")
+    import geografia
+    conn = db.get_conn()
+    # Lustro rejestru w miniaturze — tyle, ile trzeba, żeby dało się wywieść
+    # powiat z nazwy miejscowości.
+    import rejestr_rspo
+    rejestr_rspo.zaloz_tabele(conn)
+    for rspo, nazwa, powiat, gmina, miejsc in (
+            (9001, "SP W CZELADZI", "będziński", "Czeladź", "Czeladź"),
+            (9002, "SP W PSARACH", "będziński", "Psary", "Psary"),
+            (9003, "SP W KATOWICACH", "Katowice", "Katowice", "Katowice")):
+        conn.execute("INSERT OR REPLACE INTO rspo_rejestr "
+                     "(rspo, nazwa, typ, wojewodztwo, powiat, gmina, miejscowosc) "
+                     "VALUES (?,?,?,?,?,?,?)",
+                     (rspo, nazwa, "Szkoła podstawowa", "ŚLĄSKIE", powiat, gmina, miejsc))
+    conn.commit()
+
+    # Placówka wpisana po staremu: prefiks ze słownika, zero geografii.
+    pid = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES (?,?,?)", ("SP CZELADŹ", "24. Czeladź", "test")).lastrowid
+    lid = conn.execute("INSERT INTO leady (placowka_id, status_realizacji) VALUES (?,?)",
+                       (pid, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+
+    r = geografia.uzupelnij(conn, zapisz=True)
+    powiat = conn.execute("SELECT powiat FROM placowki WHERE id=?", (pid,)).fetchone()[0]
+    # Sedno zgłoszenia Kasi: Czeladź nie zniknęła z bazy — zniknęła z NAZW,
+    # bo wpadła do worka `15. Będzin` po urwanym przy imporcie słowie „powiat".
+    # Powiat da się wywieść z rejestru BEZ czekania na numery RSPO (etap M3).
+    sprawdz("powiat wywiedziony z nazwy, bez numeru RSPO", powiat == "będziński",
+            str(powiat))
+    sprawdz("raport mówi, ile skąd", r["z_nazwy"] >= 1)
+
+    f = repo.pusty_filtr()
+    f["powiat"] = "będziński"
+    sprawdz("filtr po powiecie łapie placówkę z worka",
+            any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+    f["powiat"] = "Katowice"
+    sprawdz("i nie łapie jej w cudzym powiecie",
+            not any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+
+    # Miejscowość zostaje DRUGĄ osią — Kasia prosiła o nią wprost obok powiatu.
+    geografia.czysc_miejscowosci(conn, zapisz=True)
+    miejsc = conn.execute("SELECT miejscowosc FROM placowki WHERE id=?",
+                          (pid,)).fetchone()[0]
+    sprawdz("miejscowość bez prefiksu ze słownika", miejsc == "Czeladź", str(miejsc))
+    sprawdz("lista miast zawężona powiatem", geografia.miasta(conn, "będziński") == ["Czeladź"],
+            str(geografia.miasta(conn, "będziński")))
+    sprawdz("lista powiatów z danych, nie ze słownika",
+            "będziński" in geografia.powiaty(conn))
+
+    f = repo.pusty_filtr()
+    f["powiat"] = "będziński"
+    f["miasto"] = "Czeladź"
+    sprawdz("obie osie naraz zawężają poprawnie",
+            any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+    conn.close()
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

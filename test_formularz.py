@@ -149,10 +149,22 @@ def main():
     kod, j = post("/api/formularz", {"handlowiec": H, "placowka": {"nazwa": ""}})
     sprawdz("placówka bez nazwy odrzucona", kod == 400 and "nazw" in (j["error"] or "").lower())
 
+    # MIEJSCOWOŚĆ NIE JEST JUŻ POZYCJĄ SŁOWNIKA (etap M6: osią filtrowania został
+    # powiat). Nowa nazwa PRZECHODZI — bo w terenie trafiają się przysiółki,
+    # których słownik nie zna, a odmowa zapisu znaczy notatkę na kartce.
+    # Zaporą nie jest teraz lista, tylko widoczność: nazwa nieznana rejestrowi
+    # nie dostaje powiatu i placówka ląduje na liście „bez powiatu” do wyjaśnienia,
+    # zamiast po cichu wpaść w przypadkowy.
     kod, j = post("/api/formularz", {
         "handlowiec": H,
         "placowka": {"nazwa": "SP 2", "miejscowosc": "Zmyślone Miasto"}})
-    sprawdz("miejscowość spoza słownika odrzucona", kod == 400, (j or {}).get("error"))
+    conn = db.get_conn()
+    nowa = conn.execute("SELECT miejscowosc, powiat FROM placowki WHERE nazwa='SP 2'"
+                        ).fetchone()
+    conn.close()
+    sprawdz("nieznana miejscowość przechodzi, ale bez powiatu",
+            kod == 200 and nowa["miejscowosc"] == "Zmyślone Miasto"
+            and not nowa["powiat"], str(dict(nowa)) if nowa else "brak rekordu")
 
     kod, j = post("/api/formularz", {
         "handlowiec": "Ktoś Kogo Nie Ma",
@@ -1086,11 +1098,24 @@ def main():
             'data-typ="CYKLICZNE-PRZEDSZKOLE"' not in html5)
 
     geo = KL.get("/api/formularz/geografia").get_json()
-    sprawdz("geografia oddaje osie, nie kolumny",
-            geo["ok"] and len(geo["osie"]) == 1
-            and geo["osie"][0]["poziom"] == "miejscowosc"
-            and isinstance(geo["osie"][0]["wartosci"], list),
-            str(geo["osie"][0]["etykieta"] if geo.get("osie") else geo))
+    sprawdz("geografia oddaje osie: powiat, potem miejscowość",
+            geo["ok"] and [o["poziom"] for o in geo["osie"]] == ["powiat", "miejscowosc"],
+            str([o["poziom"] for o in geo.get("osie", [])]))
+    # Druga oś zawęża się pierwszą — pod powiatem ma być kilka miejscowości,
+    # nie cała lista województwa. To jest kaskada, o którą prosiła Kasia:
+    # powiat będziński → Psary → szkoła.
+    # Własny rekord, nie „SP 2" z F2 — testy auto-zwrotu czyszczą po drodze
+    # `placowki`, więc opieranie się na cudzym rekordzie dawałoby wynik zależny
+    # od kolejności bloków. Test, który zależy od kolejności, nie testuje.
+    conn = db.get_conn()
+    conn.execute("INSERT INTO placowki (nazwa, miejscowosc, powiat, zrodlo) "
+                 "VALUES (?,?,?,?)", ("SP W PSARACH", "Psary", "będziński", "test"))
+    conn.commit()
+    conn.close()
+    zawezone = KL.get("/api/formularz/geografia?powiat=będziński").get_json()
+    sprawdz("miejscowości zawężone wybranym powiatem",
+            zawezone["osie"][1]["wartosci"] == ["Psary"],
+            str(zawezone["osie"][1]["wartosci"]))
 
     # Placówka BEZ leada — powstaje przy dokładaniu bazy z rejestru RSPO.
     # Stary `/api/placowki` robi JOIN z `leady` i takiej nie pokazuje wcale.
