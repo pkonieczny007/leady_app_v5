@@ -324,28 +324,85 @@ def wpisz(conn, wiersze, kto="migracja-rspo"):
     return n
 
 
-def do_xlsx(wiersze, docelowy):
+def _kontekst_rekordu(conn, ident):
+    """
+    Czym ten rekord ŻYJE — i czy w bazie stoi już jego bliźniak z rejestru.
+
+    Bez tego plik decyzyjny odpowiada tylko na „jaki numer", a człowiek i tak
+    musi wejść do aplikacji, żeby sprawdzić, czy wolno rekord scalić. Tu widać
+    od razu: kto go prowadzi, ile ma umówionych spotkań i który rekord jest
+    kandydatem na cel scalenia (ten z pełną nazwą i numerem RSPO).
+    """
+    d = {"handlowiec": "", "status": "", "eventy": 0, "adres": "", "telefon": "",
+         "blizniak": ""}
+    lead = conn.execute("""
+        SELECT l.handlowiec, l.status_realizacji, p.adres, p.telefon, p.miejscowosc,
+               p.nazwa, (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id) n
+          FROM placowki p LEFT JOIN leady l ON l.placowka_id = p.id
+         WHERE p.id = ? ORDER BY l.id LIMIT 1""", (ident,)).fetchone()
+    if not lead:
+        return d
+    d.update(handlowiec=lead["handlowiec"] or "", status=lead["status_realizacji"] or "",
+             eventy=lead["n"] or 0, adres=lead["adres"] or "", telefon=lead["telefon"] or "")
+
+    # Bliźniak: rekord Z NUMEREM w tej samej miejscowości, którego nazwa zawiera
+    # wszystkie znaczące słowa naszej (albo ma ten sam numer szkoły). To ta sama
+    # reguła, którą dokładanie odmawia utworzenia dubla.
+    import dokladanie
+    slowa = dokladanie._slowa_znaczace(lead["nazwa"], lead["miejscowosc"])
+    nr = dokladanie.numer_szkoly(lead["nazwa"])
+    for r in conn.execute(
+            "SELECT id, nazwa, rspo FROM placowki WHERE miejscowosc = ? "
+            "AND rspo IS NOT NULL AND rspo <> '' AND id <> ?",
+            (lead["miejscowosc"], ident)):
+        slowa_r = set(dokladanie._fold(r["nazwa"]).split())
+        nr_r = dokladanie.numer_szkoly(r["nazwa"])
+        pasuje = (slowa and slowa <= slowa_r) or (nr and nr_r and nr == nr_r)
+        if pasuje:
+            d["blizniak"] = "id %s · RSPO %s · %s" % (r["id"], r["rspo"], r["nazwa"])
+            break
+    return d
+
+
+def do_xlsx(conn, wiersze, docelowy):
     """Plik decyzyjny dla koordynatorki — tylko to, czego automat nie ruszył."""
     import openpyxl
-    from openpyxl.styles import Font
+    from openpyxl.styles import Alignment, Font, PatternFill
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Do decyzji"
-    naglowki = ["id", "Nazwa u nas", "Miejscowość", "Powiat", "Werdykt",
+    ws.title = "Do sprawdzenia"
+    naglowki = ["id", "Nazwa u nas", "Miejscowość", "Powiat", "Typ / adres",
+                "Handlowiec", "Status", "Spotkań", "Werdykt automatu",
                 "Nasz numer", "Numer z pliku klienta", "Nazwa w rejestrze",
-                "Kandydaci / uwagi", "DECYZJA — wpisz numer RSPO"]
+                "Kandydaci / uwagi",
+                "BLIŹNIAK w bazie (kandydat do scalenia)",
+                "DECYZJA — numer RSPO", "DECYZJA — scalić z id"]
     ws.append(naglowki)
     for c in ws[1]:
         c.font = Font(bold=True)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+    zolty = PatternFill("solid", fgColor="FFF2CC")
+
     for w in wiersze:
         if w["werdykt"] in WPISYWANE:
             continue
-        ws.append([w["id"], w["nazwa"], w["miejscowosc"], w["powiat"], w["werdykt"],
+        k = _kontekst_rekordu(conn, w["id"])
+        ws.append([w["id"], w["nazwa"], w["miejscowosc"], w["powiat"],
+                   (k["adres"] + (" · tel. " + k["telefon"] if k["telefon"] else "")).strip(),
+                   k["handlowiec"], k["status"], k["eventy"], w["werdykt"],
                    w["nasz"] or "", w["klient"] or "", w["nazwa_rspo"],
-                   w["alternatywy"], ""])
-    for kol, szer in zip("ABCDEFGHIJ", (7, 48, 18, 18, 16, 12, 14, 48, 60, 22)):
+                   w["alternatywy"], k["blizniak"], "", ""])
+        # Wiersz z umówionym spotkaniem świeci: na nim wisi praca, więc przy
+        # scalaniu to ON jest tym, z którego NIC nie może zginąć.
+        if k["eventy"]:
+            for c in ws[ws.max_row]:
+                c.fill = zolty
+
+    for kol, szer in zip(
+            ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"],
+            (6, 40, 16, 14, 34, 16, 26, 8, 16, 11, 13, 44, 52, 52, 18, 18)):
         ws.column_dimensions[kol].width = szer
-    ws.freeze_panes = "A2"
+    ws.freeze_panes = "B2"
     wb.save(docelowy)
     return docelowy
 

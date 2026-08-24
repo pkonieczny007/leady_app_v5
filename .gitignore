@@ -29,3 +29,7 @@ docs/poprawka */**/PH *.xlsx
 # publiczne. Dwa razy w tej rundzie `git add <katalog>` zgarnął arkusz klienta —
 # reguła jest szersza niż konkretna nazwa właśnie dlatego.
 docs/poprawka */*.xlsx
+# Katalog roboczy do decyzji człowieka — arkusze z nazwami, adresami
+# i telefonami placówek. Sam README zostaje w repo, bo opisuje procedurę.
+do_sprawdzenia_recznego/*
+!do_sprawdzenia_recznego/README.md

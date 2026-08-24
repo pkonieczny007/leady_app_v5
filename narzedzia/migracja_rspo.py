@@ -296,7 +296,7 @@ def cmd_dopasuj(a):
 
     if a.xlsx:
         do_decyzji = sum(1 for w in wiersze if w["werdykt"] not in dopasowanie.WPISYWANE)
-        dopasowanie.do_xlsx(wiersze, a.xlsx)
+        dopasowanie.do_xlsx(conn, wiersze, a.xlsx)
         print("  Plik do decyzji (%d wierszy): %s" % (do_decyzji, a.xlsx))
 
     if not a.zapisz:
