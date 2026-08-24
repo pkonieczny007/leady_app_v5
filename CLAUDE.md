@@ -436,9 +436,11 @@ w `.gitignore` i ma tam zostać):
 ## 8c. Runda poprawek 20–23.08.2026 — gałąź `poprawki-2026-08`
 
 Produkcja stoi nietknięta na `main` (`6a3e181`, tag `przed-poprawkami-2026-08-20`
-to punkt cofnięcia). **Demo też stoi na `main`** — dopóki nie zostanie wdrożone,
-klient NIE WIDZI żadnej z poniższych poprawek i zgłasza je ponownie. To była
-najczęstsza przyczyna nieporozumień w tej rundzie.
+to punkt cofnięcia). **Demo zostało wdrożone i zmigrowane dopiero 24.08
+wieczorem** — przez cztery dni klient oglądał wersję sprzed poprawek i zgłaszał
+je ponownie. To była najczęstsza przyczyna nieporozumień w tej rundzie
+i sprawdzanie, CO klient właściwie widzi, ma być pierwszym ruchem przy każdym
+zgłoszeniu.
 
 Testy: **11 plików, 912 sprawdzeń + 93 w `test_parsers` + 17 w node**, komplet
 przechodzi. Doszedł `test_obszary.py`.
@@ -615,6 +617,27 @@ placówek i zero powiatów; sam zakaz zakładania zabrałby handlowcowi możliwo
 zapisania wizyty w przedszkolu, którego w tych 545 nie ma. Obie rzeczy jadą tą
 samą gałęzią, więc wystarczy ich nie rozdzielać przy wdrożeniu.
 
+### Cztery usterki z 24.08 wieczorem — wszystkie z KLIKANIA, nie z testów
+Wyszły, gdy klient zaczął używać aplikacji, mimo blisko tysiąca zielonych
+sprawdzeń. Łączy je jedno i warto to zapamiętać: **siedziały na styku „nowa
+baza ↔ stary ekran"**, a testy chodzą po świeżej bazie, gdzie tego styku
+nie ma. Po każdej migracji danych trzeba przejść ekrany ręcznie.
+
+- **„Zapis się zacina".** `pilnujWyjscia` wiesza `beforeunload`, a udany zapis
+  robi `location.reload()` — czyli wychodzi ze strony. Bez flagi „już zapisane"
+  przeglądarka blokuje przeładowanie własnym okienkiem. **Zapis dochodził do
+  bazy, zacinał się powrót** — usterka wyglądająca jak utrata pracy i kusząca
+  do ponowienia. v1–v4 mają tę flagę od czerwca.
+- **Lista miejscowości w formularzach przestała trafiać w bazę.** Warianty 2–4
+  brały je ze słownika `miasto` (`01. Orzesze`), a M8 wyczyścił nazwy w bazie
+  (`Orzesze`) — część wspólna PUSTA, wybór dawał zero szkół. Zdanie klienta
+  „lista jest widoczna na demo" było kluczem: demo nie było zmigrowane, więc
+  usterka **czekała na moment migracji**, czyli na handlowców.
+- **Cykl bez prowadzącego** — sekcja cykliczna v5 rysowała sam harmonogram,
+  więc definicje jej pól były martwym kodem, choć wyglądały na kompletne.
+- **Po zapisie pusty formularz zamiast potwierdzenia** — ostatnie miejsce,
+  w którym v5 różnił się od v1–v4 funkcją, a nie układem.
+
 ### Grabie z tej rundy
 - **Kontakt należy do placówki — v5 popełnił od nowa błąd naprawiony w v2–v4.**
   Reguła „podstawiaj tylko w puste pole" (P04) chroni to, co wpisał człowiek,
@@ -641,18 +664,22 @@ samą gałęzią, więc wystarczy ich nie rozdzielać przy wdrożeniu.
   jądrem obu.
 
 ### Do zrobienia w pierwszej kolejności
-1. **Wdrożenie na demo** — bez tego wszystko powyżej jest niewidoczne.
-   Instrukcja przećwiczona na kopii produkcji:
-   `docs/poprawka 24.08.2026/WDROZENIE_NA_DEMO.md`. Dwa polecenia:
-   `./wdroz.sh demo`, potem `./narzedzia/migracja_na_demo.sh ~/rspo_2026_08_13.csv`.
-   Na serwer jedzie JEDEN plik — rejestr CSV (41 MB); arkusz klienta okazał się
-   niepotrzebny. **Migrujemy demo W MIEJSCU, nie wgrywamy gotowego `.db`** —
-   odwrotnie niż produkcję w sierpniu, bo tamta reguła („baza powstaje lokalnie
-   i jedzie plikiem") straciła podstawę: produkcja od 11.08 ŻYJE, więc jej bazy
-   nie da się podmienić, trzeba ją migrować w miejscu — a demo jest jedynym
-   miejscem, gdzie da się to przećwiczyć. Wgranie pliku odebrałoby też PIN-y
-   43 z 46 kont na demo. **Po migracji NIE uruchamiać `odswiez_demo.sh`** —
-   zasiewa demo kopią produkcji i skasowałby całą migrację
+1. ✅ **Demo wdrożone i zmigrowane 24.08 wieczorem.** Migrowaliśmy W MIEJSCU,
+   nie wgrywając gotowego `.db` — odwrotnie niż produkcję w sierpniu, bo tamta
+   reguła („baza powstaje lokalnie i jedzie plikiem") straciła podstawę:
+   produkcja od 11.08 ŻYJE, więc jej bazy nie da się podmienić, trzeba ją
+   migrować w miejscu — a demo było jedynym miejscem, gdzie dało się to
+   przećwiczyć. ⚠️ **Od teraz NIE uruchamiać `odswiez_demo.sh`** — zasiewa demo
+   kopią produkcji i skasowałby migrację. Znów będzie miał sens po migracji
+   produkcji.
+2. **PRODUKCJA — następny krok.** `docs/poprawka 24.08.2026/WDROZENIE_NA_PRODUKCJE.md`
+   + `narzedzia/migracja_na_produkcje.sh`, przećwiczone na kopii produkcji
+   z 24.08 08:24: 555 placówek → 1614, **eventy 87 → 87**, przydzielone leady
+   438 → 438, konta 49 → 49. Trzy różnice wobec demo: kopia z eksportem `.xlsx`,
+   **zatrzymanie usługi** na czas migracji (~2 min, wieczorem), sprawdzenie
+   liczby eventów przed i po. Osobny plik skryptu, nie `--profil prod`
+   w skrypcie demo — inaczej produkcję dałoby się ruszyć poleceniem wklejonym
+   z pamięci
 2. Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx` do Kasi (25 placówek)
 3. **M4 — scalanie par** (narzędzia jeszcze nie ma; po wypełnionym pliku)
 4. Konto handlowca dla Zuzi

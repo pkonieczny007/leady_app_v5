@@ -1,12 +1,20 @@
 # Wdrożenie na demo — 24.08.2026
 
+## ✅ WYKONANE 24.08 wieczorem — demo działa
+
+Paweł potwierdził: kod i migracja przeszły, wszystkie ekrany działają.
+Plik zostaje jako zapis procedury (przyda się przy odtwarzaniu demo) —
+**następny krok to produkcja: `WDROZENIE_NA_PRODUKCJE.md`.**
+
+⚠️ Od tej chwili **nie uruchamiać `narzedzia/odswiez_demo.sh`** — zasiewa demo
+kopią produkcji i skasowałby migrację. Znów będzie miał sens dopiero po
+migracji produkcji.
+
+---
+
 Instrukcja do wykonania z palca na serwerze. **Ścieżka jest przećwiczona
 lokalnie na kopii bazy produkcyjnej** (545 placówek → 1613, eventy 65 → 65),
 więc liczby niżej to nie szacunki, tylko wynik próby.
-
-Demo stoi dziś na `main` i **klient nie widzi ANI JEDNEJ zmiany z 20–24.08**.
-To była najczęstsza przyczyna nieporozumień w tej rundzie: Kasia i Zuzia
-zgłaszają rzeczy dawno naprawione, bo oglądają wersję sprzed poprawek.
 
 Serwer: `ubuntu@57.128.241.52`, katalog `/home/ubuntu/apps/demo-ph.silesia3d.site`.
 Wejście: VS Code Remote na hasło.

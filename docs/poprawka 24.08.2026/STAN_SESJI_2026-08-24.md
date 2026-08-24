@@ -5,12 +5,12 @@ Poprzedni: `docs/poprawka 23.08.2026/STAN_SESJI_2026-08-23.md`.
 
 | | |
 |---|---|
-| Gałąź | `poprawki-2026-08`, ostatni commit **`48c198a`** |
+| Gałąź | `poprawki-2026-08`, ostatni commit **`c20b7ed`** |
 | Produkcja | nietknięta, `main` = `6a3e181`; cofnięcie: tag `przed-poprawkami-2026-08-20` |
-| Demo | **nadal stoi na `main`** — klient NIE WIDZI ani jednej z tych zmian |
-| Testy | 10 plików, **896 sprawdzeń** + 93 (`test_parsers`), komplet OK |
+| Demo | ✅ **WDROŻONE i ZMIGROWANE 24.08 wieczorem** — potwierdzone przez Pawła |
+| Testy | 11 plików, **982 sprawdzenia** + 93 (`test_parsers`) + 17 w node, komplet OK |
 | Profil `test` | **1618 placówek**, 1593 z numerem RSPO, 69 eventów |
-| Profil `prod` | **NIETKNIĘTY** — 545 placówek, zero RSPO, zero powiatów |
+| Produkcja (VPS) | **NIETKNIĘTA** — 555 placówek, 87 eventów, zero RSPO. Ścieżka przećwiczona, `WDROZENIE_NA_PRODUKCJE.md` |
 
 ---
 
@@ -246,6 +246,74 @@ Trzy rzeczy, które ta próba ustaliła i których nie dało się przewidzieć:
 Wynik: `narzedzia/migracja_na_demo.sh` — jedno polecenie zamiast dwunastu,
 z kopią bazy jako pierwszym krokiem i poleceniem cofającym na końcu.
 Instrukcja: `WDROZENIE_NA_DEMO.md`.
+
+---
+
+## 6d. Wieczór 24.08 — cztery usterki z KLIKANIA, nie z testów
+
+Wszystkie cztery wyszły, gdy Paweł zaczął używać aplikacji, mimo 982 zielonych
+sprawdzeń. Łączy je jedno: **siedziały na styku „nowa baza ↔ stary ekran"**,
+a testy chodzą po świeżej bazie, gdzie tego styku nie ma.
+
+**Zapis w v5 „zacinał się".** `FxAwaria.pilnujWyjscia` wiesza `beforeunload`,
+a udany zapis kończy się `location.reload()` — czyli wyjściem ze strony.
+Bez flagi „już zapisane" przeglądarka blokowała przeładowanie własnym okienkiem,
+a ekran stał z napisem „Zapisuję…". **Zapis dochodził do bazy, zacinał się
+powrót** — czyli usterka wyglądająca jak utrata pracy i kusząca do ponowienia.
+Warianty 1–4 mają tę flagę od czerwca.
+
+**„W ogóle nie działa v3 wybór szkół… wszystkie stare formularze."** Warianty
+2–4 brały miejscowości ze SŁOWNIKA `miasto`, a etap M8 wyczyścił nazwy
+w BAZIE: słownik ma `01. Orzesze`, baza `Orzesze` — **część wspólna PUSTA**.
+Zdanie Pawła „lista jest widoczna na demo" było najważniejszą częścią
+zgłoszenia: demo nie było jeszcze zmigrowane, więc usterka **czekała dokładnie
+na moment migracji**, czyli ujawniłaby się handlowcom, nie nam. Miejscowości
+idą teraz z danych — to ta sama zmiana, którą przy M6 zrobiłem w filtrach
+i nie dokończyłem w formularzach.
+
+**Cykl bez prowadzącego.** Sekcja cykliczna rysowała sam harmonogram, więc
+definicje jej pól (prowadzący, godziny, sprzęt, grupa, uwagi) były MARTWYM
+kodem, choć wyglądały na kompletne. Cykl dało się umówić, ale nie dało się
+powiedzieć, kto go poprowadzi.
+
+**„Po zapisie przeskakuje na widok wpisywania od nowa."** v5 robił
+`location.reload()` zamiast ekranu potwierdzenia. Przy zapisie kilku rodzajów
+naraz pierwsze pytanie brzmi „zapisało się wszystko czy jedno?" — i nie było
+na nie odpowiedzi. To było OSTATNIE miejsce, w którym v5 różnił się od v1–v4
+funkcją, a nie układem.
+
+Przy okazji: klasa `fx-sukces` siedziała w `formularz.css`, którego warianty
+2–5 nie wczytują — ich ekran potwierdzenia był BEZ STYLU od czerwca i nikt
+tego nie zgłosił, bo działał, tylko wyglądał jak nieskończony.
+
+---
+
+## 6e. Produkcja — przygotowana, przećwiczona na DZISIEJSZEJ kopii
+
+`WDROZENIE_NA_PRODUKCJE.md` + `narzedzia/migracja_na_produkcje.sh`.
+Próba na `kopie_vps/prod_2026-08-24_0824.db`, czyli na realnej pracy
+handlowców, nie na zrzucie z 10.08:
+
+```
+placówki 555 → 1614     leady 554 → 1613
+eventy   87 →   87      przydzielone leady 438 → 438      konta 49 → 49
+z rspo    0 → 1587 (27 bez numeru)      bez powiatu 555 → 1
+mikołowski 88 (= rejestr)               Czeladź 18
+```
+
+Trzy rzeczy odróżniają produkcję od demo i każda kosztuje osobny krok:
+kopia **z eksportem do .xlsx** (plik do otwarcia bez tej aplikacji),
+**zatrzymanie usługi** na czas migracji (~2 min, robić wieczorem) zamiast
+liczenia, że nikt akurat nie kliknie, oraz **sprawdzenie liczby eventów przed
+i po** — skrypt sam kończy się błędem, gdy się rozjedzie.
+
+**Osobny plik skryptu, nie przełącznik `--profil prod`** w skrypcie demo:
+inaczej produkcję dałoby się ruszyć poleceniem wklejonym z pamięci, z jedną
+zmienioną literą. Potwierdzenie: wpisanie słowa `PRODUKCJA`.
+
+Uwaga na marginesie: produkcja ma dziś **555 placówek zamiast 545** — dziesięć
+dopisali handlowcy ręcznie między 10.08 a 24.08. To jest dokładnie ten materiał
+dowodowy, o którym mówiła Kasia; warto go obejrzeć po migracji.
 
 ---
 
