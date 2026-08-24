@@ -277,9 +277,12 @@ def main():
 
     p = pod.add_parser("doloz", help="M7a: dołóż brakujące placówki z lustra")
     p.add_argument("--grupa", default="przedszkola",
-                   choices=["przedszkola", "szkoly", "wszystkie"],
-                   help="przedszkola: bez ryzyka dubli (w bazie nie ma ani jednego); "
-                        "szkoly: dopiero po nadaniu numerów RSPO (M3)")
+                   choices=["przedszkola", "szkoly", "pozaszkolne", "zespoly",
+                            "wszystkie"],
+                   help="przedszkola i pozaszkolne: bez ryzyka dubli (nie mamy "
+                        "ani jednej takiej placówki); szkoly: dopiero po nadaniu "
+                        "numerów RSPO (M3), inaczej powstanie ~540 dubli; "
+                        "zespoly: stanęłyby OBOK własnych składowych")
     p.add_argument("--zapisz", action="store_true",
                    help="bez tego pokazuje tylko liczby")
     p.add_argument("--cofnij", action="store_true",

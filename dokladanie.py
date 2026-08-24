@@ -50,10 +50,28 @@ import rejestr_rspo
 # Jeden rekord „ZSP nr 23" nie pomieściłby DT w podstawówce i osobnych cykli
 # w dwóch przedszkolach tego samego zespołu.
 GRUPY_TYPOW = {
-    "przedszkola": ("Przedszkole", "Punkt przedszkolny"),
+    "przedszkola": ("Przedszkole", "Punkt przedszkolny",
+                    "Zespół wychowania przedszkolnego"),
     "szkoly": ("Szkoła podstawowa",),
+    # Placówki pozaszkolne prowadzące zajęcia dla dzieci — dom kultury, ognisko,
+    # ośrodek. Dla handlowca to ten sam produkt co w szkole, tylko inny
+    # rozmówca; w rejestrze mają osobne typy, bo tak dzieli je prawo oświatowe.
+    "pozaszkolne": ("Młodzieżowy dom kultury",
+                    "Ognisko pracy pozaszkolnej",
+                    "Placówki artystyczne (ognisko artystyczne)",
+                    "Międzyszkolny ośrodek sportowy",
+                    "Młodzieżowy Ośrodek Socjoterapii ze szkołami"),
+    # ZESPOŁY STOJĄ OSOBNO I ŚWIADOMIE NIE WCHODZĄ DO „wszystkie".
+    # Rejestr rozbija zespół na wiersze: sam zespół + jego składowe (szkoła,
+    # przedszkola). Rekord roboczy robimy dla SKŁADOWEJ, bo to ona ma typ,
+    # liczbę dzieci i własny proces — jeden wiersz „ZSP nr 23" nie pomieściłby
+    # DT w podstawówce i osobnych cykli w dwóch przedszkolach tego zespołu.
+    # Dołożenie zespołów postawiłoby je OBOK ich własnych składowych, czyli
+    # trzy rekordy pod jednym adresem. Dlatego trzeba o nie poprosić wprost.
+    "zespoly": ("Zespół szkół i placówek oświatowych",),
 }
-GRUPY_TYPOW["wszystkie"] = GRUPY_TYPOW["przedszkola"] + GRUPY_TYPOW["szkoly"]
+GRUPY_TYPOW["wszystkie"] = (GRUPY_TYPOW["przedszkola"] + GRUPY_TYPOW["szkoly"]
+                            + GRUPY_TYPOW["pozaszkolne"])
 
 # Rejestr → słownik `typ_placowki`. Przedszkole publiczne i prywatne to dla
 # handlowca dwie różne rozmowy (inny decydent, inne pieniądze), dlatego
@@ -61,6 +79,27 @@ GRUPY_TYPOW["wszystkie"] = GRUPY_TYPOW["przedszkola"] + GRUPY_TYPOW["szkoly"]
 TYP_SP = "01. Szkoła podstawowa"
 TYP_PRZEDSZKOLE_PUB = "02. Przedszkole miejskie (PM)"
 TYP_PRZEDSZKOLE_NIEPUB = "03. Przedszkole prywatne (PP)"
+TYP_ZESPOL = "04. Zespół szkolno-przedszkolny (ZSP)"
+# Dom kultury, ognisko i ośrodek trafiają do pozycji, którą klient sam założył
+# na takie miejsca. NIE dokładamy nowych pozycji słownika: dokładny typ
+# z rejestru siedzi w lustrze pod tym samym numerem RSPO i widać go na karcie,
+# a wartość słownika raz wpuszczona na produkcję zostaje tam na zawsze.
+# Gdyby Kasia chciała je rozróżniać na filtrach — to jedna linia w słowniku.
+TYP_POZASZKOLNA = "05. Instytucja kultury"
+
+MAPA_TYPOW = {
+    "Szkoła podstawowa": TYP_SP,
+    "Zespół szkół i placówek oświatowych": TYP_ZESPOL,
+    "Młodzieżowy dom kultury": TYP_POZASZKOLNA,
+    "Ognisko pracy pozaszkolnej": TYP_POZASZKOLNA,
+    "Placówki artystyczne (ognisko artystyczne)": TYP_POZASZKOLNA,
+    "Międzyszkolny ośrodek sportowy": TYP_POZASZKOLNA,
+    "Młodzieżowy Ośrodek Socjoterapii ze szkołami": TYP_POZASZKOLNA,
+    # Przedszkolne rozstrzyga publiczność — patrz `typ_roboczy`.
+    "Przedszkole": None,
+    "Punkt przedszkolny": None,
+    "Zespół wychowania przedszkolnego": None,
+}
 
 # Worki powiatowe w słowniku `miasto` — patrz nagłówek modułu.
 KUBLY_POWIATOWE = {
@@ -131,10 +170,12 @@ def brakujace_pozycje_slownikow(conn, typy):
     if set(typy) & set(GRUPY_TYPOW["przedszkola"]):
         potrzebne += [("typ_placowki", TYP_PRZEDSZKOLE_PUB),
                       ("typ_placowki", TYP_PRZEDSZKOLE_NIEPUB)]
-    if set(typy) & set(GRUPY_TYPOW["szkoly"]):
-        potrzebne += [("typ_placowki", TYP_SP)]
+    for t in typy:
+        docelowy = MAPA_TYPOW.get(t)
+        if docelowy:
+            potrzebne.append(("typ_placowki", docelowy))
     brak = []
-    for rodzaj, wartosc in potrzebne:
+    for rodzaj, wartosc in dict.fromkeys(potrzebne):
         jest = conn.execute(
             "SELECT 1 FROM slowniki WHERE rodzaj=? AND wartosc=?",
             (rodzaj, wartosc)).fetchone()
@@ -154,8 +195,9 @@ def _mapa_miast(conn):
 
 
 def typ_roboczy(rekord):
-    if rekord["typ"] == "Szkoła podstawowa":
-        return TYP_SP
+    stały = MAPA_TYPOW.get(rekord["typ"], None)
+    if stały:
+        return stały
     publiczna = (rekord["publicznosc"] or "").lower().startswith("publiczn")
     return TYP_PRZEDSZKOLE_PUB if publiczna else TYP_PRZEDSZKOLE_NIEPUB
 
@@ -217,11 +259,18 @@ def podobne_istniejace(conn, grupa):
        Przy dokładaniu przedszkoli porównujemy się więc wyłącznie z rekordami,
        które przedszkolem być mogą (typ „Inna", pusty albo przedszkolny).
     """
-    wykluczone = []
-    if grupa == "przedszkola":
-        wykluczone = [TYP_SP]
-    elif grupa == "szkoly":
-        wykluczone = [TYP_PRZEDSZKOLE_PUB, TYP_PRZEDSZKOLE_NIEPUB]
+    # Typy robocze, które ta grupa może wyprodukować — i tylko z nimi się
+    # porównujemy. Rekordy o typie spoza tej listy (np. klienckie `04. Inna`)
+    # zostają w porównaniu ZAWSZE, bo pod taką etykietą może siedzieć cokolwiek
+    # — i faktycznie siedziało: „Zając Poziomka" okazała się przedszkolem.
+    moje_typy = {TYP_PRZEDSZKOLE_PUB, TYP_PRZEDSZKOLE_NIEPUB} \
+        if set(GRUPY_TYPOW["przedszkola"]) & set(GRUPY_TYPOW.get(grupa, ())) else set()
+    for t in GRUPY_TYPOW.get(grupa, ()):
+        if MAPA_TYPOW.get(t):
+            moje_typy.add(MAPA_TYPOW[t])
+    wszystkie_robocze = {TYP_SP, TYP_PRZEDSZKOLE_PUB, TYP_PRZEDSZKOLE_NIEPUB,
+                         TYP_ZESPOL, TYP_POZASZKOLNA}
+    wykluczone = sorted(wszystkie_robocze - moje_typy)
     sql = "SELECT id, nazwa, miejscowosc FROM placowki WHERE (rspo IS NULL OR rspo='')"
     if wykluczone:
         sql += " AND COALESCE(typ,'') NOT IN (%s)" % ",".join("?" * len(wykluczone))

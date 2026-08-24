@@ -156,9 +156,52 @@ def testy_dokladania(conn):
     sprawdz("obszar wpisany", conn.execute(
         "SELECT obszar FROM placowki WHERE rspo='2003'").fetchone()[0] == "powiat będziński")
 
+    print("\nR7b — typy pozaszkolne i zespoły")
+    _slownik(conn, "typ_placowki", [dokladanie.TYP_ZESPOL,
+                                    dokladanie.TYP_POZASZKOLNA])
+    plik_poza = _zapisz_csv([
+        _wiersz(3001, "MŁODZIEŻOWY DOM KULTURY W KATOWICACH", "Młodzieżowy dom kultury",
+                "Katowice", "Katowice", "Katowice", publicznosc="publiczna"),
+        _wiersz(3002, "OGNISKO PRACY POZASZKOLNEJ NR 1", "Ognisko pracy pozaszkolnej",
+                "Katowice", "Katowice", "Katowice", publicznosc="publiczna"),
+        _wiersz(3003, "ZESPÓŁ SZKÓŁ NR 7 W KATOWICACH",
+                "Zespół szkół i placówek oświatowych",
+                "Katowice", "Katowice", "Katowice"),
+        _wiersz(3004, "ZESPÓŁ WYCHOWANIA PRZEDSZKOLNEGO",
+                "Zespół wychowania przedszkolnego",
+                "Katowice", "Katowice", "Katowice", publicznosc="niepubliczna"),
+    ])
+    rejestr_rspo.wgraj(conn, plik_poza, wykryj_znikniete=False)
+    obszary.przelicz(conn)
+
+    poza = dokladanie.przygotuj(conn, "pozaszkolne")
+    typy_poza = {r["rspo"]: r["typ"] for r in poza["do_zapisu"]}
+    sprawdz("dom kultury i ognisko idą do instytucji kultury",
+            typy_poza.get(3001) == dokladanie.TYP_POZASZKOLNA
+            and typy_poza.get(3002) == dokladanie.TYP_POZASZKOLNA,
+            str(typy_poza))
+    sprawdz("zespół NIE wchodzi do grupy pozaszkolnej", 3003 not in typy_poza)
+
+    wszystkie = {r["rspo"] for r in dokladanie.przygotuj(conn, "wszystkie")["do_zapisu"]}
+    # Zespół stanąłby OBOK własnych składowych — trzy rekordy pod jednym adresem.
+    # Dlatego trzeba o niego poprosić wprost, a nie dostać go przy okazji.
+    sprawdz("„wszystkie” świadomie pomija zespoły", 3003 not in wszystkie)
+    sprawdz("„wszystkie” obejmuje pozaszkolne i przedszkolne",
+            3001 in wszystkie and 3004 in wszystkie, str(sorted(wszystkie)))
+    zesp = {r["rspo"]: r["typ"] for r in dokladanie.przygotuj(conn, "zespoly")["do_zapisu"]}
+    sprawdz("zespół wchodzi dopiero na wyraźne życzenie",
+            zesp.get(3003) == dokladanie.TYP_ZESPOL, str(zesp))
+    sprawdz("zespół wychowania przedszkolnego liczy się jak przedszkole",
+            {r["rspo"]: r["typ"] for r in dokladanie.przygotuj(conn, "przedszkola")
+             ["do_zapisu"]}.get(3004) == dokladanie.TYP_PRZEDSZKOLE_NIEPUB)
+
     print("\nR8 — powtórzenie nie tworzy dubli")
     plan2 = dokladanie.przygotuj(conn, "przedszkola")
-    sprawdz("drugi przebieg nie ma co dokładać", plan2["do_zapisu"] == [])
+    # Sprawdzamy, że nie wracają rekordy JUŻ ZAPISANE — a nie że lista jest
+    # pusta: R7b dosypało do lustra kandydatów, których świadomie nie zapisano.
+    sprawdz("zapisane rekordy nie wracają na listę",
+            not ({2001, 2002, 2003} & {r["rspo"] for r in plan2["do_zapisu"]}),
+            str([r["rspo"] for r in plan2["do_zapisu"]]))
     sprawdz("liczba placówek bez zmian", conn.execute(
         "SELECT COUNT(*) FROM placowki").fetchone()[0] == 3)
 
