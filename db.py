@@ -437,6 +437,15 @@ def migruj(conn):
     Dokłada kolumny, które pojawiły się po utworzeniu bazy.
     `CREATE TABLE IF NOT EXISTS` nie zmienia istniejącej tabeli, więc bez tego
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
+
+    ODPORNE NA WYŚCIG MIĘDZY WORKERAMI. Na serwerze stoi gunicorn z kilkoma
+    procesami i wszystkie startują naraz: każdy sprawdza `PRAGMA table_info`,
+    każdy widzi brak kolumny, każdy próbuje ją dodać — i drugi w kolejce
+    dostaje `duplicate column name`. Wywalony worker podnosi się sam po
+    sekundzie, więc wdrożenie „działa", ale w logu produkcyjnym zostaje wpis
+    wyglądający jak awaria, a przy pracujących ludziach to kilka sekund
+    niedostępności bez żadnego powodu. Kolumna dodana przez sąsiedni proces to
+    nie błąd — to dokładnie ten stan, który chcieliśmy osiągnąć.
     """
     tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
               "leady": LEAD_KEYS + LEAD_KOLUMNY_TECHNICZNE,
@@ -450,7 +459,11 @@ def migruj(conn):
         for k in klucze:
             if k not in istniejace:
                 typ = "INTEGER" if k in INT_KEYS else "TEXT"
-                conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, k, typ))
+                try:
+                    conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, k, typ))
+                except sqlite3.OperationalError as e:
+                    if "duplicate column" not in str(e).lower():
+                        raise
 
 
 # ------------------------------------------------------------------ słowniki
