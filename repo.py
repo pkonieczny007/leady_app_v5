@@ -359,6 +359,16 @@ def lead_szczegoly(conn, lead_id):
                 "WHERE event_id=? ORDER BY data", (e["id"],)).fetchall()]
         except Exception:
             e["terminy"] = []
+        # Odwołane POJEDYNCZE zajęcia z cyklu (30.08). Ślad ma być tam, gdzie
+        # ludzie go szukają — czyli w karcie szkoły, nie tylko w kalendarzu
+        # w trybie „odwołane", do którego trzeba wiedzieć, że się wchodzi.
+        try:
+            e["odwolane_terminy"] = [dict(r) for r in conn.execute(
+                "SELECT data, powod_odwolania, odwolal, odwolane_kiedy "
+                "FROM wyjatki_cyklu WHERE event_id=? AND odwolane=1 ORDER BY data",
+                (e["id"],)).fetchall()]
+        except Exception:
+            e["odwolane_terminy"] = []
     lead["log"] = [dict(r) for r in conn.execute(
         "SELECT * FROM log WHERE lead_id=? ORDER BY kiedy DESC LIMIT 40",
         (lead_id,)).fetchall()]

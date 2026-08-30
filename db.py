@@ -314,6 +314,9 @@ def init_db(conn):
           godz_od TEXT,
           godz_do TEXT,
           uwagi TEXT,
+          powod_odwolania TEXT,       -- ten sam ślad co przy odwołaniu DT (30.08)
+          odwolal TEXT,
+          odwolane_kiedy TEXT,
           UNIQUE(event_id, data)
         );
 
@@ -437,7 +440,9 @@ def migruj(conn):
     """
     tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
               "leady": LEAD_KEYS + LEAD_KOLUMNY_TECHNICZNE,
-              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
+              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE,
+              # ślad przy odwołaniu POJEDYNCZEGO terminu cyklu (30.08)
+              "wyjatki_cyklu": ["powod_odwolania", "odwolal", "odwolane_kiedy"]}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}
         if not istniejace:

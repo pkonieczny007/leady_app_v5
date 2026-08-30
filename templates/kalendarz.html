@@ -43,6 +43,11 @@
        title="Brakuje: {{ e.braki|join(', ') }} — uzupełnia handlowiec albo koordynator">⚠ do uzupełnienia</span>{% endif %}
   {% if e.odwolanie %}<span class="tag tag-neutral ev-kol"
        title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}">odwołane{{ ' · ' ~ e.odwolanie.powod|krotka(24) if e.odwolanie.powod }}</span>{% endif %}
+  {# Odwołany POJEDYNCZY termin cyklu (30.08) — reszta pakietu jedzie dalej.
+     Osobna plakietka niż wyżej, bo to co innego: tam odwołany jest cały cykl. #}
+  {% if e.odwolanie_terminu %}<span class="tag tag-neutral ev-kol"
+       title="Te jedne zajęcia odwołał: {{ e.odwolanie_terminu.kto or '—' }} · {{ e.odwolanie_terminu.kiedy }}{{ ' · ' ~ e.odwolanie_terminu.powod if e.odwolanie_terminu.powod }}
+Reszta cyklu jest bez zmian.">te zajęcia odwołane{{ ' · ' ~ e.odwolanie_terminu.powod|krotka(24) if e.odwolanie_terminu.powod }}</span>{% endif %}
   {# Szukana osoba jest tu, ale NIE jako prowadząca — czyli wpis siedzi w cudzym
      wierszu. Bez tego podpisu wygląda na pomyłkę filtra („czemu Olszewska
      wyświetla mi Gawrona"), a to jest prawdziwa informacja. #}
@@ -51,16 +56,25 @@
      widzi martwy DT po odmowie szkoły i do 20.08 nie miała jak go tknąć —
      kasowanie było tylko na karcie leada, dwa kliknięcia i przewijanie dalej.
 
-     Tylko dla wpisów niecyklicznych. Kafel cyklu to WYSTĄPIENIE reguły, więc
-     odwołanie po `e.id` skasowałoby z grafiku cały pakiet zajęć zamiast jednego
-     terminu. Pojedyncze wystąpienia obsługuje `wyjatki_cyklu` i to osobna
-     robota — lepiej nie dać przycisku, niż dać taki, który robi co innego. #}
+     Cykl dostał ten przycisk 30.08 (pkt 21: „cykli nie da się odwołać, nie ma
+     tego krzyżyka"), ale osobnym endpointem: kafel cyklu to WYSTĄPIENIE reguły,
+     więc odwołanie po `e.id` zdjęłoby z grafiku cały pakiet zamiast jednych
+     zajęć. Krzyżyk na cyklu odwołuje TEN termin (wyjątek na datę); odwołanie
+     całości zostało w karcie placówki jako „Odwołaj cały cykl". #}
   {% if e.odwolanie %}
   {# W trybie „odwołane" ten sam róg kafla robi ruch odwrotny: szkoła się
      rozmyśliła z powrotem i termin wraca do grafiku. #}
   <button type="button" class="ev-odwolaj btn-przywroc-event" data-id="{{ e.id }}"
-          title="Przywróć to spotkanie do grafiku">↺</button>
-  {% elif e.typ not in TYPY_CYKLICZNE %}
+          title="Przywróć CAŁY cykl do grafiku">↺</button>
+  {% elif e.odwolanie_terminu %}
+  <button type="button" class="ev-odwolaj btn-przywroc-termin"
+          data-id="{{ e.id }}" data-data="{{ e.data }}"
+          title="Przywróć te zajęcia do grafiku">↺</button>
+  {% elif e.typ in TYPY_CYKLICZNE %}
+  <button type="button" class="ev-odwolaj btn-odwolaj-termin"
+          data-id="{{ e.id }}" data-data="{{ e.data }}"
+          title="Odwołaj TE zajęcia ({{ e.data|pl_data }}) — reszta cyklu zostaje">✕</button>
+  {% else %}
   <button type="button" class="ev-odwolaj" data-odwolaj="{{ e.id }}"
           title="Odwołaj to spotkanie — zostanie z powodem, zniknie z grafiku">✕</button>
   {% endif %}
@@ -342,7 +356,23 @@
           {% if e.odwolanie %}<span class="tag tag-neutral"
                title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}">odwołane{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}</span>
           <button type="button" class="btn btn-ghost btn-sm btn-przywroc-event" data-id="{{ e.id }}"
-                  title="Przywróć to spotkanie do grafiku">↺ przywróć</button>{% endif %}
+                  title="Przywróć CAŁY cykl do grafiku">↺ przywróć</button>{% endif %}
+          {# Odwołanie POJEDYNCZYCH zajęć cyklu (30.08) — ten sam ruch co krzyżyk
+             w macierzy. Przełączenie widoku nie ma zabierać przycisku, bo wtedy
+             wygląda to jak usterka („w tamtym widoku się dało"). #}
+          {% if e.odwolanie_terminu %}<span class="tag tag-neutral"
+               title="Te zajęcia odwołał: {{ e.odwolanie_terminu.kto or '—' }} · {{ e.odwolanie_terminu.kiedy }}">te zajęcia odwołane{{ ' · ' ~ e.odwolanie_terminu.powod if e.odwolanie_terminu.powod }}</span>
+          <button type="button" class="btn btn-ghost btn-sm btn-przywroc-termin"
+                  data-id="{{ e.id }}" data-data="{{ e.data }}"
+                  title="Przywróć te zajęcia do grafiku">↺ przywróć</button>
+          {% elif e.typ in TYPY_CYKLICZNE and not e.odwolanie %}
+          <button type="button" class="btn btn-ghost btn-sm btn-odwolaj-termin"
+                  data-id="{{ e.id }}" data-data="{{ e.data }}"
+                  title="Odwołaj TE zajęcia — reszta cyklu zostaje">✕ odwołaj</button>
+          {% elif not e.odwolanie %}
+          <button type="button" class="btn btn-ghost btn-sm" data-odwolaj="{{ e.id }}"
+                  title="Odwołaj to spotkanie — zostanie z powodem, zniknie z grafiku">✕ odwołaj</button>
+          {% endif %}
           {% if e['_rola'] %}<span class="tag tag-rola">{{ e['_rola'] }}</span>{% endif %}
           <span class="agenda-trener">{{ e.trener|bez_prefiksu or '— brak trenera —' }}</span>
         </div>
@@ -419,7 +449,19 @@
             {% if e.odwolanie %}<div><span class="tag tag-neutral"
                  title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}">odwołane{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}</span>
               <button type="button" class="btn btn-ghost btn-sm btn-przywroc-event" data-id="{{ e.id }}"
-                      title="Przywróć to spotkanie do grafiku">↺ przywróć</button></div>{% endif %}
+                      title="Przywróć CAŁY cykl do grafiku">↺ przywróć</button></div>{% endif %}
+            {# Odwołane pojedyncze zajęcia — trzeci widok, ta sama para przycisków
+               co w macierzy i agendzie (30.08). #}
+            {% if e.odwolanie_terminu %}<div><span class="tag tag-neutral"
+                 title="Te zajęcia odwołał: {{ e.odwolanie_terminu.kto or '—' }} · {{ e.odwolanie_terminu.kiedy }}">te zajęcia odwołane{{ ' · ' ~ e.odwolanie_terminu.powod if e.odwolanie_terminu.powod }}</span>
+              <button type="button" class="btn btn-ghost btn-sm btn-przywroc-termin"
+                      data-id="{{ e.id }}" data-data="{{ e.data }}"
+                      title="Przywróć te zajęcia do grafiku">↺ przywróć</button></div>
+            {% elif e.typ in TYPY_CYKLICZNE and not e.odwolanie %}
+            <div><button type="button" class="btn btn-ghost btn-sm btn-odwolaj-termin"
+                    data-id="{{ e.id }}" data-data="{{ e.data }}"
+                    title="Odwołaj TE zajęcia — reszta cyklu zostaje">✕ odwołaj te zajęcia</button></div>
+            {% endif %}
             {% if e.kod_tinkercad or e.link_tinkercad %}
             <div class="start-foot">
               {% if e.kod_tinkercad %}<span class="start-kod">{{ e.kod_tinkercad }}</span>{% endif %}

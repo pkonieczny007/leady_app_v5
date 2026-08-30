@@ -701,16 +701,18 @@ def main():
     conn.close()
     sprawdz("po cofnięciu zajęcia wracają do grafiku", len(w_grafiku) == 1)
 
-    # Kafel cyklu to WYSTĄPIENIE reguły — przycisk odwołania po `e.id` skasowałby
-    # z grafiku cały pakiet. Lepiej nie dać przycisku, niż dać mylący.
+    # Kafel cyklu to WYSTĄPIENIE reguły, więc odwołanie po `e.id` zdjęłoby
+    # z grafiku cały pakiet. Do 30.08 cykl nie miał przycisku wcale („lepiej nie
+    # dać, niż dać mylący"); od 30.08 (pkt 21) ma WŁASNY, który odwołuje jedne
+    # zajęcia przez `wyjatki_cyklu`. Pilnujemy więc czego innego niż wcześniej:
+    # że te dwie drogi się nie pomieszały.
     szablon = open("templates/kalendarz.html", encoding="utf-8").read()
-    sprawdz("odwołanie w grafiku tylko dla wpisów niecyklicznych",
-            # P31 wsunął przed ten warunek gałąź „to jest odwołane → przywróć",
-            # więc `if` zamienił się w `elif`. Sam warunek jest ten sam i to
-            # jego pilnujemy: przycisk odwołania nie ma prawa pojawić się na
-            # kaflu cyklu.
-            "{% elif e.typ not in TYPY_CYKLICZNE %}" in szablon
-            and 'data-odwolaj="{{ e.id }}"' in szablon)
+    sprawdz("cykl NIE trafia do zwykłego odwołania spotkania",
+            'data-odwolaj="{{ e.id }}"' in szablon
+            and "{% if e.typ in TYPY_CYKLICZNE %}" not in
+                szablon.split('data-odwolaj="{{ e.id }}"')[0][-120:])
+    sprawdz("cykl ma własny przycisk odwołania jednych zajęć",
+            "btn-odwolaj-termin" in szablon and 'data-data="{{ e.data }}"' in szablon)
 
     # -----------------------------------------------------------------
     print("\nS19 — P30/P31: braki w DT widać w kalendarzu, odwołane mają swoją listę")
@@ -898,6 +900,73 @@ def main():
     html = KL.get("/pulpit").get_data(as_text=True)
     sprawdz("pulpit pokazuje nowe kolumny",
             "Nie ruszył" in html and "Nie udało się" in html)
+
+    # ------------------------ S20 — odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08)
+    # „DT ma odwołanie, cykle nie mają krzyżyka." Mają od 30.08, ale osobnym
+    # endpointem: kafel cyklu to wystąpienie reguły, więc odwołanie „po id"
+    # zdjęłoby z grafiku cały pakiet. Te sprawdzenia pilnują właśnie tej granicy.
+    print("\nS20 — odwoływanie pojedynczych zajęć cyklicznych")
+    conn = db.get_conn()
+    l_cyk = nowa_szkola("SP CYKL ODWOLANIA")
+    start = dt.date.today() + dt.timedelta(days=7)
+    while start.weekday() >= 5:                 # dzień roboczy: weekend bywa ukryty
+        start += dt.timedelta(days=1)
+    e_cyk = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, godz_od, trener, co_ile_tygodni) "
+        "VALUES (?, 'CYKLICZNE', ?, '12:00', ?, 1)",
+        (l_cyk, start.isoformat(), db.slownik_values(conn, "trener")[0])).lastrowid
+    conn.commit()
+    mies = start.strftime("%Y-%m")
+
+    def ile_wystapien(odw=False):
+        c2 = db.get_conn()
+        n = len([e for e in cv.events_for_month(c2, mies, odwolane=odw)
+                 if e["lead_id"] == l_cyk])
+        c2.close()
+        return n
+
+    przed = ile_wystapien()
+    sprawdz("cykl rozwija się na wystąpienia", przed >= 2, str(przed))
+    drugi = (start + dt.timedelta(days=7)).isoformat()
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk, {"data": drugi})
+    sprawdz("odwołanie terminu BEZ powodu odrzucone", kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk,
+                  {"data": drugi, "powod": "ferie w szkole"})
+    sprawdz("odwołanie terminu z powodem przechodzi", kod == 200, "kod %s" % kod)
+    sprawdz("z grafiku znika DOKŁADNIE jeden termin, reszta cyklu zostaje",
+            ile_wystapien() == przed - 1, "%d → %d" % (przed, ile_wystapien()))
+    sprawdz("odwołany termin widać w trybie „odwołane”", ile_wystapien(True) == 1)
+
+    conn2 = db.get_conn()
+    w = dict(conn2.execute("SELECT * FROM wyjatki_cyklu WHERE event_id=? AND data=?",
+                           (e_cyk, drugi)).fetchone())
+    ev = dict(conn2.execute("SELECT odwolane FROM eventy WHERE id=?", (e_cyk,)).fetchone())
+    conn2.close()
+    sprawdz("ślad ma powód, osobę i chwilę — jak przy DT",
+            w["powod_odwolania"] == "ferie w szkole" and w["odwolal"]
+            and w["odwolane_kiedy"])
+    sprawdz("SAM EVENT cyklu pozostaje żywy (nie odwołaliśmy całego pakietu)",
+            not ev["odwolane"])
+    html = KL.get("/lead/%d" % l_cyk).get_data(as_text=True)
+    sprawdz("karta szkoły pokazuje odwołane zajęcia z powodem",
+            "Odwołane zajęcia" in html and "ferie w szkole" in html)
+    sprawdz("przycisk w karcie mówi wprost, że bierze CAŁY cykl",
+            "Odwołaj cały cykl" in html)
+
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk, {"data": drugi, "cofnij": True})
+    sprawdz("przywrócenie terminu wraca do grafiku",
+            kod == 200 and ile_wystapien() == przed)
+
+    # DT nie ma się dać odwołać tą drogą — inaczej dwa mechanizmy pilnowałyby
+    # tego samego i prędzej czy później rozjechałyby się co do śladu.
+    e_dt = conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                        "VALUES (?, 'DT', ?, '09:00')",
+                        (l_cyk, start.isoformat())).lastrowid
+    conn.commit()
+    conn.close()
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_dt,
+                  {"data": start.isoformat(), "powod": "x"})
+    sprawdz("DT odsyłany do zwykłego odwołania spotkania", kod == 400, "kod %s" % kod)
 
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)

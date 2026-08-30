@@ -374,6 +374,38 @@
       .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
   });
 
+  /* Odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08) — reszta pakietu zostaje.
+     Osobny przycisk i osobny endpoint niż odwołanie całego spotkania: kafel
+     cyklu to wystąpienie reguły, więc odwołanie „po id" zdjęłoby z grafiku
+     wszystkie terminy naraz. Dlatego w treści pytania jest KONKRETNA data. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-odwolaj-termin");
+    if (!btn) return;
+    ev.preventDefault();
+    var powod = prompt("Dlaczego odwołujemy zajęcia " + btn.dataset.data + "?\n\n" +
+                       "Odwołany zostanie TYLKO ten termin — reszta cyklu jedzie " +
+                       "dalej. Zapisze się z Twoim nazwiskiem i datą.");
+    if (powod === null) return;
+    if (!powod.trim()) {
+      toast("Bez powodu nie da się odwołać — za miesiąc nikt tego nie odtworzy.", true);
+      return;
+    }
+    api("POST", "/api/event/" + btn.dataset.id + "/odwolaj-termin",
+        { data: btn.dataset.data, powod: powod.trim() })
+      .then(function () { location.reload(); })
+      .catch(function (e) { toast("Nie odwołano: " + e.message, true); });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-przywroc-termin");
+    if (!btn) return;
+    if (!confirm("Przywrócić zajęcia " + btn.dataset.data + " do grafiku?")) return;
+    api("POST", "/api/event/" + btn.dataset.id + "/odwolaj-termin",
+        { data: btn.dataset.data, cofnij: true })
+      .then(function () { location.reload(); })
+      .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
+  });
+
   /* ============================================================ SŁOWNIKI */
 
   document.addEventListener("click", function (ev) {

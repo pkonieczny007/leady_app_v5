@@ -194,12 +194,24 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
 
     wyjatki = _wyjatki(conn)
     terminy = _terminy(conn)
-    rows = conn.execute(_SQL_EVENTY + (_ODWOLANE if odwolane else _ZYWE)).fetchall()
+    # W trybie „odwołane" bierzemy TAKŻE spotkania żywe — bo od 30.08 odwołać
+    # da się pojedynczy termin cyklu, a taki wyjątek siedzi w `wyjatki_cyklu`,
+    # nie na evencie. Bez tego odwołanego terminu nie dałoby się ani zobaczyć,
+    # ani przywrócić: znikałby z grafiku i nie pojawiał na liście odwołanych.
+    rows = conn.execute(_SQL_EVENTY + ("" if odwolane else _ZYWE)).fetchall()
     out = []
+
+    def chce(x, calosc_odwolana):
+        """Czy to wystąpienie należy do oglądanego trybu."""
+        if odwolane:
+            return bool(calosc_odwolana or x.get("odwolane"))
+        return not x.get("odwolane")
+
     for r in rows:
         e = _row_to_event(r)
         if typy and e["typ"] not in typy:
             continue
+        calosc_odwolana = bool(e.get("odwolanie"))
         try:
             # Obcięcie do 10 znaków jest celowe. W bazie potrafi wylądować pełny
             # znacznik czasu („2026-09-22T00:00:00") — tak zapisywał daty pierwszych
@@ -217,7 +229,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_key"] = str(e["id"])
                 x["_cykl_nr"] = None
                 _naloz_wyjatek(x, wyjatki.get((e["id"], x["data"])))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             continue
 
@@ -247,7 +259,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_cykl_nr"] = t["nr"]
                 x["_z_listy"] = True
                 _naloz_wyjatek(x, wyjatki.get((e["id"], d.isoformat())))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             continue
 
@@ -270,7 +282,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_key"] = "%d@%s" % (e["id"], d.isoformat())
                 x["_cykl_nr"] = nr
                 _naloz_wyjatek(x, wyjatki.get((e["id"], d.isoformat())))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             krok += 1
             nr += 1
@@ -321,9 +333,17 @@ def _naloz_wyjatek(ev, w):
     if not w:
         ev["odwolane"] = False
         ev["wyjatek"] = None
+        ev["odwolanie_terminu"] = None
         return
     ev["wyjatek"] = w.get("uwagi") or "wyjątek na tę datę"
     ev["odwolane"] = bool(w.get("odwolane"))
+    # Ślad odwołania JEDNEGO terminu (30.08) — ta sama trójka co przy DT.
+    # Osobna nazwa niż `odwolanie` (całe spotkanie), bo w tym module `odwolane`
+    # jest już zajęte i pomieszanie tych dwóch raz już zjadło znacznik na kaflu.
+    ev["odwolanie_terminu"] = ({"powod": w.get("powod_odwolania"),
+                                "kto": w.get("odwolal"),
+                                "kiedy": w.get("odwolane_kiedy")}
+                               if w.get("odwolane") else None)
     if w.get("trener"):
         ev["trener_planowany"] = ev.get("trener")
         ev["trener"] = w["trener"]

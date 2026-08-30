@@ -437,6 +437,36 @@ def test_oddanie(ids):
     sprawdz("„rozpatrzone” może kliknąć tylko koordynator", kod == 403, "kod %s" % kod)
 
 
+def test_odwolanie_terminu_cyklu(ids):
+    """Odwołanie JEDNYCH zajęć cyklu (pkt 21, 30.08) idzie przez tę samą
+    kontrolę własności co reszta zapisów — nowy endpoint nie może być obejściem."""
+    print("\n-- odwołanie pojedynczego terminu cyklu: czyja szkoła --")
+    conn = db.get_conn()
+    cykle = {}
+    for klucz in ("a", "b"):
+        cykle[klucz] = conn.execute(
+            "INSERT INTO eventy (lead_id, typ, data, godz_od, co_ile_tygodni) "
+            "VALUES (?, 'CYKLICZNE', '2026-09-15', '12:00', 1)", (ids[klucz],)).lastrowid
+    conn.commit(); conn.close()
+
+    zaloguj(PH_A)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["b"],
+                  {"data": "2026-09-22", "powod": "próba na cudzej"})
+    sprawdz("cudzego terminu handlowiec nie odwoła", kod == 403, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["a"],
+                  {"data": "2026-09-22", "powod": "wywiadówka"})
+    sprawdz("swój termin odwołuje", kod == 200, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["a"], {"powod": "bez daty"})
+    sprawdz("bez daty terminu odmowa", kod == 400, "kod %s" % kod)
+
+    conn = db.get_conn()
+    w = conn.execute("SELECT odwolal FROM wyjatki_cyklu WHERE event_id=?",
+                     (cykle["a"],)).fetchone()
+    conn.close()
+    sprawdz("podpis bierze się z sesji, nie z żądania", w and w["odwolal"] == PH_A,
+            str(dict(w) if w else None))
+
+
 def main():
     print("=" * 62)
     print("UPRAWNIENIA — właściciel rekordu przy zapisie (P01, P02)")
@@ -453,6 +483,7 @@ def main():
     test_podglad_zostaje(ids)
     test_eksport(ids)
     test_oddanie(ids)
+    test_odwolanie_terminu_cyklu(ids)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n" + "=" * 62)

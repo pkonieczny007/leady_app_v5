@@ -1369,6 +1369,74 @@ def api_event_odwolaj(event_id):
     return jsonify(ok=True, odwolane=True, wrocil_do_umawiania=wrocil)
 
 
+@app.route("/api/event/<int:event_id>/odwolaj-termin", methods=["POST"])
+def api_event_odwolaj_termin(event_id):
+    """
+    Odwołanie JEDNYCH zajęć z cyklu — bez ruszania reszty pakietu (pkt 21, 30.08:
+    „cykli nie da się odwołać, nie ma tego krzyżyka").
+
+    DT ma odwołanie od 20.08 i klient słusznie pyta, czemu cykl nie ma. Powód
+    był techniczny: kafel cyklu w grafiku to WYSTĄPIENIE reguły, a nie osobny
+    wiersz w bazie — `api_event_odwolaj` po `e.id` zdjąłby z kalendarza cały
+    pakiet (u nas do 40 terminów). Lepiej było nie dać przycisku, niż dać taki,
+    który robi co innego, niż mówi.
+
+    Ten endpoint zapisuje wyjątek NA JEDNĄ DATĘ (`wyjatki_cyklu`) — ta tabela
+    istniała od początku i dokładnie po to, ale pisał do niej wyłącznie importer.
+    Ślad jest ten sam co przy DT: powód wymagany, nazwisko z sesji, wpis
+    zostaje w bazie i widać go w trybie „odwołane".
+
+    Odwołanie CAŁEGO cyklu zostaje pod `api_event_odwolaj` — w karcie placówki
+    przycisk nazywa się teraz wprost „Odwołaj cały cykl".
+    """
+    d = request.get_json(silent=True) or {}
+    data = (d.get("data") or "").strip()
+    if not data:
+        return jsonify(ok=False, error="Nie wiadomo, który termin odwołujemy"), 400
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    e = conn.execute("SELECT lead_id, typ FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego wpisu"), 404
+    if e["typ"] not in TYPY_CYKLICZNE:
+        conn.close()
+        return jsonify(ok=False, error="To nie są zajęcia cykliczne — użyj zwykłego "
+                                       "odwołania spotkania"), 400
+
+    ja = uz.zalogowany() or {}
+    if d.get("cofnij"):
+        # Wyjątek potrafi nieść też zastępstwo albo zmienioną godzinę, więc
+        # zdejmujemy TYLKO odwołanie, a nie cały wiersz — inaczej cofnięcie
+        # odwołania kasowałoby przy okazji ustalenia, o których nikt nie pytał.
+        conn.execute("UPDATE wyjatki_cyklu SET odwolane=0, powod_odwolania=NULL, "
+                     "odwolal=NULL, odwolane_kiedy=NULL WHERE event_id=? AND data=?",
+                     (event_id, data))
+        zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+                   co="cofnięcie odwołania terminu", pole=e["typ"], po=data)
+        conn.commit(); conn.close()
+        return jsonify(ok=True, odwolane=False)
+
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        conn.close()
+        return jsonify(ok=False, error="Napisz, dlaczego odwołujemy te zajęcia — "
+                                       "bez tego za miesiąc nikt tego nie odtworzy"), 400
+
+    # UPSERT: wyjątek na tę datę może już istnieć (np. wpisane zastępstwo).
+    conn.execute("INSERT INTO wyjatki_cyklu (event_id, data, odwolane, powod_odwolania, "
+                 "odwolal, odwolane_kiedy) VALUES (?,?,1,?,?,datetime('now')) "
+                 "ON CONFLICT(event_id, data) DO UPDATE SET odwolane=1, "
+                 "powod_odwolania=excluded.powod_odwolania, odwolal=excluded.odwolal, "
+                 "odwolane_kiedy=excluded.odwolane_kiedy",
+                 (event_id, data, powod, ja.get("osoba") or ""))
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+               co="odwołanie terminu zajęć", pole=e["typ"], przed=data, po=powod)
+    conn.commit(); conn.close()
+    return jsonify(ok=True, odwolane=True)
+
+
 @app.route("/api/event/<int:event_id>", methods=["DELETE"])
 def api_event_delete(event_id):
     # Kasowanie bez śladu zostaje przy koordynatorze (jest w TYLKO_KOORDYNATOR).

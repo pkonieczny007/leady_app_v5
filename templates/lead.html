@@ -92,8 +92,15 @@
         <button type="button" class="btn btn-secondary btn-sm btn-kandydaci" data-id="{{ e.id }}"
                 title="Pokaż, kto może pojechać na to spotkanie">
           {{ 'Zmień trenera' if e.trener else 'Kogo wysłać?' }}</button>
+        {# Przy cyklu przycisk mówi wprost, że bierze CAŁY pakiet — do 30.08
+           nazywał się „Odwołaj" i wyglądał jak odwołanie jednych zajęć, a zdejmował
+           z grafiku wszystkie wystąpienia. Pojedynczy termin odwołuje się
+           krzyżykiem na kaflu w kalendarzu. #}
         <button type="button" class="btn btn-ghost btn-odwolaj-event" data-id="{{ e.id }}"
-                title="Odwołaj — wpis zostaje z powodem, znika z grafiku">Odwołaj</button>
+                title="{{ 'Odwołuje CAŁY cykl — wszystkie terminy znikną z grafiku. Pojedyncze zajęcia odwołasz krzyżykiem w Kalendarzu DT.'
+                          if e.typ in TYPY_CYKLICZNE
+                          else 'Odwołaj — wpis zostaje z powodem, znika z grafiku' }}">{{
+                  'Odwołaj cały cykl' if e.typ in TYPY_CYKLICZNE else 'Odwołaj' }}</button>
         {% else %}
         <button type="button" class="btn btn-ghost btn-przywroc-event" data-id="{{ e.id }}"
                 title="Cofnij odwołanie — spotkanie wraca do grafiku">Przywróć</button>
@@ -124,6 +131,26 @@
           <li{{ ' class=minelo'|safe if t.data < today else '' }}>
             <span class="nums">{{ t.data|pl_data }}</span>
             <span class="nums muted">{{ t.godz_od or '' }}{{ '–' ~ t.godz_do if t.godz_do }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+      {# Odwołane pojedyncze zajęcia z tego cyklu (30.08) — reszta pakietu jedzie
+         dalej, więc bez tej listy jedyny ślad wisiałby w kalendarzu w trybie
+         „odwołane", do którego trzeba wiedzieć, że się wchodzi. #}
+      {% if e.odwolane_terminy %}
+      <div class="event-terminy">
+        <span class="kv-l">Odwołane zajęcia ({{ e.odwolane_terminy|length }})</span>
+        <ol class="terminy-lista">
+          {% for t in e.odwolane_terminy %}
+          <li class="minelo">
+            <span class="nums">{{ t.data|pl_data }}</span>
+            <span class="tag tag-neutral">odwołane</span>
+            <span class="muted small">{{ t.powod_odwolania or '—' }}{{ ' · ' ~ t.odwolal if t.odwolal }}</span>
+            <button type="button" class="btn btn-ghost btn-sm btn-przywroc-termin"
+                    data-id="{{ e.id }}" data-data="{{ t.data }}"
+                    title="Przywróć te zajęcia do grafiku">↺ przywróć</button>
           </li>
           {% endfor %}
         </ol>
