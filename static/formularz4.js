@@ -129,8 +129,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   var stan = {
     handlowiec: root.dataset.handlowiec || "",
-    wybrana: null,
-    nowa: false
+    wybrana: null
   };
 
   var moje = window.FX_MOJE || [];
@@ -190,15 +189,84 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       if (m.miejscowosc) licz[m.miejscowosc] = (licz[m.miejscowosc] || 0) + 1;
     });
     Array.prototype.forEach.call(selMiasto.options, function (o) {
-      if (licz[o.value]) o.textContent = o.textContent + "  (twoje: " + licz[o.value] + ")";
+      // Gwiazdka, a NIE „(twoje: 12)". Kasia czytała ten dopisek jako liczbę
+      // szkół w mieście: „w Katowicach pojawiają się tylko moje 12 szkół, nie
+      // ma całej listy placówek" — i prosiła wprost, żeby nie było tego słowa
+      // w nawiasie. Gwiazdka to ten sam znak co przy szkołach na liście,
+      // więc znaczy dokładnie to samo i nie da się jej wziąć za licznik.
+      if (licz[o.value]) o.textContent = "★ " + o.textContent;
     });
   })();
+
+  /* P07 (zgłoszenie K08 Kasi, 20.08): „jedno pole jest potrzebne w wyszukiwaniu
+     sam numer szkoły jak wpiszę miasto i numer że mi przefiltruje a nie szukam
+     na liscie".
+
+     Filtrujemy to, co JUŻ wczytaliśmy dla wybranej miejscowości — bez pytania
+     serwera. Dzięki temu reaguje z każdym znakiem, także wtedy, gdy zasięg
+     w szkolnym korytarzu ledwie starczył na jedno żądanie. */
+  var poleSzukaj = $("f2-szkola-szukaj");
+  var wczytane = [];                   // placówki ostatnio wybranej miejscowości
+
+  function bezOgonkow(s) {
+    return (s || "").toLowerCase()
+      .replace(/ą/g, "a").replace(/ć/g, "c").replace(/ę/g, "e").replace(/ł/g, "l")
+      .replace(/ń/g, "n").replace(/ó/g, "o").replace(/ś/g, "s").replace(/[żź]/g, "z");
+  }
+
+  function pasuje(p, fraza) {
+    var nazwa = bezOgonkow(p.nazwa);
+    // KAŻDY człon musi trafić, więc „sp 12" zawęża mocniej niż samo „12",
+    // a numer da się wpisać osobno — dokładnie o to prosiła Kasia.
+    return bezOgonkow(fraza).split(/\s+/).every(function (czesc) {
+      return !czesc || nazwa.indexOf(czesc) >= 0;
+    });
+  }
+
+  function rysujSzkoly() {
+    var fraza = poleSzukaj ? (poleSzukaj.value || "").trim() : "";
+    var lista = fraza ? wczytane.filter(function (p) { return pasuje(p, fraza); }) : wczytane;
+    var bylo = selSzkola.value;
+    // Wybrana szkoła zostaje na liście, nawet gdy wypadła z filtra. Inaczej
+    // select po cichu gubi wybór, a formularz dalej go pamięta i zapisuje.
+    if (bylo && indeks[bylo] && lista.indexOf(indeks[bylo]) < 0) {
+      lista = [indeks[bylo]].concat(lista);
+    }
+    var moich = 0;
+    var html = '<option value="">Wybierz szkołę z listy</option>';
+    lista.forEach(function (p) {
+      if (p.moja) moich++;
+      html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
+              (p.moja ? "  ★" : "") + "</option>";
+    });
+    selSzkola.innerHTML = html;
+    selSzkola.disabled = !wczytane.length;
+    if (bylo) selSzkola.value = bylo;
+
+    if (!wczytane.length) {
+      infoSzkola.textContent = "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+    } else if (fraza) {
+      infoSzkola.textContent = lista.length + " z " + wczytane.length +
+        " pasuje do wpisanego tekstu";
+    } else {
+      /* P06 (zgłoszenie K04): „na liście miast przy wpisywaniu DT katoice
+         pojawiają się tylko jako moje 12 szkół, nie ma całej listy plaówek".
+         Lista NIGDY nie była zawężona do własnych szkół — mylił dopisek przy
+         nazwie miasta. Mówimy więc wprost, że to cała baza miejscowości:
+         ukryte zawężenie wygląda jak brakujące dane. */
+      infoSzkola.textContent = wczytane.length + " szkół w tej miejscowości — cała baza" +
+        (moich ? ", twoich " + moich + " ★" : "");
+    }
+  }
+
+  if (poleSzukaj) poleSzukaj.addEventListener("input", rysujSzkoly);
 
   function wczytajSzkoly(miasto, poWczytaniu) {
     if (!miasto) {
       selSzkola.innerHTML = '<option value="">Najpierw wybierz miejscowość</option>';
       selSzkola.disabled = true;
       infoSzkola.textContent = "";
+      if (poleSzukaj) poleSzukaj.hidden = true;
       return;
     }
     selSzkola.disabled = true;
@@ -207,24 +275,18 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
                "&handlowiec=" + encodeURIComponent(stan.handlowiec))
       .then(function (j) {
         indeks = {};
-        var moich = 0;
-        var html = '<option value="">Wybierz szkołę z listy</option>';
         // szkoły handlowca na górze, reszta alfabetycznie
         j.pozycje.sort(function (a, b) {
           if (a.moja !== b.moja) return a.moja ? -1 : 1;
           return a.nazwa.localeCompare(b.nazwa, "pl");
         });
-        j.pozycje.forEach(function (p) {
-          indeks[p.placowka_id] = p;
-          if (p.moja) moich++;
-          html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
-                  (p.moja ? "  ★" : "") + "</option>";
-        });
-        selSzkola.innerHTML = html;
-        selSzkola.disabled = false;
-        infoSzkola.textContent = j.pozycje.length
-          ? (j.pozycje.length + " placówek" + (moich ? ", w tym " + moich + " twoich (★)" : ""))
-          : "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+        j.pozycje.forEach(function (p) { indeks[p.placowka_id] = p; });
+        wczytane = j.pozycje;
+        if (poleSzukaj) {
+          poleSzukaj.value = "";
+          poleSzukaj.hidden = !wczytane.length;
+        }
+        rysujSzkoly();
         if (poWczytaniu) poWczytaniu();
       })
       .catch(function (e) {
@@ -240,16 +302,40 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
     zapiszSzkic();
   });
 
+  /* Dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ, a nie
+     wpisywać od zera przy każdym spotkaniu.
+
+     P04 (zgłoszenie K09 Kasi, 20.08): przy ZMIANIE szkoły pola zostawały
+     wypełnione danymi poprzedniej — „wybrałam z listy szkołę, uzupełniły się
+     dane typu osoba do kontaktu, a potem zmieniłam szkołę, to osoba się nie
+     zmieniła". Skutek jest gorszy niż pusta rubryka: do bazy wchodzi cudzy
+     mail przy dobrej szkole i nikt tego nie zauważy.
+
+     Nadpisujemy więc ZAWSZE, także pustą wartością — szkoła bez kontaktu ma
+     pole wyczyścić, a nie odziedziczyć poprzednie — i mówimy o tym, zgodnie
+     z zasadą projektu: ostrzegamy, nie blokujemy. */
+  function podstawKontakt(szkola) {
+    var mapa = [["f2-osoba", "osoba_kontakt"],
+                ["f2-telefon", "telefon"],
+                ["f2-mail", "mail"]];
+    var podmiana = false;
+    for (var i = 0; i < mapa.length; i++) {
+      var pole = $(mapa[i][0]);
+      var nowa = (szkola && szkola[mapa[i][1]]) || "";
+      // Komunikat należy się tylko wtedy, gdy coś WYPARŁO wpisaną wartość.
+      // Pierwsze wypełnienie pustego formularza nie jest podmianą.
+      if (pole.value && pole.value !== nowa) podmiana = true;
+      pole.value = nowa;
+    }
+    return podmiana;
+  }
+
   selSzkola.addEventListener("change", function () {
     stan.wybrana = indeks[selSzkola.value] || null;
     if (stan.wybrana) {
-      stan.nowa = false;
-      $("f2-nowa").hidden = true;
-      // dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ,
-      // a nie wpisywać od zera przy każdym spotkaniu
-      if (!$("f2-osoba").value) $("f2-osoba").value = stan.wybrana.osoba_kontakt || "";
-      if (!$("f2-telefon").value) $("f2-telefon").value = stan.wybrana.telefon || "";
-      if (!$("f2-mail").value) $("f2-mail").value = stan.wybrana.mail || "";
+      if (podstawKontakt(stan.wybrana)) {
+        toast("Dane kontaktowe podmienione na te ze szkoły z bazy — sprawdź je.");
+      }
     }
     odswiezDostepnosc();
     zapiszSzkic();
@@ -264,20 +350,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       selSzkola.dispatchEvent(new Event("change"));
     });
   };
-
-  $("f2-nowa-otworz").addEventListener("click", function () {
-    stan.nowa = !stan.nowa;
-    $("f2-nowa").hidden = !stan.nowa;
-    this.textContent = stan.nowa
-      ? "− Jednak wybieram z listy"
-      : "+ Nie ma jej na liście — dodaj nową placówkę";
-    if (stan.nowa) {
-      stan.wybrana = null;
-      selSzkola.value = "";
-      $("f2-nowa-nazwa").focus();
-    }
-    zapiszSzkic();
-  });
 
   /* ==================================================== DOSTĘPNOŚĆ TRENERÓW */
 
@@ -811,35 +883,49 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
     root.querySelectorAll(".zly").forEach(function (e) { e.classList.remove("zly"); });
 
     var braki = [];
-    if (stan.nowa) {
-      if (!$("f2-nowa-nazwa").value.trim()) braki.push([$("f2-nowa-nazwa"), "Podaj nazwę placówki."]);
+    if (!stan.wybrana) {
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-    } else if (!stan.wybrana) {
-      if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-      else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
+      else braki.push([selSzkola, "Wybierz szkołę z listy."]);
     }
-    // Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
-    // przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
+    /* Pola DT są wymagane TYLKO wtedy, gdy DT w ogóle umawiamy. Wymaganie ich
+       przy wyłączonej sekcji znaczyłoby „wymyśl datę, żeby móc zapisać cykl".
+
+       P27 (Zuzia, 20.08): a i przy włączonej sekcji twarda zostaje sama DATA.
+       „Szkoła chce DT 15 września, godzinę i liczbę klas poda sekretariat" to
+       normalny wynik pierwszej wizyty, a nie błąd do poprawienia na miejscu.
+       Bez daty serwer i tak pomija cały blok DT, więc godzina wpisana obok
+       przepadłaby bez śladu — dlatego akurat ta jedna zostaje wymagana.
+       Reszta braków: ostrzeżenie niżej i znacznik „do uzupełnienia"
+       w kalendarzu (P30). */
+    var POLA_DT = [["f2-dt-data", "datę"], ["f2-dt-od", "godzinę"],
+                   ["f2-dt-trener", "prowadzącego"], ["f2-dt-klas", "liczbę klas"],
+                   ["f2-dt-dzieci", "liczbę dzieci"]];
+    function wpisaneDT(p) {
+      var el = $(p[0]);
+      return !!(el && String(el.value || "").trim());
+    }
     if (czyDT()) {
-      [["f2-dt-data", "Podaj datę DT."],
-       ["f2-dt-od", "Podaj godzinę DT."],
-       ["f2-dt-trener", "Wybierz prowadzącego DT."],
-       ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-       ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-       ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-        .forEach(function (p) {
-          var el = $(p[0]);
-          if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-        });
-    } else if (!zbierzCykl()) {
-      // DT wyłączony I pusta sekcja cykliczna = zapis, po którym nie powstaje
-      // ŻADNE spotkanie. Przycisk mruga, ekran sukcesu pokazuje samą szkołę
-      // i wygląda to jak zgubiony formularz. Mówimy wprost, czego brakuje.
+      if (!wpisaneDT(POLA_DT[0])) {
+        braki.push([$("f2-dt-data"),
+                    "Podaj datę DT — bez niej wpis nie trafi do kalendarza, " +
+                    "a godzina i liczby wpisane obok przepadną. Jeśli terminu " +
+                    "jeszcze nie ma, wyłącz Dzień Technologii i zaznacz wynik wizyty."]);
+      }
+    } else if (!zbierzCykl() && !$("f2-wynik").value) {
+      // DT wyłączony, pusta sekcja cykliczna I brak wyniku wizyty = zapis,
+      // po którym nie powstaje ŻADNE spotkanie i nie wiadomo nawet, czym
+      // skończyła się rozmowa. Ekran sukcesu pokazałby samą szkołę i wyglądałby
+      // jak zgubiony formularz. Mówimy wprost, czego brakuje.
+      //
+      // P22 dołożył trzecie wyjście: sam wynik wizyty wystarczy. Wcześniej
+      // jedyną drogą bez DT był cykl, więc „szkoła się nie zgadza" nie dawało
+      // się zapisać nigdzie.
       var cel = wybranyTryb() === "daty" ? $("f4-start") : $("f2-cykl-dzien");
-      braki.push([cel, "Bez Dnia Technologii trzeba ustalić zajęcia cykliczne — " +
+      braki.push([cel, "Bez Dnia Technologii ustal zajęcia cykliczne (" +
                        (wybranyTryb() === "daty"
-                         ? "podaj datę pierwszych zajęć."
-                         : "wybierz dzień tygodnia.")]);
+                         ? "podaj datę pierwszych zajęć"
+                         : "wybierz dzień tygodnia") +
+                       ") albo zaznacz wynik wizyty."]);
     }
 
     braki.forEach(function (b) { bladPola(b[0], b[1]); });
@@ -850,19 +936,34 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
             odmiana(braki.length, "pole", "pola", "pól"), true);
       return false;
     }
+    /* Ostrzeżenia idą JEDNYM komunikatem: `toast` podmienia treść, więc trzy
+       wywołania obok siebie zjadają się nawzajem i widać tylko ostatnie. */
+    var ostrz = [];
     // Data w przeszłości to OSTRZEŻENIE, nie blokada — czasem wpisuje się
     // ustalenia po fakcie. Przy wyłączonym DT pole jest puste, a pusty tekst
     // jest „mniejszy" od dzisiejszej daty — bez tego warunku ostrzeżenie
     // wyskakiwałoby za każdym razem, gdy DT pomijamy.
-    if (czyDT() && $("f2-dt-data").value < root.dataset.dzis) {
-      toast("Uwaga: data DT jest w przeszłości — zapisuję tak, jak wpisałeś.");
+    if (czyDT() && wpisaneDT(POLA_DT[0])) {
+      if ($("f2-dt-data").value < root.dataset.dzis) {
+        ostrz.push("data DT jest w przeszłości");
+      }
+      // Pierwsze zajęcia PRZED Dniem Technologii to prawie zawsze pomyłka
+      // (cykl otwiera się po dniu pokazowym), ale bywa świadome przy szkole,
+      // która już nas zna — więc ostrzegamy, nie blokujemy.
+      if (stan.terminy.length && stan.terminy[0].data &&
+          stan.terminy[0].data < $("f2-dt-data").value) {
+        ostrz.push("pierwsze zajęcia cykliczne wypadają przed DT");
+      }
+      var brakiDT = POLA_DT.slice(1)
+        .filter(function (p) { return !wpisaneDT(p); })
+        .map(function (p) { return p[1]; });
+      if (brakiDT.length) {
+        ostrz.push("DT bez: " + brakiDT.join(", ") +
+                   " — w kalendarzu będzie oznaczone „do uzupełnienia”");
+      }
     }
-    // Pierwsze zajęcia PRZED Dniem Technologii to prawie zawsze pomyłka
-    // (cykl otwiera się po dniu pokazowym), ale bywa świadome przy szkole,
-    // która już nas zna — więc ostrzegamy, nie blokujemy.
-    if (czyDT() && stan.terminy.length && $("f2-dt-data").value &&
-        stan.terminy[0].data && stan.terminy[0].data < $("f2-dt-data").value) {
-      toast("Uwaga: pierwsze zajęcia cykliczne wypadają przed DT.");
+    if (ostrz.length) {
+      toast("Uwaga: " + ostrz.join(" · ") + ". Zapisuję tak, jak wpisałeś.");
     }
     return true;
   }
@@ -870,23 +971,21 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
   /* =================================================================== ZAPIS */
 
   function zbierz() {
+    // `sprawdz()` nie przepuszcza zapisu bez wybranej szkoły, więc tu zawsze jest.
     var d = { handlowiec: stan.handlowiec };
-    if (stan.wybrana) {
-      d.lead_id = stan.wybrana.lead_id;
-    } else {
-      d.placowka = {
-        nazwa: $("f2-nowa-nazwa").value.trim(),
-        miejscowosc: selMiasto.value,
-        typ: $("f2-nowa-typ").value,
-        adres: $("f2-nowa-adres").value.trim()
-      };
-    }
+    if (stan.wybrana.lead_id) d.lead_id = stan.wybrana.lead_id;
+    else d.placowka_id = stan.wybrana.placowka_id;
     d.kontakt = {
       osoba_kontakt: $("f2-osoba").value.trim(),
       telefon: $("f2-telefon").value.trim(),
       mail: $("f2-mail").value.trim()
     };
     d.cykle = $("f2-cykle").value;
+    // P22: wynik wizyty i notatka jadą ZAWSZE, także gdy DT jest wyłączony.
+    // Puste wartości serwer pomija, więc pusty wybór nie skasuje tego, co już
+    // przy tej szkole zapisano.
+    d.status_realizacji = $("f2-wynik").value;
+    d.uwagi = $("f2-uwagi").value.trim();
     // Przy wyłączonym DT nie wysyłamy ANI bloku `dt`, ani pytania o wiadomość
     // do rodziców — to pole dotyczy zapowiedzi dnia pokazowego. Serwer
     // pomijający pusty blok nie utworzy spotkania i nie ruszy statusu leada
@@ -1003,6 +1102,13 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       $("f2-sukces-kolizja").hidden = false;
     }
     $("f2-do-leada").href = "/lead/" + j.lead_id;
+    // P23: szkoła schodzi z „Planu na dziś" od razu, bez przeładowania —
+    // ekran sukcesu strony nie odświeża, a licznik „N do zrobienia" musi
+    // odpowiadać na wykonaną pracę, inaczej ludzie przestają na niego patrzeć.
+    if (typeof window.FX_PLAN_ZROBIONE === "function") {
+      window.FX_PLAN_ZROBIONE(j.lead_id);
+    }
+
     $("f2-sukces").hidden = false;
     window.scrollTo(0, 0);
   }
@@ -1015,10 +1121,10 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   /* ========================================================= SZKIC W TELEFONIE */
 
-  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
-              "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
+  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail",
+              "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
-              "f2-mail-rodzice", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
+              "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi",
               "f4-co-ile", "f4-start", "f4-ile", "f4-co-ile-daty"];
 
@@ -1034,7 +1140,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
           kiedy: new Date().toISOString(),
           handlowiec: stan.handlowiec,
           placowka_id: stan.wybrana ? stan.wybrana.placowka_id : null,
-          nowa: stan.nowa,
           pola: pola,
           // Lista terminów NIE jest zwykłym polem formularza — bez tego
           // przywrócony szkic wracałby z pustą listą i wyglądałby jak
@@ -1076,11 +1181,6 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
       // listę szkół podstawiamy dopiero po doczytaniu placówek dla miasta
       if (el && id !== "f2-szkola") el.value = s.pola[id];
     });
-    if (s.nowa) {
-      stan.nowa = true;
-      $("f2-nowa").hidden = false;
-      $("f2-nowa-otworz").textContent = "− Jednak wybieram z listy";
-    }
     if (s.typCyklu) {
       var elTyp = root.querySelector('input[name="f4-typ"][value="' + s.typCyklu + '"]');
       if (elTyp) elTyp.checked = true;
@@ -1122,7 +1222,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = FxCykl;
 
   function czyCosWpisane() {
     if (zapisano) return false;
-    if (stan.wybrana || stan.nowa) return true;
+    if (stan.wybrana) return true;
     if (stan.terminy.length) return true;
     return POLA.some(function (id) {
       if (POLA_DOMYSLNE.indexOf(id) >= 0) return false;

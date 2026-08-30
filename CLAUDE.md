@@ -433,8 +433,294 @@ w `.gitignore` i ma tam zostać):
 
 ---
 
+## 8c. Runda poprawek 20–23.08.2026 — gałąź `poprawki-2026-08`
+
+Produkcja stoi nietknięta na `main` (`6a3e181`, tag `przed-poprawkami-2026-08-20`
+to punkt cofnięcia). **Demo zostało wdrożone i zmigrowane dopiero 24.08
+wieczorem** — przez cztery dni klient oglądał wersję sprzed poprawek i zgłaszał
+je ponownie. To była najczęstsza przyczyna nieporozumień w tej rundzie
+i sprawdzanie, CO klient właściwie widzi, ma być pierwszym ruchem przy każdym
+zgłoszeniu.
+
+Testy: **11 plików, 912 sprawdzeń + 93 w `test_parsers` + 17 w node**, komplet
+przechodzi. Doszedł `test_obszary.py`.
+
+### Zrobione (P01–P31 + E0)
+Blokada pisania po cudzych szkołach · przydział/termin tylko dla koordynatora ·
+podstawianie kontaktu · gwiazdka „twoje" zamiast licznika · filtr tekstowy listy
+szkół · odwoływanie DT ze śladem (kasowanie tylko koordynator) · sekcja „Wynik
+wizyty" · „zrobione" schodzi z planu dnia · filtr „bez prowadzącego" ·
+**P27** pola DT nieobowiązkowe poza datą · **P30** znacznik „do uzupełnienia"
+w kalendarzu · **P31** lista odwołanych · statusy pośrednie · poprawka mobilna ·
+**E0** brakujący typ w słowniku produkcji.
+
+### Sedno listy Zuzi: to nie był jeden błąd, tylko jedna reguła
+Formularz żądał kompletu sześciu pól DT. Przez to nie dało się zapisać ani
+wizyty bez terminu, ani terminu bez szczegółów — czyli **większości realnej
+pracy w terenie**. Praca, której nie da się zapisać, nie znika: dzieje się dalej,
+tylko poza aplikacją. Twarda została sama **data**, bo serwer pomija blok DT bez
+niej (`if typ == "DT" and not blok["data"]: continue`) i godzina wpisana obok
+przepadłaby bez śladu. Reszta braków jest teraz WIDOCZNA (P30), nie blokowana —
+bez tego zamienilibyśmy „nie da się zapisać" na gorsze: „zapisane, wygląda na
+gotowe, nikt tam nie wróci".
+
+**Punkty 7–10 jej listy nie były błędem kodu.** Te operacje od początku były
+zamknięte dla handlowca; Zuzia pracuje na wspólnym koncie `Koordynator` (nie ma
+własnego wśród 50). Dopóki go nie dostanie, będzie zgłaszać to samo, a historia
+zmian zapisuje konto zamiast człowieka.
+
+### Baza na RSPO — projekt i pierwsze dwa etapy
+`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md` (etapy M0–M9). Zrobione **M1 i M2
+na profilu `test`**, oba addytywne i odwracalne `DROP TABLE`:
+- `rejestr_rspo.py` — lustro rejestru (`rspo_rejestr` + dziennik zmian), 6 116
+  placówek śląskich, wgranie 1,2 s
+- `obszary.py` — 17 obszarów z listy Kasi; kontrola wyjścia zgodna co do sztuki:
+  **1 259 szkół i przedszkoli**, Knurów 44 przez gminę, rybnicki 0
+- `narzedzia/migracja_rspo.py` (`lustro` / `obszary` / `stan`), ekran `/obszary`
+  (podgląd, bez klikania)
+
+**Źródło całego zamieszania z miejscowościami**: w pliku klienta dwie wartości
+brzmiały `09. Pszczyna powiat` i `15. Będzin powiat` — **import urwał słowo
+„powiat"**. Pod Będzinem siedzi 17 miejscowości (w tym Czeladź), pod Pszczyną 27.
+Stąd „nie ma szkół z Czeladzi": one są, tylko nazwa przestała o tym mówić.
+Ornontowice też nie były naszym wymysłem — u klienta siedziały pod `01. Orzesze`.
+
+**Rejon działania to LISTA OBSZARÓW (powiat albo gmina), nie kolumna.** Zakres
+firmy nie pokrywa się z żadnym jednym poziomem administracyjnym: Rybnik bierzemy
+jako miasto, ale nie powiat rybnicki; Knurów jako gminę, ale nie resztę powiatu
+gliwickiego. Reguła „gmina bije powiat" żyje w jednym zapytaniu w `przelicz()`.
+
+**Lustro jest OSOBNĄ tabelą, nie kolumnami w `placowki`** — bo polityki
+nadpisywania są sprzeczne: w lustrze wygrywa rejestr, w bazie roboczej człowiek.
+W jednej tabeli jedna z nich musiałaby po cichu przegrywać.
+
+Stan bazy przed migracją: **409 placówek niesie realną pracę, 136 jest
+nietkniętych** (granica ostra; pola miękkie nic nie zmieniają). **18 par dubli**
+w bloku id 517–545, przy czym w 16 z nich jedyne DT wisi na rekordzie
+SKRÓCONYM — scalanie musi przepiąć eventy PRZED czymkolwiek innym.
+
+### Plany czekające na decyzje klienta
+`PLAN_FORMULARZA.md` (v5 obok czterech starych — decyzja klienta; kaskada od
+placówki, chipy zajęć, etapy E0–E8) i `PLAN_BAZY_PH.md` (6 zakładek Kasi; cztery
+już istnieją w backendzie). Razem **28 pytań** do Kasi i Wojtka.
+
+**Nowy formularz to PIĄTY PRZYCISK na `/formularz`, nie podmiana istniejącego.**
+Dzięki temu można go budować w dowolnym momencie — rozgrzebany v5 nie blokuje
+nikomu pracy, bo handlowiec dalej klika swój v3, a piąty kafelek jest ścieżką,
+w którą nikt nie wchodzi przypadkiem (i ma być opisany jako testowy, jak dziś
+v4). Warunek: rozszerzenia API muszą być **addytywne** — nowa lista `zajecia`
+dochodzi obok bloków `dt`/`cykl`, a stare payloady jadą bez zmian. To ta sama
+zasada, dla której cztery warianty w ogóle istnieją: porównanie na żywych
+danych zamiast sporu o układ. Wygaszanie starych — osobna decyzja po testach.
+
+### Grabie z tej rundy
+**`git add <katalog>` zgarnia pliki klienta.** Dwa razy: raz notatkę roboczą,
+raz `Kopia Julia Młynarczyk.xlsx` — miesięczne rozliczenia trenerów ze stawkami,
+do PUBLICZNEGO repo. Za drugim razem złapane przed `push`. Arkusze klienta
+w katalogach poprawek są teraz w `.gitignore`; **`git status` czytać PRZED
+commitem, nie po**.
+
+**`odwolane` w `calendar_view.py` było już zajęte** — znaczy „odwołane
+WYSTĄPIENIE cyklu" i `_naloz_wyjatek()` zeruje je przy każdym wpisie bez wyjątku.
+Odwołanie całego spotkania musiało dostać własną nazwę (`odwolanie`), inaczej
+znacznik znikał po cichu.
+
+**Skrypty Pythona w heredocu Basha mają cudzysłowy w cp1250.** Wzorce z polskimi
+znakami przestają pasować i `replace` nie robi nic — bez asercji na liczbę
+trafień wygląda to jak wykonana praca. Do zmian w plikach z polskimi znakami
+używać narzędzia Edit albo `\uXXXX`.
+
+**`app.py` jest w CRLF, a `calendar_view.py` w LF.** Skrypt podmieniający tekst
+działa na jednym, a na drugim cicho nie trafia. Zawsze `assert s.count(wzorzec) == 1`.
+
+**Test pisał wszystkie pliki pod jedną ścieżkę** — „plik pierwotny" miał już
+treść drugiego wgrania, więc sprawdzenie przechodziło zależnie od kolejności.
+Test, który nie testuje, jest gorszy niż jego brak.
+
+**`typ_eventu` na produkcji nie znał `CYKLICZNE-PRZEDSZKOLE`**, choć v4 pozwala
+go zapisać (walidacja idzie po stałej `db.TYPY_CYKLICZNE`, a słownik to DANE
+osobne dla każdego profilu). Wpis dawało się utworzyć, ale nie poprawić —
+edycja odbija się od twardej blokady słownika. `narzedzia/slowniki_kontrola.py`
++ sprawdzenie w S0. **Każda nowa stała, którą kod zna, musi trafić do słownika
+każdego profilu** — i pamiętać, że `odswiez_demo.sh` zasiewa demo kopią produkcji
+i takie dopiski zetrze (jak `statusy.py`).
+
+**Telefon: dwie różne przyczyny pod jednym zgłoszeniem.** „Nie da się zmniejszyć"
+to tryb standalone PWA (iOS wyłącza zoom systemowo — nasza decyzja z 10.08),
+a „widok trzeba przesuwać" to był realny błąd: `.topbar-right` miał w wersji
+mobilnej `flex:0 0 auto`, czyli ZAKAZ kurczenia, przy zawartości ~370 px.
+Poprawka z 10.08 objęła nawigację i tabele, ale nie ten blok, nie `.seg`
+(ucinał zakładki bez możliwości dojechania) i nie kartę szkoły.
+
+---
+
+## 8d. 24.08.2026 — baza przeszła na rejestr RSPO
+
+Stan, liczby i plan: **`docs/poprawka 24.08.2026/STAN_SESJI_2026-08-24.md`**.
+Skrót tego, co zmienia sposób myślenia o projekcie:
+
+**Baza `test` ma 1618 placówek i pokrywa rejestr co do wiersza** (0 braków wobec
+1589 wierszy rejestru w typach klienta × 17 obszarach). Było 545. Doszły
+732 przedszkola i punkty, 34 brakujące szkoły, 29 domów kultury i ognisk,
+278 zespołów. `prod` jest NIETKNIĘTY.
+
+**Osią filtrowania jest POWIAT, nie miejscowość.** Filtr „Powiat" stoi przed
+„Miejscowością" na `/baza`, `/leady`, `/zbiorczy`, `/niewykorzystane`
+i `/tydzien`; miejscowość zawęża się wybranym powiatem. Formularz v5 ma kaskadę
+powiat → miejscowość → placówka.
+
+**Import urwał słowo „powiat" — to jest źródło zgłoszenia „nie ma bazy
+w Czeladzi".** W pliku klienta były wartości `09. Pszczyna powiat`
+i `15. Będzin powiat`. Czeladź nie zniknęła, tylko wpadła do worka razem
+z 16 innymi miejscowościami. Po nadaniu numerów RSPO 68 rekordów odzyskało
+prawdziwą miejscowość; Czeladź ma dziś 12 placówek.
+
+**Powiat da się nadać BEZ numerów RSPO** — po nazwie miejscowości przez lustro
+rejestru. To był warunek, żeby przełączenie filtrów nie musiało czekać na
+decyzje koordynatorki przy kilkudziesięciu wierszach.
+
+**`miejscowosc` przestała być pozycją słownika** (`text` w `PLACOWKA_FIELDS`).
+Musiała: miejscowości w zakresie jest ~150, w tym wsie, których słownik nigdy
+nie zawierał — twarda blokada zamieniłaby każdą nową wieś z rejestru w rekord
+NIE DO POPRAWIENIA w karcie. Słownik `miasto` ZOSTAJE, bo używa go `aliasy`
+przy imporcie arkuszy klienta.
+
+**Listy filtrów idą z DANYCH, listy formularza z REJESTRU.** Filtr po
+miejscowości bez placówek daje pustą tabelę; formularz służy do ZAKŁADANIA
+placówki, więc musi mieć nazwę, w której nas jeszcze nie ma.
+
+**Formularz v5 istnieje** — piąty przycisk na `/formularz`, kaskada od placówki,
+chipy „co ustaliłeś" (kilka rodzajów naraz), zapis samej wizyty bez żadnego
+chipa. API rozszerzone ADDYTYWNIE o listę `zajecia`; jest test-zapora, że
+v1–v4 wysyłają dokładnie to co dotąd.
+
+### Zakładanie placówek wypadło z formularza (Kasia, 24.08)
+
+„Usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
+dublować rzeczy, a wpisują nazwy jak popadnie". Przycisk „dodaj nową placówkę"
+zniknął z **wszystkich pięciu** wariantów — gdyby został w jednym, handlowiec
+zakładałby placówki tamtym, a porównanie wariantów przestałoby dotyczyć układu.
+
+Wolno było tak zrobić dopiero teraz: argument, dla którego ta furtka w ogóle
+powstała („brak szkoły w bazie = ustalenia na kartce"), zniknął razem
+z przejściem bazy na rejestr RSPO. Dlatego podpowiedź w miejscu przycisku
+kieruje **najpierw do filtra powiatu**, a dopiero potem do koordynatorki —
+„nie ma jej na liście" znaczy dziś prawie zawsze „szukam nie w tym powiecie".
+
+Blokada siedzi przy **zapisie**, nie w wyglądzie: `/api/formularz` odmawia
+handlowcowi bloku `placowka`, a `api_lead_create` doszedł do
+`TYLKO_KOORDYNATOR`. Sam brak przycisku nie zamyka niczego — to ta sama lekcja
+co przy K01 z 20.08. Koordynator zakłada dalej, na ekranie „Baza".
+
+⚠️ **Na `prod` ta zmiana ma sens dopiero razem z bazą RSPO.** Produkcja ma 545
+placówek i zero powiatów; sam zakaz zakładania zabrałby handlowcowi możliwość
+zapisania wizyty w przedszkolu, którego w tych 545 nie ma. Obie rzeczy jadą tą
+samą gałęzią, więc wystarczy ich nie rozdzielać przy wdrożeniu.
+
+### Cztery usterki z 24.08 wieczorem — wszystkie z KLIKANIA, nie z testów
+Wyszły, gdy klient zaczął używać aplikacji, mimo blisko tysiąca zielonych
+sprawdzeń. Łączy je jedno i warto to zapamiętać: **siedziały na styku „nowa
+baza ↔ stary ekran"**, a testy chodzą po świeżej bazie, gdzie tego styku
+nie ma. Po każdej migracji danych trzeba przejść ekrany ręcznie.
+
+- **„Zapis się zacina".** `pilnujWyjscia` wiesza `beforeunload`, a udany zapis
+  robi `location.reload()` — czyli wychodzi ze strony. Bez flagi „już zapisane"
+  przeglądarka blokuje przeładowanie własnym okienkiem. **Zapis dochodził do
+  bazy, zacinał się powrót** — usterka wyglądająca jak utrata pracy i kusząca
+  do ponowienia. v1–v4 mają tę flagę od czerwca.
+- **Lista miejscowości w formularzach przestała trafiać w bazę.** Warianty 2–4
+  brały je ze słownika `miasto` (`01. Orzesze`), a M8 wyczyścił nazwy w bazie
+  (`Orzesze`) — część wspólna PUSTA, wybór dawał zero szkół. Zdanie klienta
+  „lista jest widoczna na demo" było kluczem: demo nie było zmigrowane, więc
+  usterka **czekała na moment migracji**, czyli na handlowców.
+- **Cykl bez prowadzącego** — sekcja cykliczna v5 rysowała sam harmonogram,
+  więc definicje jej pól były martwym kodem, choć wyglądały na kompletne.
+- **Po zapisie pusty formularz zamiast potwierdzenia** — ostatnie miejsce,
+  w którym v5 różnił się od v1–v4 funkcją, a nie układem.
+
+### Grabie z tej rundy
+- **Kontakt należy do placówki — v5 popełnił od nowa błąd naprawiony w v2–v4.**
+  Reguła „podstawiaj tylko w puste pole" (P04) chroni to, co wpisał człowiek,
+  i jest słuszna WEWNĄTRZ jednej placówki. Przy zmianie placówki ta sama reguła
+  przenosi dyrektorkę jednego przedszkola do karty drugiego. Nie ma tu czego
+  chronić: sekcja kontaktu jest zakryta, dopóki placówka nie jest wybrana, więc
+  każda wartość w niej dotyczy POPRZEDNIEJ szkoły. Nadpisujemy zawsze, także
+  pustą wartością, i mówimy o tym.
+- **v5 robił dubla placówki sam z siebie.** Przy placówce bez leada wysyłał blok
+  `placowka` z nazwą przepisaną z rekordu, w przekonaniu, że serwer rozpozna ją
+  po nazwie. Nie rozpoznawał — `/api/formularz` bez `lead_id` po prostu wstawia
+  wiersz. Komentarz w kodzie twierdził coś przeciwnego przez dwa dni. Teraz
+  jedzie `placowka_id`, a serwer zakłada lead do ISTNIEJĄCEGO rekordu.
+- **Reguła wykrywania dubli musi znać numer szkoły.** Bez niego „miejska szkoła
+  podstawowa" to same słowa puste i wszystko skleja się ze wszystkim (289
+  fałszywych trafień w pierwszym podejściu, SP nr 9 jako nasza SP nr 7).
+- **`RSPO podmiotu nadrzędnego` bywa w rejestrze puste** — w całym Orzeszu nie
+  ma go ani jedna placówka. Do wiązania zespołu ze składowymi trzeba też adresu.
+- **504 z 536 rekordów klienta ma w adresie samą ulicę, bez numeru budynku** —
+  porównanie adresów musi umieć obie postaci.
+- **Sprawdzać ZAWARTOŚĆ, nie tylko liczbę.** 93 zespoły „brakujące w bazie"
+  okazały się technikami i liceami, gdy policzyłem, co zawierają.
+- **Podgląd musi liczyć tym samym kodem co zapis** — `przygotuj()` jest wspólnym
+  jądrem obu.
+
+### ✅ PRODUKCJA ZMIGROWANA 24.08 o 16:22
+`https://ph.silesia3d.site` stoi na rejestrze RSPO: **557 placówek → 1614,
+leady 556 → 1613, EVENTY 90 → 90**, 1587 z numerem RSPO (27 do decyzji Kasi),
+jeden rekord bez powiatu (znane P28). Kopia do cofnięcia:
+`/data/kopie/prod_2026-08-24_1622.db` + `.xlsx`.
+
+Różnica wobec próby na kopii z 08:24 (555 → 1614, eventy 87) to praca z tego
+dnia: 2 placówki i 3 DT dopisane między rankiem a wieczorem. **Zgodność co do
+tej różnicy jest lepszym dowodem niż zgodność co do liczby** — pokazuje, że
+migracja wzięła bazę taką, jaka była.
+
+⚠️ **Produkcja stoi na gałęzi `poprawki-2026-08`, nie na `main`.** Dopóki tego
+nie scalimy, dotychczasowe wyjście awaryjne (`git checkout main && ./wdroz.sh
+prod`) jest PUŁAPKĄ: cofa kod, ale nie bazę, a kod z `main` szuka miejscowości
+w słowniku (`01. Orzesze`), których baza po M8 już nie ma (`Orzesze`) — wybór
+szkoły w formularzach przestałby działać. Cofać trzeba jedno i drugie naraz.
+
+### Do zrobienia w pierwszej kolejności
+0. **Scalić `poprawki-2026-08` do `main`** (`--no-ff`) i otagować, żeby `main`
+   znów znaczyło „to, co działa u klienta". Dalsza praca z nowych gałęzi.
+1. ✅ **Demo wdrożone i zmigrowane 24.08 po południu.** Migrowaliśmy W MIEJSCU,
+   nie wgrywając gotowego `.db` — odwrotnie niż produkcję w sierpniu, bo tamta
+   reguła („baza powstaje lokalnie i jedzie plikiem") straciła podstawę:
+   produkcja od 11.08 ŻYJE, więc jej bazy nie da się podmienić, trzeba ją
+   migrować w miejscu — a demo było jedynym miejscem, gdzie dało się to
+   przećwiczyć. ⚠️ **Od teraz NIE uruchamiać `odswiez_demo.sh`** — zasiewa demo
+   kopią produkcji i skasowałby migrację. Znów będzie miał sens po migracji
+   produkcji.
+2. ✅ **Produkcja zmigrowana** — `WDROZENIE_NA_PRODUKCJE.md` +
+   `narzedzia/migracja_na_produkcje.sh`. Trzy rzeczy odróżniły ją od demo
+   i każda kosztowała osobny krok: kopia z eksportem `.xlsx` (plik do otwarcia
+   bez tej aplikacji), **zatrzymanie usługi** na czas migracji (~2 min), oraz
+   sprawdzenie liczby eventów przed i po — skrypt sam kończy się błędem, gdy
+   się rozjedzie. Osobny plik skryptu, nie `--profil prod` w skrypcie demo:
+   inaczej produkcję dałoby się ruszyć poleceniem wklejonym z pamięci
+3. **Po migracji, bez pośpiechu:** 27 placówek bez numeru RSPO → plik decyzyjny
+   dla Kasi (`dopasuj --decyzje <plik> --zapisz`) · **M4 scalanie 18 par dubli**
+   (narzędzia NIE MA; eventy i log przepiąć PRZED skasowaniem rekordu, bo
+   `ON DELETE CASCADE` zabiera DT bez śladu) · P28 „SP 5" bez miejscowości ·
+   konto handlowca dla Zuzi · **12 placówek dopisanych ręcznie przez handlowców
+   między 10.08 a 24.08** (557 wobec 545) — to jest materiał dowodowy do prośby
+   Kasi o zamknięcie zakładania placówek z formularza
+2. Plik `do_sprawdzenia_recznego/BEZ_RSPO_2026-08-24.xlsx` do Kasi (25 placówek)
+3. **M4 — scalanie par** (narzędzia jeszcze nie ma; po wypełnionym pliku)
+4. Konto handlowca dla Zuzi
+5. P29 „zgłoś do usunięcia" · P28 placówka 532 „SP 5" bez miejscowości
+
+---
+
 ## 9. Dokumentacja w `docs/`
 
 `11_PLAN_v5.md` to żywy plan v5 ze stanem etapów — aktualizować przy każdym
 domknięciu etapu. Starsze pliki (`01`–`10`) to analiza plików klienta i projekty
 modułów v2–v4; są punktem odniesienia dla decyzji, nie do zmieniania.
+
+`docs/poprawka 20.08.2026/` — runda poprawek: `REJESTR_POPRAWEK_2026-08.md`
+(P01–P31 ze statusami), `STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi.
+`docs/poprawka 23.08.2026/` — `PROJEKT_BAZY_RSPO.md` (migracja M0–M9),
+`PLAN_FORMULARZA.md` (v5, E0–E8), `PLAN_BAZY_PH.md` (zakładki Kasi).
+**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8c wyżej → rejestr
+poprawek → właściwy plan.**

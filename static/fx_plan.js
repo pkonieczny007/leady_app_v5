@@ -50,10 +50,21 @@
     return { tekst: iso + " (za " + n + " dni)", klasa: "" };
   }
 
+  /* Czy szkoła jest już z głowy.
+
+     P23 (Zuzia, 20.08): do teraz liczył się WYŁĄCZNIE datowany wpis DT, więc
+     szkoła domknięta samym statusem wisiała na liście zadań w nieskończoność,
+     a licznik „12 do zrobienia" liczył robotę już zrobioną. Serwer podaje teraz
+     `zrobione` (DT z datą ALBO status sukcesu); `ma_dt` zostaje na wypadek
+     starej odpowiedzi z niedoświeżonej karty przeglądarki. */
+  function zrobione(p) {
+    return p.zrobione !== undefined ? !!p.zrobione : !!p.ma_dt;
+  }
+
   function porzadek(p) {
     // zrobione na koniec, potem najpilniejsze; bez terminu przed tymi z terminem
     // odległym, bo „nie wiadomo do kiedy" też wymaga ruchu
-    if (p.ma_dt) return 100000;
+    if (zrobione(p)) return 100000;
     var n = dni(p.deadline);
     return n === null ? 9000 : n;
   }
@@ -66,20 +77,30 @@
      oznaczył terminem, albo taka, którą handlowiec sam przypiął gwiazdką na ten
      tydzień. Reszta zostaje dostępna pod przyciskiem — nic nie znika. */
   function zadanie(p) {
-    return !p.ma_dt && (!!p.deadline || !!p.pin || !p.moja);
+    return !zrobione(p) && (!!p.deadline || !!p.pin || !p.moja);
+  }
+
+  /* Co pokazać na pozycji, która jest już z głowy. Sam napis „DT umówione"
+     kłamałby przy szkole domkniętej statusem bez terminu DT — a to jest
+     dokładnie ten przypadek, od którego zaczęło się zgłoszenie Zuzi. */
+  function opisZrobionego(p) {
+    if (p.ma_dt) return "DT umówione";
+    var s = String(p.status || "").replace(/^\d+[a-z]?\.\s*/, "");
+    return s || "zrobione";
   }
 
   function pozycja(p, i) {
     var t = opisTerminu(p.deadline);
-    var klasy = "fx-plan-poz" + (p.ma_dt ? " fx-plan-zrobione" : "") +
+    var gotowe = zrobione(p);
+    var klasy = "fx-plan-poz" + (gotowe ? " fx-plan-zrobione" : "") +
                 (p.moja ? "" : " fx-plan-cudza");
     return '<button type="button" class="' + klasy + '" data-plan="' + i + '">' +
       '<span class="fx-plan-nazwa">' + esc(p.nazwa) +
         (p.pin ? ' <span class="fx-plan-gwiazdka" title="przypięta przez Ciebie na ten tydzień">★</span>' : "") +
       "</span>" +
       '<span class="fx-plan-miasto">' + esc(p.miejscowosc) + "</span>" +
-      (p.ma_dt
-        ? '<span class="fx-plan-stan fx-plan-ok">DT umówione</span>'
+      (gotowe
+        ? '<span class="fx-plan-stan fx-plan-ok">' + esc(opisZrobionego(p)) + "</span>"
         : '<span class="fx-plan-stan ' + t.klasa + '">' + esc(t.tekst) + "</span>") +
       (p.moja ? "" :
         '<span class="fx-plan-ostrzezenie">⚠ przypisana do: ' +
@@ -142,6 +163,24 @@
     var szczegoly = document.getElementById("fx-plan");
     if (szczegoly) szczegoly.open = false;    // lista schodzi z drogi po wyborze
   });
+
+  /* Szkoła schodzi z listy OD RAZU po zapisie formularza.
+
+     P23, druga połowa zgłoszenia Zuzi. Ekran sukcesu nie przeładowuje strony,
+     więc lista zostawała taka, jaka była przy wejściu — człowiek zapisywał DT
+     i dalej czytał „12 do zrobienia". Licznik, który nie reaguje na wykonaną
+     pracę, uczy ludzi, żeby na niego nie patrzeć; a to jest jedyne miejsce,
+     w którym handlowiec widzi, ile mu zostało. */
+  window.FX_PLAN_ZROBIONE = function (lead_id) {
+    var zmiana = false;
+    moje.forEach(function (p) {
+      if (lead_id && String(p.lead_id) === String(lead_id) && !p.zrobione) {
+        p.zrobione = true;
+        zmiana = true;
+      }
+    });
+    if (zmiana) rysuj();
+  };
 
   rysuj();
 })();

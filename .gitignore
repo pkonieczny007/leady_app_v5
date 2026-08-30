@@ -18,3 +18,18 @@ dostepy/
 # klonem gita, wiec `git add .` bez tej linii wypchnaloby je na GitHuba.
 # Wzor bez wartosci zostaje w .env.example
 .env
+
+# Pliki robocze klienta w katalogach poprawek — kopie jego arkuszy z danymi
+# osobowymi i stawkami trenerów. Repozytorium jest PUBLICZNE, a git nie
+# zapomina historii: raz wypchnięty plik zostaje tam także po skasowaniu.
+# Notatki tekstowe i projekty zostają w repo, arkusze klienta nie.
+docs/poprawka */**/Kopia *.xlsx
+docs/poprawka */**/PH *.xlsx
+# Pliki decyzyjne migracji niosą nazwy i adresy placówek klienta, a repo jest
+# publiczne. Dwa razy w tej rundzie `git add <katalog>` zgarnął arkusz klienta —
+# reguła jest szersza niż konkretna nazwa właśnie dlatego.
+docs/poprawka */*.xlsx
+# Katalog roboczy do decyzji człowieka — arkusze z nazwami, adresami
+# i telefonami placówek. Sam README zostaje w repo, bo opisuje procedurę.
+do_sprawdzenia_recznego/*
+!do_sprawdzenia_recznego/README.md

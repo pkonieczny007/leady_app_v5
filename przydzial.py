@@ -201,7 +201,8 @@ def stan_rejonow(conn):
     kolory = trener_colors(conn)
     licz = {r["trener"]: r["n"] for r in conn.execute(
         "SELECT trener, COUNT(*) n FROM eventy WHERE trener IS NOT NULL "
-        "AND trener<>'' GROUP BY trener")}
+        "AND trener<>'' AND (odwolane IS NULL OR odwolane = '') "
+        "GROUP BY trener")}
     out = []
     for t in slownik_values(conn, "trener"):
         out.append({"trener": t, "kolor": kolory.get(t, "#9b9797"),
@@ -219,5 +220,6 @@ def podpowiedz_rejonu(conn, trener):
         "SELECT p.miejscowosc m, COUNT(*) n FROM eventy e "
         "JOIN leady l ON l.id=e.lead_id JOIN placowki p ON p.id=l.placowka_id "
         "WHERE e.trener=? AND p.miejscowosc IS NOT NULL AND p.miejscowosc<>'' "
+        "AND (e.odwolane IS NULL OR e.odwolane = '') "
         "GROUP BY p.miejscowosc ORDER BY n DESC", (trener,)).fetchall()
     return [{"miasto": r["m"], "n": r["n"]} for r in rows]

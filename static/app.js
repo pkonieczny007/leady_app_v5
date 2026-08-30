@@ -303,10 +303,53 @@
   document.addEventListener("click", function (ev) {
     var btn = ev.target.closest(".btn-usun-event");
     if (!btn) return;
-    if (!confirm("Usunąć to spotkanie?")) return;
+    if (!confirm("Usunąć to spotkanie BEZ ŚLADU?\n\n" +
+                 "Zniknie razem z powodem i historią. Jeśli szkoła odmówiła, " +
+                 "użyj „Odwołaj” — wtedy zostanie widoczne w raporcie.")) return;
     api("DELETE", "/api/event/" + btn.dataset.id)
       .then(function () { location.reload(); })
       .catch(function (e) { toast("Nie usunięto: " + e.message, true); });
+  });
+
+  /* P08 — ODWOŁANIE SPOTKANIA (zgłoszenie K12 Kasi, 20.08)
+     „nie widzę też możliwości wykasowania czegoś z kalendarza, w razie jakby
+     np. szkoła w ostatnim momencie odmówiła współpracy".
+
+     `prompt` zamiast własnego okienka jest tu świadomy: działa na telefonie,
+     nie wymaga ani jednej linii CSS i nie da się go zostawić otwartego
+     w tle. Ten formularz ma jedno pole i jest wypełniany raz na jakiś czas. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-odwolaj], .btn-odwolaj-event");
+    if (!btn) return;
+    ev.preventDefault();
+    var id = btn.dataset.odwolaj || btn.dataset.id;
+    var powod = prompt("Dlaczego odwołujemy to spotkanie?\n\n" +
+                       "Zapisze się razem z Twoim nazwiskiem i datą. Wpis zniknie " +
+                       "z grafiku, ale zostanie w historii szkoły.");
+    if (powod === null) return;                 // Anuluj — nie robimy nic
+    if (!powod.trim()) {
+      toast("Bez powodu nie da się odwołać — za miesiąc nikt tego nie odtworzy.", true);
+      return;
+    }
+    api("POST", "/api/event/" + id + "/odwolaj", { powod: powod.trim() })
+      .then(function (j) {
+        if (j && j.wrocil_do_umawiania) {
+          toast("Odwołane. Szkoła wróciła na listę do umówienia.");
+          setTimeout(function () { location.reload(); }, 1200);
+        } else {
+          location.reload();
+        }
+      })
+      .catch(function (e) { toast("Nie odwołano: " + e.message, true); });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-przywroc-event");
+    if (!btn) return;
+    if (!confirm("Cofnąć odwołanie? Spotkanie wróci do grafiku.")) return;
+    api("POST", "/api/event/" + btn.dataset.id + "/odwolaj", { cofnij: true })
+      .then(function () { location.reload(); })
+      .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
   });
 
   /* ============================================================ SŁOWNIKI */

@@ -28,6 +28,8 @@ from flask import (Flask, render_template, request, jsonify, redirect,
 import calendar_view as cv
 import dostepnosc_view as dv
 import filtry as fl
+import geografia
+import obszary
 import przydzial as pz
 import repo
 import uzytkownicy as uz
@@ -69,12 +71,23 @@ JAWNE = {"logowanie", "api_logowanie", "static"}
 # albo w słowniki potrafi narobić bałaganu w danych wszystkich naraz.
 TYLKO_KOORDYNATOR = {
     "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
-    "export_xlsx", "pulpit", "rejony", "uzytkownicy_view",
+    "export_xlsx", "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
     "api_przypisz", "api_odbierz", "api_przedluz", "api_slownik_add", "api_slownik_patch",
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
     "api_dostepnosc_demo",
+    # ZAKŁADANIE PLACÓWEK PRZESZŁO DO KOORDYNATORA (Kasia, 24.08): „usuń tę
+    # możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
+    # dublować rzeczy, a wpisują nazwy jak popadnie". Do 20.08 endpoint był
+    # otwarty dla handlowca i tylko wymuszał właściciela z sesji — po dołożeniu
+    # bazy z rejestru RSPO „nie ma jej na liście" znaczy prawie zawsze „szukam
+    # nie w tym powiecie", a nie „brakuje placówki".
+    "api_lead_create",
+    # Kasowanie spotkania BEZ ŚLADU — decyzja z 20.08: „handlowiec może odwołać,
+    # a koordynator może odwołać i skasować". Odwołanie zostawia powód i osobę,
+    # więc wolno je szerzej; kasowanie zabiera dowód, że temat w ogóle był.
+    "api_event_delete",
 }
 
 # Zmiana dostępności. Handlowiec jej NIE robi — widzi grafik (bez tego nie umówi
@@ -100,6 +113,60 @@ def _wolno_edytowac_dostepnosc(trener):
     if u["rola"] == "trener":
         return (trener or "").strip() == u["osoba"]
     return False                       # handlowiec: tylko podgląd
+
+
+# Pola, których handlowiec nie rusza NIGDY — nawet na własnym leadzie.
+# `handlowiec` to przypisanie szkoły, a to robi koordynator (ustalenie z 08.08:
+# „przypisuje wyłącznie koordynator"). `deadline` to dzień, po którym szkoła
+# wraca do puli. Zostawione do swobodnej edycji znaczyły, że handlowiec sam
+# sobie przypisuje cudzą szkołę i sam sobie przedłuża termin — a w historii
+# zmian wygląda to jak zwykła praca na rekordzie, więc nikt tego nie wyłapie.
+POLA_TYLKO_KOORDYNATOR = {"handlowiec", "deadline"}
+
+
+def _wolno_pisac_do_leada(conn, lead_id):
+    """
+    Czy zalogowany może ZAPISAĆ coś na tym leadzie.
+    Zwraca `None`, gdy wolno, albo parę (komunikat, kod HTTP).
+
+    Zgłoszenie Kasi z 20.08: „Zablokuj PH możliwość edycji danych innego PH, bo
+    teraz mogą zmienić dosłownie wszystko". Blokada w interfejsie owszem była —
+    i to jest dokładnie ten poziom, który niczego nie blokuje, bo zapis idzie
+    zwykłym `fetch`, a adres leada widać w pasku przeglądarki.
+
+    PODGLĄD cudzych rekordów zostaje. Kasia chce widzieć, kto miał szkołę
+    wcześniej i co z nią zrobił — odbieramy zapis, nie widok.
+
+    Szkoła niczyja też jest zablokowana: „chcę wziąć tę szkołę" wypadło
+    z zakresu 08.08, bo przydziela wyłącznie koordynator.
+    """
+    u = uz.zalogowany()
+    if not u:
+        return ("Sesja wygasła — zaloguj się ponownie", 401)
+    if u["rola"] != "handlowiec":
+        return None                    # koordynator; trener tu nie dojdzie
+    row = conn.execute("SELECT handlowiec FROM leady WHERE id=?", (lead_id,)).fetchone()
+    if not row:
+        return ("Nie ma takiego leada", 404)
+    wlasciciel = (row["handlowiec"] or "").strip()
+    if not wlasciciel:
+        return ("Ta szkoła nie jest jeszcze przypisana — przydziela koordynator", 403)
+    if wlasciciel != u["osoba"]:
+        return ("Tę szkołę prowadzi %s. Zmiany na cudzej szkole robi koordynator."
+                % wlasciciel, 403)
+    return None
+
+
+def _wolno_pisac_do_eventu(conn, event_id):
+    """To samo co wyżej, tylko wejściem jest wpis w kalendarzu.
+
+    Osobno, bo bez tego handlowiec mógł skasować cudze DT jednym żądaniem —
+    endpoint kasujący istnieje od dawna, tylko nie było go w menu.
+    """
+    row = conn.execute("SELECT lead_id FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not row:
+        return ("Nie ma takiego wpisu", 404)
+    return _wolno_pisac_do_leada(conn, row["lead_id"])
 
 
 def _po_zalogowaniu(rola):
@@ -219,10 +286,38 @@ def _miesiac_ekranu(args, miesiace):
     if z_adresu:
         session["miesiac"] = z_adresu
         return z_adresu
+    domyslny = _miesiac_domyslny(miesiace)
     zapamietany = _sensowny_miesiac(session.get("miesiac"))
-    if zapamietany:
+    # P05 (zgłoszenie K11 Kasi, 20.08): „kalendarz ustawia się na czerwiec na
+    # starcie a nie na wrzesień". Zapamiętany wybór nie ma daty ważności, a sesja
+    # żyje 30 dni — jedno zajrzenie do minionego miesiąca i człowiek zostaje
+    # w nim na tygodnie, na każdym wejściu, bez pojęcia dlaczego. Wybór z
+    # PRZESZŁOŚCI przestaje więc wygrywać i pamięć się kasuje; miesiąc przyszły
+    # dalej przeżywa przejście na sąsiedni ekran, bo o to chodziło 09.08.
+    if zapamietany and zapamietany >= dzis()[:7]:
         return zapamietany
-    return miesiace[-1] if miesiace else dzis()[:7]
+    if zapamietany:
+        session["miesiac"] = domyslny
+    return domyslny
+
+
+def _miesiac_domyslny(miesiace):
+    """
+    Na czym otwiera się kalendarz, gdy nikt nic nie wybrał.
+
+    Bieżący miesiąc, a jeśli nic w nim nie ma — NAJBLIŻSZY PRZYSZŁY z wpisami.
+    Poprzednio był to `miesiace[-1]`, czyli miesiąc najdalszy w przyszłość:
+    przy zajęciach cyklicznych sięgających pół roku do przodu kalendarz otwierał
+    się tam, gdzie nikt nie pracuje. Pusty bieżący miesiąc też jest złą
+    odpowiedzią — w sierpniu praca dzieje się we wrześniu.
+    """
+    teraz = dzis()[:7]
+    if not miesiace:
+        return teraz
+    if teraz in miesiace:
+        return teraz
+    przyszle = [m for m in miesiace if m >= teraz]
+    return przyszle[0] if przyszle else miesiace[-1]
 
 
 def _walidacja(conn, field, value, mapa_slownikow, dozwolone_klucze):
@@ -432,6 +527,11 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
         "rows": rows, "f": f, "total": policz, "pokazano": len(rows),
         "strona": strona, "stron": stron, "na_strone": NA_STRONE,
         "slowniki": wszystkie_slowniki(conn),
+        # Powiat i miejscowość idą z DANYCH, nie ze słownika — i miejscowość
+        # zawęża się wybranym powiatem, żeby lista pod „powiat będziński"
+        # miała 8 pozycji, a nie 60 z całego województwa.
+        "powiaty": geografia.powiaty(conn),
+        "miasta": geografia.miasta(conn, f["powiat"] or None),
         "kolory": trener_colors(conn),
         "lead_fields": LEAD_FIELDS, "julia_fields": JULIA_FIELDS,
         "placowka_fields": PLACOWKA_FIELDS,
@@ -605,24 +705,43 @@ def kalendarz():
     widok = request.args.get("widok", "macierz")
     weekend = request.args.get("weekend") == "1"
     tylko_zajete = request.args.get("zajete", "1") == "1"
+    # P24 (pytanie Zuzi 20.08): „czy można już wyszukiwać bez prowadzącego?".
+    # Osobny przełącznik, a nie chip — chipy szukają wpisanego tekstu w polach,
+    # a tu chodzi o BRAK wartości, którego żadnym fragmentem nie da się wpisać.
+    bez_obsady = request.args.get("bez_obsady") == "1"
+    # P30 (Kasia, 20.08) — druga połowa P27. Formularz przestał żądać kompletu
+    # danych DT przy zapisie, więc musi być gdzie zobaczyć, czego brakuje.
+    do_uzupelnienia = request.args.get("braki") == "1"
+    # P31 (Paweł, 20.08): odwołane spotkania widać było TYLKO na karcie
+    # konkretnej szkoły. Osobny tryb, nie kolejny filtr obok — pokazane razem
+    # z grafikiem wyglądałyby jak zajęcia, które się odbędą.
+    odwolane = request.args.get("odwolane") == "1"
     typ, typy = _typy_kalendarza(request.args)
     ch = _chipy_grafiku(request.args)
 
     if widok == "agenda":
         cal = cv.build_agenda(conn, month, weekend=True, typy=typy,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady,
+                              do_uzupelnienia=do_uzupelnienia, odwolane=odwolane)
     elif widok == "starty":
         cal = cv.build_starty(conn, month, weekend=weekend,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady,
+                              do_uzupelnienia=do_uzupelnienia, odwolane=odwolane)
     else:
         widok = "macierz"
         cal = cv.build_matrix(conn, month, weekend=weekend,
                               tylko_zajete=tylko_zajete, typy=typy,
-                              chipy=ch["lista"], tryb=ch["tryb"])
+                              chipy=ch["lista"], tryb=ch["tryb"],
+                              bez_obsady=bez_obsady,
+                              do_uzupelnienia=do_uzupelnienia, odwolane=odwolane)
 
     ctx = {
         "cal": cal, "widok": widok, "month": month, "miesiace": miesiace,
         "weekend": weekend, "tylko_zajete": tylko_zajete, "typ": typ,
+        "bez_obsady": bez_obsady, "do_uzupelnienia": do_uzupelnienia,
+        "odwolane": odwolane,
         "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
@@ -661,6 +780,58 @@ def dostepnosc():
     }
     conn.close()
     return render_template("dostepnosc.html", **ctx)
+
+
+@app.route("/obszary")
+def obszary_view():
+    """
+    Obszary działania firmy — PODGLĄD zakresu wg rejestru RSPO (M2 migracji).
+
+    Osobno od `/rejony`, bo to dwa różne pojęcia pod podobną nazwą: rejon jest
+    CZYJŚ (trener jeździ po miastach), obszar jest FIRMY (gdzie w ogóle
+    pracujemy). Ekran tylko pokazuje — obszary zmienia się narzędziem, dopóki
+    migracja nie dojdzie do M9. Pomyłka w obszarze przestawia, KTÓRE placówki
+    są nasze, więc nie ma powodu dopuszczać do niej klikania przed czasem.
+    """
+    conn = get_conn()
+    ctx = {"lustro": 0, "w_obszarach": 0, "nasze_typy": 0, "obszary": [],
+           "suma": {"sp": 0, "przedszkola": 0, "punkty": 0, "zespoly": 0},
+           "placowek_roboczych": 0, "z_numerem": 0, "nav_active": "obszary"}
+    try:
+        ctx["lustro"] = conn.execute(
+            "SELECT COUNT(*) FROM rspo_rejestr").fetchone()[0]
+    except Exception:
+        # Lustra jeszcze nie ma (M1 nieuruchomiony) — ekran ma o tym powiedzieć,
+        # a nie wywalić się pięćsetką.
+        conn.close()
+        return render_template("obszary.html", **ctx)
+
+    ctx["placowek_roboczych"] = conn.execute(
+        "SELECT COUNT(*) FROM placowki").fetchone()[0]
+    ctx["z_numerem"] = conn.execute(
+        "SELECT COUNT(*) FROM placowki WHERE rspo IS NOT NULL AND rspo <> ''"
+    ).fetchone()[0]
+
+    TYPY = [("sp", "Szkoła podstawowa"), ("przedszkola", "Przedszkole"),
+            ("punkty", "Punkt przedszkolny"),
+            ("zespoly", "Zespół szkół i placówek oświatowych")]
+    for o in obszary.lista(conn):
+        w = {"nazwa": o["nazwa"], "zakresy": o["zakresy"],
+             "wszystko": o["placowek_w_lustrze"], "nasze": 0}
+        for klucz, typ in TYPY:
+            n = conn.execute(
+                "SELECT COUNT(*) FROM rspo_obszar ro JOIN rspo_rejestr r "
+                "ON r.rspo = ro.rspo WHERE ro.obszar_id = ("
+                "SELECT id FROM obszary_dzialania WHERE nazwa = ?) AND r.typ = ?",
+                (o["nazwa"], typ)).fetchone()[0]
+            w[klucz] = n
+            w["nasze"] += n
+            ctx["suma"][klucz] += n
+        ctx["obszary"].append(w)
+        ctx["w_obszarach"] += w["wszystko"]
+    ctx["nasze_typy"] = sum(ctx["suma"].values())
+    conn.close()
+    return render_template("obszary.html", **ctx)
 
 
 @app.route("/rejony")
@@ -726,6 +897,16 @@ def api_lead_update(lead_id):
     field, value = d.get("field"), d.get("value")
     conn = get_conn()
 
+    # Właściciel PRZED walidacją pola: cudzego rekordu nie komentujemy nawet
+    # komunikatem o błędnej wartości — to też jest informacja o cudzych danych.
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    if field in POLA_TYLKO_KOORDYNATOR and (uz.zalogowany() or {}).get("rola") != "koordynator":
+        conn.close()
+        return jsonify(ok=False, error="Przypisanie szkoły i termin zwrotu "
+                                       "ustala koordynator"), 403
+
     # pola placówki edytujemy z tego samego widoku — rozpoznajemy po nazwie
     if field in PLACOWKA_KEYS:
         value, blad = _walidacja(conn, field, value, PLACOWKA_SLOWNIKI, PLACOWKA_KEYS)
@@ -738,6 +919,14 @@ def api_lead_update(lead_id):
                              (row["placowka_id"],)).fetchone()["v"]
         conn.execute("UPDATE placowki SET %s=?, updated_at=datetime('now') WHERE id=?"
                      % field, (value, row["placowka_id"]))
+        # Poprawiona miejscowość pociąga za sobą powiat — inaczej rekord po
+        # sprostowaniu literówki dalej siedziałby w starym powiecie, czyli
+        # w filtrze, w którym nikt by go nie szukał.
+        if field == "miejscowosc":
+            powiat, gmina = geografia.dla_nowej(conn, value)
+            if powiat:
+                conn.execute("UPDATE placowki SET powiat=?, gmina=? WHERE id=?",
+                             (powiat, gmina, row["placowka_id"]))
         zapisz_log(conn, lead_id=lead_id, co="zmiana placówki", pole=field,
                    przed=przed, po=value)
         conn.commit()
@@ -880,6 +1069,11 @@ def api_pin():
     lead_id = d.get("id")
     wlacz = bool(d.get("pin"))
     conn = get_conn()
+    # Plan tygodnia jest własny, ale zapis idzie do wspólnego rekordu — bez tego
+    # handlowiec przypinał sobie cudzą szkołę i zostawiał na niej ślad w historii.
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
     val = poniedzialek() if wlacz else None
     conn.execute("UPDATE leady SET pin_tydzien=?, updated_at=datetime('now') WHERE id=?",
                  (val, lead_id))
@@ -896,6 +1090,12 @@ def api_lead_create():
     d = request.get_json(silent=True) or {}
     nazwa = (d.get("nazwa") or "").strip() or "(nowa placówka)"
     conn = get_conn()
+    # Właściciel z SESJI, nie z ciała żądania. Ta zasada obowiązuje w całym
+    # projekcie (formularz tak robi od początku), ale ten endpoint ją omijał:
+    # dało się utworzyć szkołę od razu podpisaną cudzym nazwiskiem.
+    ja = uz.zalogowany() or {}
+    if ja.get("rola") == "handlowiec":
+        d["handlowiec"] = ja["osoba"]
     # Wymuszamy słownik TAK SAMO jak przy edycji — inaczej tworzeniem nowego leada
     # dałoby się wprowadzić wartość spoza listy i bałagan wróciłby tą furtką.
     for pole, mapa in (("typ", PLACOWKA_SLOWNIKI), ("miejscowosc", PLACOWKA_SLOWNIKI),
@@ -905,9 +1105,11 @@ def api_lead_create():
         if blad:
             conn.close(); return jsonify(ok=False, error="%s: %s" % (pole, blad)), 400
         d[pole] = v
+    powiat, gmina = geografia.dla_nowej(conn, d.get("miejscowosc"))
     cur = conn.execute(
-        "INSERT INTO placowki (nazwa, typ, miejscowosc, zrodlo) VALUES (?,?,?,?)",
-        (nazwa, d.get("typ"), d.get("miejscowosc"), "reka"))
+        "INSERT INTO placowki (nazwa, typ, miejscowosc, powiat, gmina, zrodlo) "
+        "VALUES (?,?,?,?,?,?)",
+        (nazwa, d.get("typ"), d.get("miejscowosc"), powiat, gmina, "reka"))
     pid = cur.lastrowid
     cur = conn.execute(
         "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) VALUES (?,?,?)",
@@ -943,6 +1145,9 @@ def api_event_create():
     conn = get_conn()
     if not conn.execute("SELECT 1 FROM leady WHERE id=?", (lead_id,)).fetchone():
         conn.close(); return jsonify(ok=False, error="Nie ma takiego leada"), 404
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
 
     dane = {"typ": d.get("typ") or "DT"}
     for k in EVENT_KEYS:
@@ -978,6 +1183,9 @@ def api_event_update(event_id):
     d = request.get_json(force=True)
     field, value = d.get("field"), d.get("value")
     conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
     value, blad = _walidacja(conn, field, value, EVENT_SLOWNIKI, EVENT_KEYS)
     if blad:
         conn.close(); return jsonify(ok=False, error=blad), 400
@@ -994,8 +1202,95 @@ def api_event_update(event_id):
     return jsonify(ok=True, kolizja=ostrzezenie)
 
 
+@app.route("/api/event/<int:event_id>/odwolaj", methods=["POST"])
+def api_event_odwolaj(event_id):
+    """
+    Odwołanie spotkania ZE ŚLADEM — zamiast kasowania (P08, zgłoszenie K12).
+
+    Kasia, 20.08: „nie widzę też możliwości wykasowania czegoś z kalendarza,
+    w razie jakby np. szkoła w ostatnim momencie odmówiła współpracy".
+
+    Kasowanie zabiera dowód, że temat w ogóle był — a to jest dokładnie ta
+    informacja, której Kasia szuka w raporcie wykonania („ile się nie udało").
+    Dlatego wpis zostaje w bazie, tylko znika z grafiku i przestaje zajmować
+    trenerowi termin.
+
+    Kto: koordynator zawsze, handlowiec na SWOJEJ szkole (decyzja z 20.08:
+    „handlowiec może odwołać, a koordynator może odwołać i skasować").
+
+    Powód jest wymagany. To trzecia twarda blokada w tym projekcie obok
+    słowników i uprawnień, i ma uzasadnienie: odwołanie bez powodu nie różni
+    się niczym od pomyłki, a po miesiącu nikt już nie odtworzy, czy szkoła
+    odmówiła, czy ktoś kliknął nie w ten wiersz.
+    """
+    d = request.get_json(silent=True) or {}
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+
+    e = conn.execute("SELECT lead_id, typ, data, odwolane FROM eventy WHERE id=?",
+                     (event_id,)).fetchone()
+    ja = uz.zalogowany() or {}
+    cofnij = bool(d.get("cofnij"))
+
+    if cofnij:
+        if not e["odwolane"]:
+            conn.close(); return jsonify(ok=False, error="To spotkanie nie jest odwołane"), 400
+        conn.execute("UPDATE eventy SET odwolane=NULL, powod_odwolania=NULL, "
+                     "odwolal=NULL, updated_at=datetime('now') WHERE id=?", (event_id,))
+        zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+                   co="cofnięcie odwołania", przed=e["odwolane"], po=None)
+        conn.commit()
+        conn.close()
+        return jsonify(ok=True, odwolane=False)
+
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        conn.close()
+        return jsonify(ok=False, error="Napisz, dlaczego odwołujemy — bez tego "
+                                       "za miesiąc nikt tego nie odtworzy"), 400
+    if e["odwolane"]:
+        conn.close(); return jsonify(ok=False, error="To spotkanie jest już odwołane"), 400
+
+    conn.execute("UPDATE eventy SET odwolane=datetime('now'), powod_odwolania=?, "
+                 "odwolal=?, updated_at=datetime('now') WHERE id=?",
+                 (powod, ja.get("osoba") or "", event_id))
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id, co="odwołanie spotkania",
+               pole=e["typ"], przed=e["data"], po=powod)
+
+    # Lead ze statusem sukcesu, któremu odwołano OSTATNI aktywny DT, przestaje
+    # być domknięty — inaczej szkoła zostałaby zdjęta z listy zadań (P23) mimo
+    # tego, że nie ma już żadnego terminu. Wraca do „w trakcie umawiania", bo
+    # rozmowa była; do puli nie wraca i handlowca nie traci.
+    wrocil = False
+    zostalo = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE lead_id=? AND typ='DT' "
+        "AND data IS NOT NULL AND data<>'' AND (odwolane IS NULL OR odwolane='')",
+        (e["lead_id"],)).fetchone()["c"]
+    if not zostalo:
+        lead = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                            (e["lead_id"],)).fetchone()
+        stary = lead["status_realizacji"] or ""
+        if stary.startswith(STATUS_SUKCES_PREFIX):
+            nowy = "02b. DT w trakcie umawiania"
+            if nowy in slownik_values(conn, "status_realizacji"):
+                conn.execute("UPDATE leady SET status_realizacji=?, dt=NULL, "
+                             "updated_at=datetime('now') WHERE id=?",
+                             (nowy, e["lead_id"]))
+                zapisz_log(conn, lead_id=e["lead_id"], co="status po odwołaniu DT",
+                           pole="status_realizacji", przed=stary, po=nowy)
+                wrocil = True
+
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True, odwolane=True, wrocil_do_umawiania=wrocil)
+
+
 @app.route("/api/event/<int:event_id>", methods=["DELETE"])
 def api_event_delete(event_id):
+    # Kasowanie bez śladu zostaje przy koordynatorze (jest w TYLKO_KOORDYNATOR).
+    # Handlowiec ma odwołanie, które zostawia powód — patrz `api_event_odwolaj`.
     conn = get_conn()
     row = conn.execute("SELECT lead_id FROM eventy WHERE id=?", (event_id,)).fetchone()
     conn.execute("DELETE FROM eventy WHERE id=?", (event_id,))
@@ -1015,7 +1310,11 @@ def _ostrzezenie_kolizji(conn, event_id):
         return None
     inne = conn.execute(
         "SELECT id, godz_od, godz_do FROM eventy "
-        "WHERE id<>? AND data=? AND trener=?", (event_id, e["data"], e["trener"])
+        "WHERE id<>? AND data=? AND trener=? "
+        # odwołane zajęcia nie zajmują terminu — inaczej trener po odwołaniu
+        # dalej wyglądałby na zajętego i nikt by go tam nie wysłał (P08)
+        "AND (odwolane IS NULL OR odwolane = '')",
+        (event_id, e["data"], e["trener"])
     ).fetchall()
     for o in inne:
         if cv.overlaps(e["godz_od"], e["godz_do"], o["godz_od"], o["godz_do"]):
@@ -1351,6 +1650,19 @@ def _kontekst_formularza(conn, handlowiec):
             moje.append(poz)
     return {
         "slowniki": wszystkie_slowniki(conn),
+        # MIEJSCOWOŚCI IDĄ Z DANYCH, NIE ZE SŁOWNIKA `miasto`.
+        #
+        # Warianty 2–4 wybierają szkołę parą list „miejscowość → placówka"
+        # i brały pierwszą z nich ze słownika. Po etapie M8 (czyszczenie nazw
+        # razem z przejściem na powiaty) słownik ma 33 wartości z prefiksami
+        # („01. Orzesze"), a baza 73 czyste („Orzesze") — CZĘŚĆ WSPÓLNA JEST
+        # PUSTA, więc każdy wybór dawał zero szkół. Formularz przestawał
+        # działać w ogóle, i to ten, na którym pracują handlowcy.
+        #
+        # Słownika `miasto` nie ruszamy: używa go tabela `aliasy` przy imporcie
+        # arkuszy klienta, gdzie prefiksy wciąż są tym, co przychodzi w pliku.
+        # To dwie różne role tej samej nazwy i dlatego dwa różne źródła.
+        "miejscowosci": geografia.miasta(conn),
         "handlowiec": handlowiec,
         "moje": moje,
         "ostrzezenia": zwrot.zagrozone(conn, handlowiec=handlowiec) if handlowiec else [],
@@ -1367,6 +1679,7 @@ def _filtr_pin():
 
 def _pozycja_planu(r, moja):
     """Jedna szkoła na liście „Plan na dziś" — wspólna dla wszystkich wariantów."""
+    status = r["status_realizacji"] or ""
     return {
         "lead_id": r["id"], "placowka_id": r["placowka_id"],
         "nazwa": r["placowka"], "miejscowosc": r["miejscowosc"] or "",
@@ -1374,6 +1687,16 @@ def _pozycja_planu(r, moja):
         "osoba_kontakt": r["osoba_kontakt"] or "", "telefon": r["telefon"] or "",
         "mail": r["mail"] or "", "moja": moja,
         "deadline": r["deadline"] or "", "ma_dt": bool(r["dt_data"]),
+        "status": status,
+        # P23 (zgłoszenie Zuzi 20.08): „dodam jej że byłam i dt ustalone, to ona
+        # z tej listy nie znika, słabo bo nadal widzę że mam do zrobienia 12".
+        #
+        # Do 20.08 „zrobione" brało się WYŁĄCZNIE z datowanego wpisu DT. Kto
+        # domknął szkołę samym statusem na karcie leada — a formularz wymagał
+        # kompletu sześciu pól, więc zdarzało się to często — zostawał z nią na
+        # liście zadań na zawsze. Licznik „12 do zrobienia" liczył wtedy robotę
+        # już wykonaną, czyli kłamał w jedyną stronę, która boli.
+        "zrobione": bool(r["dt_data"]) or status.startswith(STATUS_SUKCES_PREFIX),
         "pin": bool(r["pin_tydzien"]), "wlasciciel": "",
     }
 
@@ -1477,6 +1800,145 @@ def formularz_cykliczne():
     ctx = _kontekst_formularza(conn, _kto_wypelnia())
     conn.close()
     return render_template("formularz4.html", **ctx)
+
+
+@app.route("/formularz/v5")
+def formularz_v5():
+    """
+    WARIANT 5 — kaskada od placówki. Piąty kafelek na ekranie wyboru.
+
+    Klient chce docelowo JEDEN formularz, w którym mieści się wszystko: szkoły
+    i przedszkola, DT, cykle, jednorazówki, festyny, VR i sama wizyta bez
+    umówienia czegokolwiek. Cztery istniejące warianty są zbudowane wokół
+    stałej kolejności sekcji z wyłącznikiem DT — dołożenie do nich sześciu
+    rodzajów zajęć dałoby trzecią warstwę przełączników na dwóch istniejących.
+    Tutaj sterowanie jest odwrócone: najpierw placówka, potem CO z nią ustalono,
+    a sekcje rozsuwają się dopiero po zaznaczeniu.
+
+    DLACZEGO OSOBNY WARIANT, A NIE PRZEBUDOWA v4
+    v4 jest właśnie przedmiotem testu u klienta; przebudowa w miejscu
+    zniszczyłaby punkt odniesienia w połowie porównania. Piąty przycisk to
+    ścieżka, w którą nikt nie wchodzi przypadkiem — handlowiec dalej klika v3,
+    a rozgrzebany v5 nikomu nie blokuje pracy.
+
+    Zapis idzie tym samym `POST /api/formularz`, tym samym `klucz_zapisu`
+    i tą samą walidacją co v1–v4 — rozszerzonymi ADDYTYWNIE o listę `zajecia`.
+    """
+    conn = get_conn()
+    ctx = _kontekst_formularza(conn, _kto_wypelnia())
+    conn.close()
+    # Chipy rodzajów biorą się ze SŁOWNIKA, nie z listy wpisanej w HTML —
+    # inaczej dołożenie rodzaju zajęć wymagałoby zmiany w kodzie, a klient
+    # dodaje pozycje słownika sam, ekranem „Słowniki".
+    ctx["chipy"] = [t for t in ctx["slowniki"].get("typ_eventu", [])
+                    if t not in CHIPY_POMIJANE]
+    return render_template("formularz5.html", **ctx)
+
+
+# Rodzaje zajęć, których NIE pokazujemy jako chipa w kaskadzie v5.
+#   START               — inauguracja grupy; powstaje u koordynatora i z importu,
+#                         handlowiec w terenie tego nie wpisuje
+#   CYKLICZNE-PRZEDSZKOLE — to nie osobny wybór dla człowieka, tylko ten sam chip
+#                         „Cykliczne" przy placówce typu przedszkole (patrz
+#                         `typCyklu` w formularz5.js). Handlowiec nie musi
+#                         wiedzieć, że w bazie to dwa typy
+CHIPY_POMIJANE = ("START", "CYKLICZNE-PRZEDSZKOLE")
+
+
+@app.route("/api/formularz/geografia")
+def api_formularz_geografia():
+    """
+    Osie geograficzne kaskady v5 — ADAPTER, którego zadaniem jest przeżyć
+    migrację na RSPO bez zmiany choćby linijki w przeglądarce.
+
+    Zwraca DWIE osie: powiat → miejscowość. Druga zawęża się wybraną wartością
+    pierwszej, więc pod „powiat będziński" jest 8 miejscowości, a nie 60
+    z województwa. JS rysuje tyle selectów, ile dostał — nie zna nazw kolumn
+    ani liczby poziomów, więc dołożenie trzeciej osi (gmina) nie dotknie
+    przeglądarki.
+
+    Wartości biorą się z DANYCH, nie ze słownika `miasto`: słownik ma 11 pozycji
+    bez ani jednej placówki i nie zna miejscowości, które doszły z rejestru —
+    kłamałby w obie strony naraz.
+    """
+    wybrany_powiat = (request.args.get("powiat") or "").strip()
+    conn = get_conn()
+    osie = [
+        {"poziom": "powiat", "etykieta": "Powiat",
+         "wartosci": geografia.powiaty(conn), "pusta_etykieta": "Wybierz powiat"},
+        # Miejscowości WYŁĄCZNIE z wybranego powiatu. Bez powiatu lista jest
+        # PUSTA: kaskada, w której pierwszy krok niczego nie zawęża, nie jest
+        # kaskadą.
+        #
+        # Do 24.08 szły tu nazwy z REJESTRU, także te, w których nie mamy ani
+        # jednej placówki — bo handlowiec zakładał w nich nową. Zakładanie
+        # wypadło z formularza tego samego dnia (zgłoszenie Kasi), więc ten
+        # powód zniknął, a został sam koszt: wybór miejscowości, po którym
+        # lista placówek jest pusta i nic się z tym nie da zrobić.
+        {"poziom": "miejscowosc", "etykieta": "Miejscowość (opcjonalnie)",
+         "wartosci": geografia.miasta(conn, wybrany_powiat) if wybrany_powiat else [],
+         "pusta_etykieta": "Najpierw powiat" if not wybrany_powiat
+                           else "Cały powiat"},
+    ]
+    conn.close()
+    return jsonify(ok=True, osie=osie)
+
+
+@app.route("/api/formularz/placowki")
+def api_formularz_placowki():
+    """
+    Lista placówek do kaskady v5 — własna, bo `/api/placowki` ma dwa defekty,
+    których NIE naprawiamy tam, żeby nie ruszać ekranów będących w teście:
+
+      · robi JOIN z `leady`, więc placówka bez leada jest niewidoczna,
+        a placówka z dwoma leadami pokazuje się dwa razy;
+      · `/api/placowki/szukaj` tnie LIMIT-em przed wyniesieniem „moich" na górę.
+
+    Tutaj: LEFT JOIN po leadzie (placówka istnieje niezależnie od procesu
+    sprzedażowego) i filtr typu, bo po dołożeniu przedszkoli w Katowicach jest
+    ich 150 obok 82 szkół — bez filtru lista przestaje być listą.
+    """
+    powiat = (request.args.get("powiat") or "").strip()
+    os1 = (request.args.get("miejscowosc") or "").strip()
+    rodzaj = (request.args.get("rodzaj") or "").strip()     # szkoly | przedszkola | ""
+    handlowiec = (request.args.get("handlowiec") or "").strip()
+    if not powiat and not os1:
+        return jsonify(ok=True, pozycje=[])
+
+    warunki, param = [], []
+    if powiat:
+        warunki.append("p.powiat = ?"); param.append(powiat)
+    if os1:
+        warunki.append("p.miejscowosc = ?"); param.append(os1)
+    if rodzaj == "szkoly":
+        warunki.append("COALESCE(p.typ,'') LIKE '01.%'")
+    elif rodzaj == "przedszkola":
+        warunki.append("(COALESCE(p.typ,'') LIKE '02.%' OR COALESCE(p.typ,'') LIKE '03.%')")
+
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT p.id AS placowka_id, p.nazwa, p.miejscowosc, p.typ, p.adres,
+               p.osoba_kontakt, p.telefon, p.mail,
+               (SELECT l.id FROM leady l WHERE l.placowka_id = p.id
+                 ORDER BY l.id LIMIT 1) AS lead_id,
+               (SELECT l.handlowiec FROM leady l WHERE l.placowka_id = p.id
+                 ORDER BY l.id LIMIT 1) AS handlowiec
+          FROM placowki p
+         WHERE %s
+         ORDER BY p.nazwa
+    """ % " AND ".join(warunki), param).fetchall()
+    conn.close()
+
+    poz = []
+    for r in rows:
+        d = dict(r)
+        d["moja"] = bool(handlowiec and d["handlowiec"] == handlowiec)
+        poz.append(d)
+    # „Moje" na górze — w terenie handlowiec w 9 przypadkach na 10 wypełnia
+    # formularz dla własnej szkoły (P06). Sortowanie po WYBRANIU wszystkich,
+    # nie przez LIMIT w zapytaniu — to był defekt starego szukania.
+    poz.sort(key=lambda x: (not x["moja"], x["nazwa"] or ""))
+    return jsonify(ok=True, pozycje=poz)
 
 
 @app.route("/api/placowki")
@@ -1641,6 +2103,32 @@ def api_formularz():
     # --- 1. placówka i lead: istniejąca z listy albo zupełnie nowa -----------
     lead_id = d.get("lead_id")
     nowa = d.get("placowka") or {}
+
+    # Placówka z rejestru, która nie ma jeszcze leada. Dołożenie z RSPO zakłada
+    # lead każdej, ale `/api/formularz/placowki` czyta je LEFT JOIN-em i musi
+    # umieć oddać także taką — więc formularz musi umieć ją zapisać.
+    #
+    # Do 24.08 v5 wysyłał w tym miejscu blok `placowka`, czyli prosił o INSERT
+    # nowego wiersza. Komentarz obok twierdził, że „nie powstaje drugi wiersz
+    # placówki" — a powstawał, bo serwer bez `lead_id` po prostu wstawia. To był
+    # dokładnie ten dubel, przed którym ostrzegała Kasia, tyle że robiony przez
+    # aplikację, a nie przez człowieka.
+    if not lead_id and d.get("placowka_id"):
+        pid = d["placowka_id"]
+        if not conn.execute("SELECT id FROM placowki WHERE id=?", (pid,)).fetchone():
+            return blad("Nie ma takiej placówki", 404)
+        row = conn.execute("SELECT id FROM leady WHERE placowka_id=? ORDER BY id LIMIT 1",
+                           (pid,)).fetchone()
+        if row:
+            lead_id = row["id"]
+        else:
+            lead_id = conn.execute(
+                "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) "
+                "VALUES (?,?,?)",
+                (pid, handlowiec or None, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+            zapisz_log(conn, lead_id=lead_id, kto=handlowiec or "formularz",
+                       co="lead założony z formularza", po=None)
+
     if lead_id:
         row = conn.execute("SELECT id, placowka_id, handlowiec FROM leady WHERE id=?",
                            (lead_id,)).fetchone()
@@ -1654,6 +2142,21 @@ def api_formularz():
             zapisz_log(conn, lead_id=lead_id, kto=handlowiec, co="przypisanie z formularza",
                        pole="handlowiec", przed=None, po=handlowiec)
     else:
+        # ZAKŁADANIE PLACÓWKI Z FORMULARZA WYPADŁO 24.08 — zgłoszenie Kasi:
+        # „usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami
+        # i będą się dublować rzeczy, a wpisują nazwy jak popadnie".
+        #
+        # Blokada jest po ROLI, nie po widoku przycisku. Przycisku nie ma dziś
+        # w żadnym z pięciu wariantów formularza, ale zapis idzie zwykłym
+        # `fetch` — sam brak przycisku nie zamyka niczego (ta sama lekcja co
+        # przy K01 z 20.08). Koordynator zakłada dalej: robi to na ekranie
+        # „Baza", a import i migracje muszą mieć czym wstawiać rekordy.
+        u = uz.zalogowany() or {}
+        if u.get("rola") == "handlowiec":
+            return blad("Nowe placówki zakłada koordynator. Jeśli nie widzisz "
+                        "szkoły na liście, sprawdź powiat — baza obejmuje cały "
+                        "rejestr. Gdyby naprawdę jej brakowało, zgłoś to "
+                        "koordynatorce.", 403)
         nazwa = (nowa.get("nazwa") or "").strip()
         if not nazwa:
             return blad("Podaj nazwę placówki")
@@ -1665,11 +2168,16 @@ def api_formularz():
             pola[k] = v
         for k in ("adres", "osoba_kontakt", "telefon", "mail"):
             pola[k] = (nowa.get(k) or "").strip() or None
+        # Powiat od razu przy zakładaniu, nie w nocnej migracji: to po nim idzie
+        # filtr, więc placówka bez powiatu byłaby niewidoczna dla wszystkich
+        # poza tym, kto ją właśnie wpisał.
+        powiat, gmina = geografia.dla_nowej(conn, pola["miejscowosc"])
         cur = conn.execute(
             "INSERT INTO placowki (nazwa, typ, miejscowosc, adres, osoba_kontakt, "
-            "telefon, mail, zrodlo) VALUES (?,?,?,?,?,?,?,?)",
+            "telefon, mail, powiat, gmina, zrodlo) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (nazwa, pola["typ"], pola["miejscowosc"], pola["adres"],
-             pola["osoba_kontakt"], pola["telefon"], pola["mail"], "formularz"))
+             pola["osoba_kontakt"], pola["telefon"], pola["mail"],
+             powiat, gmina, "formularz"))
         placowka_id = cur.lastrowid
         cur = conn.execute(
             "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) VALUES (?,?,?)",
@@ -1690,8 +2198,13 @@ def api_formularz():
                           (placowka_id,)).fetchone()["miejscowosc"]
 
     # --- 2. pola leada ------------------------------------------------------
+    # `status_realizacji` doszedł 20.08 (P22, zgłoszenie Kasi): formularz musi
+    # umieć zapisać wizytę, która NIE skończyła się umówieniem DT. Wartość idzie
+    # przez słownik jak każda inna, więc nie da się tędy wstawić czegoś spoza
+    # listy. Sekcja 3 (spotkania) wykonuje się PÓŹNIEJ i przy realnym DT
+    # nadpisze to na „03. DT umówione" — i tak ma być: termin bije deklarację.
     for k in ("uwagi", "do_zrobienia", "mail_rodzice", "mail_wynajem",
-          "status_szkoly", "cykle"):
+          "status_szkoly", "cykle", "status_realizacji"):
         if k not in d:
             continue
         v, e = _walidacja(conn, k, d.get(k), LEAD_SLOWNIKI, LEAD_KEYS)
@@ -1701,10 +2214,22 @@ def api_formularz():
             conn.execute("UPDATE leady SET %s=?, updated_at=datetime('now') WHERE id=?"
                          % k, (v, lead_id))
 
-    # --- 3. spotkania: DT i cykl -------------------------------------------
+    # --- 3. spotkania: DT, cykl i (v5) lista zajęć ---------------------------
+    #
+    # ROZSZERZENIE JEST ADDYTYWNE — TO WARUNEK, NIE STYL
+    # v5 umawia w jednym wyjściu w teren kilka rzeczy naraz (DT + festyn, cykl
+    # w dwóch grupach), więc wysyła listę `zajecia`. Stare warianty wysyłają
+    # dwa bloki `dt`/`cykl` jak dotąd i mają tego NIE ZAUWAŻYĆ: cztery warianty
+    # istnieją po to, żeby klient porównywał UKŁAD, a nie funkcje. Gdyby v5
+    # zmienił kontrakt, porównanie przestałoby cokolwiek znaczyć.
+    zajecia_v5 = []
+    for z in (d.get("zajecia") or []):
+        if isinstance(z, dict) and (z.get("typ") or "").strip():
+            zajecia_v5.append(((z.get("typ") or "").strip(), z))
+
     utworzone, kolizja = [], None
-    for typ, pole_bloku in (("DT", "dt"), ("CYKLICZNE", "cykl")):
-        blok = d.get(pole_bloku) or {}
+    for typ, blok in ([("DT", d.get("dt") or {}), ("CYKLICZNE", d.get("cykl") or {})]
+                      + zajecia_v5):
         if not blok:
             continue
 
@@ -1718,6 +2243,13 @@ def api_formularz():
                 if zadany not in TYPY_CYKLICZNE:
                     return blad("Nieznany typ zajęć cyklicznych: %s" % zadany)
                 typ = zadany
+        elif typ != "DT":
+            # Rodzaj z chipa v5. Twarda blokada po słowniku TEGO profilu, nie po
+            # stałej w kodzie: `CYKLICZNE-PRZEDSZKOLE" dawało się kiedyś zapisać
+            # (walidacja szła po stałej), ale nie poprawić — bo słownik produkcji
+            # go nie znał. Jedna blokada w obie strony zamyka tę klasę usterek.
+            if typ not in slownik_values(conn, "typ_eventu"):
+                return blad("Nieznany rodzaj zajęć: %s" % typ)
 
         # Terminy z listy — pakiet konkretnych dat zamiast reguły „co wtorek".
         terminy = _terminy_cyklu(blok) if typ in TYPY_CYKLICZNE else []
@@ -1726,11 +2258,13 @@ def api_formularz():
                         "Podziel zajęcia na dwa wpisy."
                         % (len(terminy), MAX_TERMINOW_CYKLU))
 
-        # DT bez daty nie ma sensu; cykl bez dnia tygodnia I bez listy dat też nie
-        if typ == "DT" and not (blok.get("data") or "").strip():
-            continue
-        if typ in TYPY_CYKLICZNE and not (blok.get("cykl_dzien") or "").strip() \
-                and not terminy:
+        # Wpis bez daty jest wpisem NIEWIDOCZNYM w kalendarzu — a taki jest
+        # gorszy niż jego brak, bo wygląda na zrobiony (lekcja z 10.08). Cykl
+        # ma dwie drogi do daty: regułę „co wtorek" albo listę terminów.
+        if typ in TYPY_CYKLICZNE:
+            if not (blok.get("cykl_dzien") or "").strip() and not terminy:
+                continue
+        elif not (blok.get("data") or "").strip():
             continue
 
         dane = {"typ": typ}

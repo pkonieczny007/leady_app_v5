@@ -1,0 +1,96 @@
+/* =============================================================================
+   FORMULARZ v5 — kaskada. Dokładka do `formularz2.css`, nie jego zamiennik.
+
+   MOBILE-FIRST ODWROTNIE NIŻ RESZTA ARKUSZA
+   Siatki w `style.css` (`.kv`, `.julia-grid`, `.event-grid`) mają twarde
+   minima w pikselach bez progu @media — i to one wypychały stronę w bok na
+   telefonie (zgłoszenie Kasi z 23.08). Tutaj stanem BAZOWYM jest jedna kolumna,
+   a kolumny dochodzą dopiero KU GÓRZE. Ekranu, który zaczyna od jednej kolumny,
+   nie da się rozjechać w bok.
+   ============================================================================= */
+
+.f5 .f2-siatka { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+@media (min-width: 620px) {
+  .f5 .f2-siatka-2 { grid-template-columns: 1fr 1fr; }
+  .f5 .f2-siatka-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Numer kroku — kaskada ma być czytelna jako kolejność, nie jako lista sekcji */
+.f5-nr {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; margin-right: 8px; border-radius: 50%;
+  background: var(--brand-l, #1d4757); color: #fff;
+  font-size: 13px; font-weight: 700;
+}
+
+/* --- chipy (rodzaj placówki, rodzaje zajęć, tryb cyklu) ------------------- */
+
+.f5-typy, .f5-chipy, .f5-tryb {
+  display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;
+}
+
+.f5-chip {
+  padding: 9px 14px; border: 1px solid #c9d2da; border-radius: 999px;
+  background: #fff; color: #23303a; font-size: 14px; cursor: pointer;
+  /* 44 px to minimum, w które da się trafić kciukiem na stojąco */
+  min-height: 44px;
+}
+.f5-chip:hover { border-color: #8fa3b3; }
+.f5-chip-on {
+  background: var(--brand-l, #1d4757); border-color: var(--brand-l, #1d4757);
+  color: #fff; font-weight: 600;
+}
+
+/* --- lista placówek ------------------------------------------------------- */
+
+.f5-szukaj { margin: 8px 0; }
+
+.f5-lista {
+  /* Lista, a nie <select>: w Katowicach jest dziś 150 przedszkoli obok
+     82 szkół. Ograniczona wysokość + własne przewijanie, żeby krok 1 nie
+     spychał reszty formularza poza ekran. */
+  max-height: 48vh; overflow-y: auto;
+  border: 1px solid #dde3e9; border-radius: 10px; background: #fff;
+}
+
+.f5-poz {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  gap: 8px; padding: 11px 12px; border-bottom: 1px solid #eef2f5; cursor: pointer;
+}
+.f5-poz:last-child { border-bottom: 0; }
+.f5-poz:hover { background: #f6f9fb; }
+.f5-poz-on { background: #eaf3f7; }
+
+.f5-poz-nazwa { font-weight: 600; line-height: 1.25; }
+.f5-poz-adres {
+  grid-column: 2 / -1; font-size: 12.5px; color: #66757f;
+}
+
+/* Gwiazdka „twoja szkoła" i podpis cudzej — filtr jest zawsze JAWNY, więc
+   przynależność też: handlowiec ma widzieć, że wchodzi na cudzy teren. */
+.f5-moja { color: #d99400; font-size: 17px; }
+.f5-czyja { font-size: 12px; color: #66757f; white-space: nowrap; }
+
+/* --- sekcje rodzajów zajęć ------------------------------------------------ */
+
+.f5-sekcja {
+  margin-top: 12px; padding: 12px; border: 1px solid #dde3e9;
+  border-left: 3px solid var(--brand-l, #1d4757); border-radius: 8px;
+  background: #fbfdfe;
+}
+.f5-sekcja-tytul { margin: 0 0 10px; font-size: 15px; }
+
+.f5-terminy { display: grid; gap: 6px; margin-top: 10px; }
+.f5-termin {
+  display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px;
+}
+.f5-termin span { color: #66757f; font-size: 13px; }
+
+/* --- pasek zapisu --------------------------------------------------------- */
+
+.f5-akcje {
+  position: sticky; bottom: 0; z-index: 5;
+  padding: 10px 0; margin-top: 14px;
+  background: linear-gradient(to top, #fff 70%, rgba(255, 255, 255, 0));
+}

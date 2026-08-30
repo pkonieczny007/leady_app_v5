@@ -19,6 +19,7 @@ SORT_POLA = {
     "status": "l.status_realizacji",
     "deadline": "l.deadline",
     "miasto": "p.miejscowosc",
+    "powiat": "p.powiat",
     "placowka": "p.nazwa",
     "typ": "p.typ",
     "data_dt": "dt_data",
@@ -32,35 +33,47 @@ SELECT l.*,
        -- `nazwa` i `typ` pod własnymi nazwami też, bo karta leada edytuje pola
        -- placówki po ich kluczach z PLACOWKA_FIELDS (aliasy służą listom)
        p.nazwa AS nazwa, p.typ AS typ,
-       p.miejscowosc, p.adres, p.osoba_kontakt, p.telefon, p.mail,
+       p.miejscowosc, p.powiat, p.gmina,
+       p.adres, p.osoba_kontakt, p.telefon, p.mail,
        (SELECT MIN(e.data) FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
        ) AS dt_data,
        (SELECT e.godz_od FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_godz_od,
        (SELECT e.godz_do FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_godz_do,
        (SELECT e.trener FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_trener,
        (SELECT e.numer_sali FROM eventy e
           WHERE e.lead_id = l.id AND e.typ='DT' AND e.data IS NOT NULL AND e.data<>''
+            AND (e.odwolane IS NULL OR e.odwolane = '')
           ORDER BY e.data LIMIT 1
        ) AS dt_sala,
        (SELECT e.ilosc_klas FROM eventy e
-          WHERE e.lead_id = l.id AND e.typ='DT' ORDER BY e.data LIMIT 1
+          WHERE e.lead_id = l.id AND e.typ='DT'
+            AND (e.odwolane IS NULL OR e.odwolane = '')
+          ORDER BY e.data LIMIT 1
        ) AS dt_klas,
        (SELECT e.ilosc_dzieci FROM eventy e
-          WHERE e.lead_id = l.id AND e.typ='DT' ORDER BY e.data LIMIT 1
+          WHERE e.lead_id = l.id AND e.typ='DT'
+            AND (e.odwolane IS NULL OR e.odwolane = '')
+          ORDER BY e.data LIMIT 1
        ) AS dt_dzieci,
-       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='DT') AS n_dt,
+       (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id AND e.typ='DT'
+          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_dt,
        (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id
-          AND e.typ IN (%(cykl)s)) AS n_cykl
+          AND e.typ IN (%(cykl)s)
+          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_cykl
 FROM leady l
 JOIN placowki p ON p.id = l.placowka_id
 """ % {"cykl": SQL_TYPY_CYKLICZNE}
@@ -99,9 +112,12 @@ def _chipy(f):
 
 
 def pusty_filtr():
-    return {"handlowiec": "", "miasto": "", "status": "", "status_szkoly": "",
-            "typ": "", "dt": "", "q": "", "osoby": "", "osoby_tryb": "",
-            "zakres": "", "sort": "", "kier": ""}
+    # `powiat` stoi PRZED `miasto`, bo to on jest osią: klient prowadzi sprzedaż
+    # powiatami, a lista miejscowości powstała z ręcznych wpisów w arkuszu
+    # i miesza miasta, wsie i worki powiatowe (`15. Będzin` = 17 miejscowości).
+    return {"handlowiec": "", "powiat": "", "miasto": "", "status": "",
+            "status_szkoly": "", "typ": "", "dt": "", "q": "",
+            "osoby": "", "osoby_tryb": "", "zakres": "", "sort": "", "kier": ""}
 
 
 def czytaj_filtr(args):
@@ -163,6 +179,8 @@ def _warunki(f, dzis):
     w, p = [], []
     if f["handlowiec"]:
         w.append("l.handlowiec = ?"); p.append(f["handlowiec"])
+    if f["powiat"]:
+        w.append("p.powiat = ?"); p.append(f["powiat"])
     if f["miasto"]:
         w.append("p.miejscowosc = ?"); p.append(f["miasto"])
     if f["status"]:
@@ -175,10 +193,11 @@ def _warunki(f, dzis):
         w.append("l.dt = ?"); p.append(f["dt"])
     if f["q"]:
         like = "%" + f["q"] + "%"
-        w.append("(p.nazwa LIKE ? OR p.miejscowosc LIKE ? OR p.adres LIKE ? "
+        w.append("(p.nazwa LIKE ? OR p.miejscowosc LIKE ? OR p.powiat LIKE ? "
+                 "OR p.adres LIKE ? "
                  "OR p.mail LIKE ? OR p.telefon LIKE ? OR p.osoba_kontakt LIKE ? "
                  "OR l.uwagi LIKE ? OR p.rspo LIKE ?)")
-        p += [like] * 8
+        p += [like] * 9
 
     war_osoby, par_osoby = _warunek_osob(f)
     if war_osoby:
@@ -306,9 +325,16 @@ def metryki(conn, dzis=None):
                          "AND deadline<>'' AND deadline<? "
                          "AND (status_realizacji IS NULL OR status_realizacji NOT LIKE ?)",
                          (dzis, STATUS_SUKCES_PREFIX + "%")),
-        "eventy_dt": q("SELECT COUNT(*) FROM eventy WHERE typ='DT'"),
-        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ IN (%s)"
+        # Odwołane spotkania NIE liczą się do kafelków na pulpicie — inaczej
+        # pulpit pokazywałby 61 DT, a kalendarz 58, i nikt by nie wiedział,
+        # która liczba kłamie (P08).
+        "eventy_dt": q("SELECT COUNT(*) FROM eventy WHERE typ='DT' "
+                       "AND (odwolane IS NULL OR odwolane='')"),
+        "eventy_cykl": q("SELECT COUNT(*) FROM eventy WHERE typ IN (%s) "
+                         "AND (odwolane IS NULL OR odwolane='')"
                          % SQL_TYPY_CYKLICZNE),
+        "eventy_odwolane": q("SELECT COUNT(*) FROM eventy "
+                             "WHERE odwolane IS NOT NULL AND odwolane<>''"),
     }
 
 

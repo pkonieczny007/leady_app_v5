@@ -255,7 +255,19 @@ main{padding-bottom:var(--space-8)}
   /* „demo · zamiast arkusza" to ozdoba — na 375 px odbiera miejsce nazwie */
   .brand-tag{display:none}
   .brand-logo{width:38px;height:33px}
-  .topbar-right{flex:0 0 auto;margin-left:auto}
+  /* Zgłoszenie Kasi 23.08: „widok trzeba przesuwać". Poprawka z 10.08 objęła
+     nawigację, ale NIE ten blok: `flex:0 0 auto` zabraniało mu się kurczyć,
+     a w środku koordynator ma 4 przyciski z `white-space:nowrap` (~370 px) —
+     więcej niż cały ekran. To ON rozpychał stronę w bok na /baza i /pulpit;
+     formularze mają własny pasek i dlatego tam objawu nie było.
+     Teraz wolno mu się zawinąć w drugi wiersz — brzydsze niż jeden rząd,
+     ale strona przestaje jeździć w bok razem z nagłówkiem. */
+  .topbar-right{flex:1 1 auto;min-width:0;margin-left:auto;
+    flex-wrap:wrap;justify-content:flex-end;row-gap:4px}
+  /* `white-space:nowrap` zostaje (nazwa firmy nie ma się łamać), ale tekst
+     musi być OBCINANY, nie wystawać poza skurczone pudełko. */
+  .brand{overflow:hidden}
+  .brand-txt{overflow:hidden;text-overflow:ellipsis}
 
   .nav{
     order:3;flex:1 0 100%;              /* własny wiersz pod nazwą */
@@ -291,6 +303,12 @@ main{padding-bottom:var(--space-8)}
    jedną tabelą za szeroką. Robimy to arkuszem, nie opakowaniem w 14 szablonach. */
 @media (max-width:700px){
   .table,.tabela{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Karta szkoły: 190 px etykiety + pole o wrodzonej szerokości ~170 px
+     nie mieszczą się obok siebie na 375 px — para (etykieta nad polem)
+     mieści się zawsze. To była druga połowa „widok trzeba przesuwać":
+     naprawa samego nagłówka przenosiła problem na kartę leada. */
+  .kv{grid-template-columns:1fr;gap:2px;padding:6px 0}
+  .obc-row{grid-template-columns:110px 1fr 34px}
   /* Przy `overflow-x:auto` przeglądarka robi z tabeli własny kontener
      przewijania także w pionie, więc `position:sticky` na nagłówku przestaje
      się odnosić do ekranu — nagłówek zawisłby w losowym miejscu tabeli.
@@ -347,6 +365,11 @@ main{padding-bottom:var(--space-8)}
 /* „szukana osoba jest tu, ale nie jako prowadząca" — podpis roli na kafelku,
    żeby wpis w cudzym wierszu nie wyglądał na pomyłkę filtra */
 .tag-rola{background:var(--amber-l);color:var(--fill-t);border:1px solid var(--amber-d);font-weight:600}
+/* P30 „do uzupełnienia". Wygląda jak `tag-rola`, ale MUSI być osobną klasą:
+   testy filtra osób liczą wystąpienia `tag-rola` w HTML, żeby sprawdzić, że
+   etykieta roli wisi dokładnie na jednym spotkaniu. Pożyczona klasa zepsuła
+   dwa takie sprawdzenia od razu — i słusznie, bo to dwie różne informacje. */
+.tag-braki{background:var(--amber-l);color:var(--fill-t);border:1px dotted var(--amber-d);font-weight:600}
 
 /* ------------------------------------------------------------------ formularze */
 
@@ -616,9 +639,18 @@ tr.flash td{animation:flash .9s ease-out}
 
 .seg{
   display:inline-flex;background:var(--panel);
-  border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  /* `overflow:hidden` przycinało zaokrąglone rogi, ale na telefonie UCINAŁO
+     też ostatnie zakładki — bez paska przewijania nie dało się do nich
+     dojechać w ogóle (na 375 px czwarta zakładka /leady była niedostępna).
+     `auto` zostawia rogi w spokoju przy krótkiej liście, a długą pozwala
+     przewinąć — ten sam wzorzec co .nav wyżej. */
+  overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+  max-width:100%;
   box-shadow:var(--shadow-sm);
 }
+.seg::-webkit-scrollbar{display:none}
 .seg-opt{
   font:inherit;font-size:13px;padding:6px 13px;line-height:1.3;
   background:transparent;color:var(--ink-2);border:0;cursor:pointer;text-decoration:none;
@@ -701,6 +733,26 @@ tr.flash td{animation:flash .9s ease-out}
 .cal-cell-stack{display:flex;flex-direction:column;gap:4px}
 
 /* kafel spotkania — kolor z --ev-color (kolor trenera ze słownika) */
+/* P08 — odwołanie wprost z kafla w grafiku.
+
+   Przycisk jest BLADY do czasu najechania na kafel: usuwanie terminu ma być
+   pod ręką, ale nie ma prawa przyciągać wzroku przy przeglądaniu miesiąca.
+   Na telefonie nie ma najechania, więc tam zostaje widoczny — lepiej mały
+   szary krzyżyk niż funkcja, do której nie da się dojść dotykiem. */
+.ev{position:relative}
+.ev-odwolaj{
+  position:absolute;top:2px;right:2px;
+  width:18px;height:18px;line-height:1;padding:0;
+  border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--muted);
+  font-size:12px;cursor:pointer;opacity:.35;
+}
+.ev:hover .ev-odwolaj{opacity:1}
+.ev-odwolaj:hover{background:color-mix(in srgb,var(--danger,#b3261e) 12%,#fff);
+  color:var(--danger,#b3261e)}
+.ev-odwolaj:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
+@media (hover:none){ .ev-odwolaj{opacity:.6} }
+
 .ev{
   --ev-color:#94a3b8;
   display:flex;flex-direction:column;gap:1px;
@@ -721,6 +773,14 @@ tr.flash td{animation:flash .9s ease-out}
 .ev.kolizja{background:var(--overdue);border-color:var(--warn);border-left-color:var(--warn)}
 .ev.kolizja .ev-godz{color:var(--warn-d)}
 .ev-kol{font-size:9px;padding:1px 6px;align-self:flex-start;margin-top:2px}
+/* P30: DT z niekompletnymi danymi. Bursztynowa lewa krawędź, nie czerwone tło —
+   kolizja to błąd (dwie rzeczy naraz), a brak godziny to niedokończona robota.
+   Gdyby oba wyglądały tak samo, kolizja przestałaby się rzucać w oczy. */
+.ev-braki{border-left-color:var(--amber-d);border-left-style:dotted}
+/* P31: odwołane widać tylko w swoim trybie, więc mogą być wyraźnie „przekreślone" —
+   nie ma ryzyka, że ktoś je pomyli z zajęciami, które się odbędą. */
+.ev-odwolany{opacity:.72;background:var(--panel);border-style:dashed}
+.ev-odwolany .ev-szkola,.ev-odwolany .ev-godz{text-decoration:line-through}
 
 /* ---- widok AGENDA ---- */
 
@@ -836,7 +896,7 @@ tr.flash td{animation:flash .9s ease-out}
 
 .aliasy{margin-top:var(--space-2)}
 .aliasy .page-head{border-bottom:none;margin-bottom:var(--space-2);padding-bottom:0}
-.alias-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-6)}
+.alias-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:var(--space-6)}
 .alias-blok{
   min-width:0;background:var(--panel);border:1px solid var(--line);
   border-radius:var(--radius-md);padding:12px 14px;box-shadow:var(--shadow-sm);
@@ -854,8 +914,13 @@ tr.flash td{animation:flash .9s ease-out}
 /* karta leada: pole ma pełną ramkę, ale kremowe tło zostaje — na karcie też
    wszystko, co widać na tym tle, zapisuje się do bazy od razu po zmianie */
 .kv-v .lead-cell{border:1px solid var(--fill-b);background:var(--fill)}
+/* `minmax(min(330px,100%),1fr)` zamiast gołego `minmax(330px,1fr)`: 330 px to
+   TWARDE minimum, którego grid nie złamie — na ekranie 375 px z paddingiem
+   kolumna i tak liczyła 330 px i karta szkoły jeździła w bok. `min(…,100%)`
+   mówi „330 px, chyba że ekran jest węższy" — to samo niżej w .event-grid
+   i .alias-cols. Zgłoszenie Kasi 23.08: „widok trzeba przesuwać". */
 .julia-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));
   gap:0 var(--space-6);
 }
 
@@ -868,7 +933,7 @@ tr.flash td{animation:flash .9s ease-out}
 .event-card.is-cykl{border-left-color:var(--accent);border-left-style:dashed}
 .event-head{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
 .event-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));
   gap:0 var(--space-6);
 }
 .dodaj-event{

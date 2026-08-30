@@ -22,6 +22,7 @@ os.environ["DATA_DIR"] = TMP
 
 import app as A                      # noqa: E402
 import db                            # noqa: E402
+import geografia                     # noqa: E402
 import zwrot                         # noqa: E402
 from seed import bootstrap           # noqa: E402
 
@@ -149,10 +150,22 @@ def main():
     kod, j = post("/api/formularz", {"handlowiec": H, "placowka": {"nazwa": ""}})
     sprawdz("placówka bez nazwy odrzucona", kod == 400 and "nazw" in (j["error"] or "").lower())
 
+    # MIEJSCOWOŚĆ NIE JEST JUŻ POZYCJĄ SŁOWNIKA (etap M6: osią filtrowania został
+    # powiat). Nowa nazwa PRZECHODZI — bo w terenie trafiają się przysiółki,
+    # których słownik nie zna, a odmowa zapisu znaczy notatkę na kartce.
+    # Zaporą nie jest teraz lista, tylko widoczność: nazwa nieznana rejestrowi
+    # nie dostaje powiatu i placówka ląduje na liście „bez powiatu” do wyjaśnienia,
+    # zamiast po cichu wpaść w przypadkowy.
     kod, j = post("/api/formularz", {
         "handlowiec": H,
         "placowka": {"nazwa": "SP 2", "miejscowosc": "Zmyślone Miasto"}})
-    sprawdz("miejscowość spoza słownika odrzucona", kod == 400, (j or {}).get("error"))
+    conn = db.get_conn()
+    nowa = conn.execute("SELECT miejscowosc, powiat FROM placowki WHERE nazwa='SP 2'"
+                        ).fetchone()
+    conn.close()
+    sprawdz("nieznana miejscowość przechodzi, ale bez powiatu",
+            kod == 200 and nowa["miejscowosc"] == "Zmyślone Miasto"
+            and not nowa["powiat"], str(dict(nowa)) if nowa else "brak rekordu")
 
     kod, j = post("/api/formularz", {
         "handlowiec": "Ktoś Kogo Nie Ma",
@@ -194,7 +207,8 @@ def main():
     sprawdz("pokazuje linki, nie kafelki", html.count("fw-link") >= 4)
     sprawdz("linki prowadzą do wszystkich wariantów",
             "/formularz/kroki" in html and "/formularz/ciagly" in html
-            and "/formularz/v3" in html and "/formularz/cykliczne" in html)
+            and "/formularz/v3" in html and "/formularz/cykliczne" in html
+            and "/formularz/v5" in html)
     # Wersaliki „FORMULARZ v1" wyglądały jak wyróżnienie jednego wariantu
     # przy trzech pisanych normalnie — stąd jednolita pisownia (prośba 17.08).
     sprawdz("nazwy wariantów jak ustalone",
@@ -204,6 +218,10 @@ def main():
     sprawdz("v3 opisany jako rekomendowany", "Rekomendowany" in html)
     sprawdz("wariant cykliczny opisany jako testowy",
             "testowy: CYKLICZNE-PRZEDSZKOLE" in html)
+    # Piąty kafelek MUSI być opisany jako testowy — kto wejdzie z ciekawości,
+    # ma wiedzieć, na czym stoi. To był warunek decyzji „v5 obok, nie zamiast".
+    sprawdz("piąty wariant jest i jest opisany jako testowy",
+            "Formularz v5" in html and "testowy: kaskada" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -220,7 +238,11 @@ def main():
     print("\nF5 — wariant 2: jeden ciągły, wg makiety klienta")
     sprawdz("/formularz/ciagly zwraca 200", KL.get("/formularz/ciagly").status_code == 200)
     html = KL.get("/formularz/ciagly?handlowiec=" + H).get_data(as_text=True)
-    sprawdz("trzy sekcje makiety, jedna pod drugą", html.count('class="f2-sekcja"') == 3)
+    # Trzy sekcje z makiety klienta + „Wynik wizyty" dołożony 20.08 (P22).
+    # Makieta zakładała, że wizyta zawsze kończy się umówieniem DT — Kasia po
+    # dwóch tygodniach pracy poprosiła o miejsce na pozostałe zakończenia.
+    sprawdz("sekcje makiety plus wynik wizyty, jedna pod drugą",
+            html.count('class="f2-sekcja"') == 4)
     sprawdz("para list Miejscowość → Placówka",
             'id="f2-miasto"' in html and 'id="f2-szkola"' in html)
     sprawdz("lista szkół zablokowana do czasu wyboru miasta",
@@ -239,8 +261,8 @@ def main():
     r3 = KL.get("/formularz/v3")
     sprawdz("/formularz/v3 zwraca 200", r3.status_code == 200)
     html3 = KL.get("/formularz/v3?handlowiec=" + H).get_data(as_text=True)
-    sprawdz("v3 ma układ v2 — te same trzy sekcje",
-            html3.count('class="f2-sekcja"') == 3)
+    sprawdz("v3 ma układ v2 — te same cztery sekcje",
+            html3.count('class="f2-sekcja"') == 4)
     sprawdz("plakietka statusu wybranego prowadzącego",
             'id="f3-status"' in html3)
     sprawdz("plakietka startuje ukryta (nie ma czego pokazywać bez daty)",
@@ -747,6 +769,746 @@ def main():
     wrzesien = [e for e in cv.events_for_month(conn, "2026-09") if e["lead_id"] == l_bezdt]
     sprawdz("zajęcia bez DT są widoczne w kalendarzu", len(wrzesien) == 3)
     conn.close()
+
+    # --- P04: zmiana szkoły podmienia dane kontaktowe (zgłoszenie K09) -------
+    #
+    # „wybrałam z listy rozwijanej szkołę, uzupełniły się dane typu osoba do
+    # kontaktu, a potem zmieniłam szkołę, to osoba się nie zmieniła, została
+    # z poprzedniego wyboru" — Kasia, 20.08.
+    #
+    # Sprawdzamy w ŹRÓDLE, a nie przez przeglądarkę, bo to zachowanie czystego
+    # JS-a bez wywołania serwera. Ważniejsze i tak jest to, że wszystkie trzy
+    # warianty robią to TAK SAMO: gdyby się rozjechały, klient wybierałby między
+    # funkcjami, a nie między układem.
+    print("\n-- P04: dane kontaktowe przy zmianie szkoły --")
+    zrodla = {}
+    for w in ("formularz2", "formularz3", "formularz4"):
+        zrodla[w] = open("static/%s.js" % w, encoding="utf-8").read()
+
+    for w, kod in zrodla.items():
+        sprawdz("%s: nie ma już warunku „wpisz tylko, gdy pusto”" % w,
+                'if (!$("f2-osoba").value)' not in kod)
+        sprawdz("%s: podstawia kontakt jedną funkcją" % w,
+                "function podstawKontakt(" in kod and "podstawKontakt(stan.wybrana)" in kod)
+        # Pusta wartość MUSI czyścić pole — inaczej szkoła bez kontaktu
+        # dziedziczy dane poprzedniej, czyli dokładnie zgłoszony błąd.
+        sprawdz("%s: pusta wartość ze szkoły czyści pole" % w,
+                'var nowa = (szkola && szkola[mapa[i][1]]) || "";' in kod
+                and "pole.value = nowa;" in kod)
+        sprawdz("%s: mówi o podmianie zamiast robić ją po cichu" % w,
+                "Dane kontaktowe podmienione" in kod)
+
+    def helper(kod):
+        a = kod.index("function podstawKontakt(")
+        return kod[a:kod.index("selSzkola.addEventListener", a)].strip()
+
+    sprawdz("wszystkie trzy warianty podstawiają kontakt IDENTYCZNIE",
+            helper(zrodla["formularz2"]) == helper(zrodla["formularz3"])
+            == helper(zrodla["formularz4"]))
+
+    # --- zakładanie placówki wypadło z WSZYSTKICH wariantów (Kasia, 24.08) ---
+    #
+    # „usuń tę możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą
+    # się dublować rzeczy, a wpisują nazwy jak popadnie".
+    #
+    # Sprawdzamy komplet pięciu, a nie tego jednego, którego akurat używają:
+    # gdyby furtka została w jednym wariancie, handlowiec zakładałby placówki
+    # tamtym, a porównanie wariantów przestałoby dotyczyć układu. Zapora jest
+    # w interfejsie i przy zapisie (`test_uprawnienia.py`) — sam brak przycisku
+    # niczego nie zamyka, bo zapis idzie zwykłym `fetch`.
+    print("\n-- placówki zakłada koordynator: żaden wariant już nie proponuje --")
+    for w, pliki in (("v1", ("formularz.js", "formularz.html")),
+                     ("v2", ("formularz2.js", "formularz2.html")),
+                     ("v3", ("formularz3.js", "formularz3.html")),
+                     ("v4", ("formularz4.js", "formularz4.html")),
+                     ("v5", ("formularz5.js", "formularz5.html"))):
+        js = open("static/%s" % pliki[0], encoding="utf-8").read()
+        html = open("templates/%s" % pliki[1], encoding="utf-8").read()
+        sprawdz("%s: nie ma przycisku „dodaj nową placówkę”" % w,
+                "nowa-otworz" not in html and "nowa-otworz" not in js)
+        sprawdz("%s: nie ma pól nowej placówki" % w, "nowa-nazwa" not in html)
+        sprawdz("%s: nie wysyła bloku `placowka` do API" % w,
+                "d.placowka =" not in js and "payload.placowka =" not in js)
+        sprawdz("%s: placówkę bez leada wysyła jako `placowka_id`" % w,
+                "placowka_id = stan.wybrana.placowka_id" in js
+                or "placowka_id = stan.placowka.placowka_id" in js)
+        # OSTRZEŻENIE PRZY WYJŚCIU MUSI GASNĄĆ PO ZAPISIE.
+        #
+        # Zgłoszenie Pawła 24.08: „w v5 przy zapisie zacina się" — i nie było
+        # w tym nic losowego. `FxAwaria.pilnujWyjscia` wiesza na oknie
+        # `beforeunload`, a udany zapis kończy się `location.reload()`, czyli
+        # WYJŚCIEM ze strony. Bez flagi „już zapisane" przeglądarka blokuje
+        # przeładowanie własnym okienkiem, a ekran stoi z napisem „Zapisuję…",
+        # bo przycisk się nie odblokowuje. Zapis DOCHODZI do bazy; zacina się
+        # powrót — czyli najgorszy rodzaj usterki, bo wygląda na utratę pracy.
+        #
+        # Warianty 1–4 mają tę flagę od czerwca, v5 jej nie przejął. Sprawdzamy
+        # komplet, bo to jest dokładnie ta klasa różnic między wariantami,
+        # która ma nie istnieć.
+        sprawdz("%s: ostrzeżenie przy wyjściu gaśnie po udanym zapisie" % w,
+                "if (zapisano) return false;" in js and "zapisano = true" in js)
+
+    # --- P06: lista szkół to CAŁA baza miejscowości (zgłoszenie K04) ---------
+    #
+    # „na liście miast przy wpisywaniu DT katoice pojawiają się tylko jako moje
+    # 12 szkół, nie ma całej listy plaówek" — Kasia, PILNE.
+    #
+    # Lista nigdy nie była zawężona: myliło ją „(twoje: 12)" doklejone do nazwy
+    # miasta, czytane jako liczba szkół w Katowicach. Ten test pilnuje obu stron:
+    # że serwer naprawdę oddaje wszystko i że dopisek nie wrócił.
+    print("\n-- P06: lista szkół nie jest zawężona do własnych --")
+    conn = db.get_conn()
+    for nazwa, wlasciciel in (("SP 100 cudza", None), ("SP 101 cudza", None),
+                              ("SP 102 moja", H)):
+        cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                           "VALUES (?,?,'test')", (nazwa, M))
+        conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                     (cur.lastrowid, wlasciciel))
+    conn.commit()
+    # Liczymy przez to samo złączenie co endpoint: lista wyboru pokazuje LEADY,
+    # a placówka z dwoma leadami wchodzi na nią dwa razy. To osobna sprawa
+    # (w produkcji jest 1:1) i nie mieszamy jej do sprawdzenia zawężania.
+    wszystkich = conn.execute(
+        "SELECT COUNT(*) c FROM leady l JOIN placowki p ON p.id = l.placowka_id "
+        "WHERE p.miejscowosc=?", (M,)).fetchone()["c"]
+    conn.close()
+
+    r = KL.get("/api/placowki?miejscowosc=" + M + "&handlowiec=" + H)
+    poz = (r.get_json() or {}).get("pozycje") or []
+    sprawdz("serwer oddaje WSZYSTKIE szkoły miejscowości, nie tylko moje",
+            len(poz) == wszystkich, "%d z %d" % (len(poz), wszystkich))
+    sprawdz("wśród nich są cudze", any(not p["moja"] for p in poz))
+    sprawdz("własne są oznaczone", any(p["moja"] for p in poz))
+
+    for w, kod in zrodla.items():
+        sprawdz("%s: nie dokleja już „(twoje: N)” do nazwy miasta" % w,
+                '"  (twoje: " + licz[o.value]' not in kod)
+        sprawdz("%s: miasto z własnymi szkołami znaczone gwiazdką" % w,
+                'o.textContent = "★ " + o.textContent' in kod)
+        sprawdz("%s: mówi wprost, że to cała baza miejscowości" % w,
+                "cała baza" in kod)
+
+    # --- P07: filtrowanie listy szkół z klawiatury (zgłoszenie K08) ---------
+    #
+    # „jedno pole jest potrzebne w wyszukiwaniu sam numer szkoły jak wpiszę
+    # miasto i numer że mi przefiltruje a nie szukam na liscie" — Kasia.
+    print("\n-- P07: filtr listy szkół --")
+    for w in ("formularz2", "formularz3", "formularz4"):
+        html = open("templates/%s.html" % w, encoding="utf-8").read()
+        sprawdz("%s: szablon ma pole filtrowania" % w,
+                'id="f2-szkola-szukaj"' in html)
+        sprawdz("%s: pole startuje ukryte" % w,
+                'autocomplete="off" hidden' in html)
+        sprawdz("%s: filtruje bez pytania serwera" % w,
+                "function rysujSzkoly(" in zrodla[w] and "function pasuje(" in zrodla[w])
+        sprawdz("%s: ogonki nie przeszkadzają w szukaniu" % w,
+                "function bezOgonkow(" in zrodla[w])
+        sprawdz("%s: wybrana szkoła nie znika przy filtrowaniu" % w,
+                "lista = [indeks[bylo]].concat(lista);" in zrodla[w])
+
+    def blok_wyboru(kod):
+        a = kod.index("  /* P07 (zgłoszenie K08 Kasi")
+        return kod[a:kod.index("if (poWczytaniu) poWczytaniu();", a)]
+
+    sprawdz("wszystkie trzy warianty filtrują IDENTYCZNIE",
+            blok_wyboru(zrodla["formularz2"]) == blok_wyboru(zrodla["formularz3"])
+            == blok_wyboru(zrodla["formularz4"]))
+
+    # --- P23: szkoła schodzi z „Planu na dziś" (zgłoszenie Zuzi) -------------
+    #
+    # „dodam jej że byłam i dt ustalone to ona z tej listy nie znika, słabo bo
+    # nadal widzę ze mam do zrobienia 12 na ten tydzień" — Zuzia, 20.08.
+    #
+    # Do teraz „zrobione" brało się WYŁĄCZNIE z datowanego wpisu DT, więc szkoła
+    # domknięta samym statusem wisiała jako zadanie na zawsze, a licznik liczył
+    # robotę już wykonaną.
+    print("\n-- P23: co znika z listy zadań --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 200 zadanie', ?, 'test')", (M,))
+    l_zad = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, deadline, status_realizacji) "
+        "VALUES (?,?,?,?)",
+        (cur.lastrowid, H, "2026-12-01", "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+
+    def pozycja_planu(lead_id):
+        c2 = db.get_conn()
+        kontekst = A._kontekst_formularza(c2, H)
+        c2.close()
+        for p in kontekst["moje"]:
+            if p["lead_id"] == lead_id:
+                return p
+        return None
+
+    conn.close()
+    p = pozycja_planu(l_zad)
+    sprawdz("szkoła bez DT i bez sukcesu jest zadaniem",
+            p is not None and not p["zrobione"], str(p and p["zrobione"]))
+
+    # 1) domknięcie SAMYM STATUSEM, bez terminu DT — to jest sedno zgłoszenia
+    conn = db.get_conn()
+    conn.execute("UPDATE leady SET status_realizacji='03. DT umówione' WHERE id=?",
+                 (l_zad,))
+    conn.commit()
+    conn.close()
+    p = pozycja_planu(l_zad)
+    sprawdz("status sukcesu wystarczy, żeby zeszła z zadań",
+            p is not None and p["zrobione"])
+    sprawdz("ale nadal wiadomo, że nie ma terminu DT",
+            p is not None and not p["ma_dt"])
+
+    # 2) druga droga: datowane DT bez zmiany statusu
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 201 z terminem', ?, 'test')", (M,))
+    l_dt = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, deadline, status_realizacji) "
+        "VALUES (?,?,?,?)",
+        (cur.lastrowid, H, "2026-12-01", "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-12-15', '09:00')", (l_dt,))
+    conn.commit()
+    conn.close()
+    p = pozycja_planu(l_dt)
+    sprawdz("datowane DT też zdejmuje z zadań", p is not None and p["zrobione"])
+
+    plan = open("static/fx_plan.js", encoding="utf-8").read()
+    sprawdz("lista zadań pyta o `zrobione`, nie o sam termin DT",
+            "function zrobione(p)" in plan and "!zrobione(p)" in plan)
+    sprawdz("zrobiona szkoła bez DT nie kłamie napisem „DT umówione”",
+            "function opisZrobionego(p)" in plan)
+    sprawdz("jest wejście do odświeżenia listy bez przeładowania",
+            "window.FX_PLAN_ZROBIONE" in plan)
+    for w in ("formularz", "formularz2", "formularz3", "formularz4"):
+        kod = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: po zapisie zdejmuje szkołę z listy od razu" % w,
+                "FX_PLAN_ZROBIONE(j.lead_id)" in kod)
+
+    # --- P22: zapis wizyty BEZ terminu DT (zgłoszenie Kasi) -----------------
+    #
+    # „musza byc opcje w formularzu ze bez daty dt można wprowadzić szkołę
+    # i wybrać z listy rozwijanej opcje (…) I pole uwagi do wpisania notatki".
+    #
+    # Do 20.08 formularz wymagał kompletu sześciu pól DT, więc „byłam, dyrektor
+    # się zastanawia" nie dawało się zapisać w ogóle.
+    print("\n-- P22: wizyta bez terminu DT --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 300 bez DT', ?, 'test')", (M,))
+    l_bez = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                         (cur.lastrowid, H)).lastrowid
+    conn.commit()
+    conn.close()
+
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_bez,
+        "status_realizacji": "02. Próba kontaktu (czekam na termin)",
+        "uwagi": "Dyrektor wraca z urlopu 5.09, dzwonić po 10:00.",
+    })
+    sprawdz("zapis bez bloku DT i bez cyklu przechodzi", kod == 200, str(j)[:110])
+
+    conn = db.get_conn()
+    row = conn.execute("SELECT status_realizacji, uwagi FROM leady WHERE id=?",
+                       (l_bez,)).fetchone()
+    ile_ev = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                          (l_bez,)).fetchone()["c"]
+    conn.close()
+    sprawdz("wynik wizyty zapisany na leadzie",
+            row["status_realizacji"] == "02. Próba kontaktu (czekam na termin)",
+            str(row["status_realizacji"]))
+    sprawdz("notatka zapisana", "Dyrektor wraca" in (row["uwagi"] or ""))
+    sprawdz("NIE powstało żadne spotkanie", ile_ev == 0, "eventów: %d" % ile_ev)
+
+    # Szkoła z takim wynikiem dalej JEST zadaniem — trzeba do niej wrócić.
+    # To odróżnia „czekam na termin" od „DT umówione" i pilnuje, żeby P23
+    # nie zdjęło z listy czegoś, co jeszcze wymaga ruchu.
+    p = pozycja_planu(l_bez)
+    sprawdz("„czekam na termin” nie zdejmuje szkoły z zadań",
+            p is not None and not p["zrobione"])
+
+    # Pusty wybór nie kasuje tego, co już zapisano — formularz wysyła pola
+    # zawsze, także gdy człowiek ich nie ruszył.
+    post("/api/formularz", {"handlowiec": H, "lead_id": l_bez,
+                            "status_realizacji": "", "uwagi": ""})
+    conn = db.get_conn()
+    row = conn.execute("SELECT status_realizacji, uwagi FROM leady WHERE id=?",
+                       (l_bez,)).fetchone()
+    conn.close()
+    sprawdz("pusty wynik nie kasuje zapisanego statusu",
+            row["status_realizacji"] == "02. Próba kontaktu (czekam na termin)")
+    sprawdz("pusta notatka nie kasuje zapisanej", "Dyrektor wraca" in (row["uwagi"] or ""))
+
+    kod, j = post("/api/formularz", {"handlowiec": H, "lead_id": l_bez,
+                                     "status_realizacji": "Wymyślony status"})
+    sprawdz("status spoza słownika odrzucony", kod == 400, str(j)[:90])
+
+    for w in ("formularz2", "formularz3", "formularz4"):
+        html = open("templates/%s.html" % w, encoding="utf-8").read()
+        sprawdz("%s: sekcja „Wynik wizyty” jest w szablonie" % w,
+                'id="f2-wynik"' in html and 'id="f2-uwagi"' in html)
+        sprawdz("%s: stany techniczne „00.” nie trafiają do terenu" % w,
+                "not v.startswith('00.')" in html)
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: wynik i notatka jadą w zapisie" % w,
+                "d.status_realizacji = $(\"f2-wynik\").value;" in kod_js
+                and "d.uwagi = $(\"f2-uwagi\").value.trim();" in kod_js)
+        sprawdz("%s: pola DT wymagane tylko przy umawianiu DT" % w,
+                "zaczetyDT" in kod_js or "czyDT()" in kod_js)
+        sprawdz("%s: szkic pamięta wynik i notatkę" % w,
+                '"f2-wynik", "f2-uwagi"' in kod_js)
+
+    # --- P27: DT wolno zapisać niekompletny (zgłoszenie Zuzi, p. 2) ---------
+    #
+    # „Możemy ustalić, że szkoła chce DT, ale dokładna godzina, liczba klas czy
+    # liczba dzieci zostanie podana później." Przez wymóg kompletu nie dało się
+    # wprowadzić prawie całego jej tygodnia w terenie.
+    print("\n-- P27: DT bez kompletu danych --")
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP 301 niepelny DT', ?, 'test')", (M,))
+    l_nie = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                         (cur.lastrowid, H)).lastrowid
+    conn.commit()
+    conn.close()
+
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_nie,
+        "dt": {"data": "2026-12-15"},          # sama data — reszta „będzie później"
+    })
+    sprawdz("DT z samą datą przechodzi", kod == 200, str(j)[:110])
+    conn = db.get_conn()
+    ev = conn.execute("SELECT data, godz_od, trener, ilosc_klas, ilosc_dzieci "
+                      "FROM eventy WHERE lead_id=?", (l_nie,)).fetchone()
+    conn.close()
+    sprawdz("spotkanie powstało z datą", ev and ev["data"] == "2026-12-15")
+    sprawdz("i bez reszty pól — nikt ich nie zmyślił",
+            ev and not ev["godz_od"] and not ev["ilosc_klas"] and not ev["ilosc_dzieci"])
+
+    # Druga połowa P27 (P30): skoro zapis wolno zostawić niepełny, kalendarz
+    # MUSI o tym mówić. Bez tego „zapisane" znaczyłoby „gotowe".
+    import calendar_view as _cv
+    conn = db.get_conn()
+    braki = [e["braki"] for e in _cv.events_for_month(conn, "2026-12")
+             if e["lead_id"] == l_nie]
+    conn.close()
+    sprawdz("kalendarz nazywa braki po imieniu",
+            braki and braki[0] == ["godzina", "liczba klas", "liczba dzieci"],
+            str(braki))
+
+    # Data zostaje twarda: bez niej serwer pomija cały blok DT, więc godzina
+    # i liczby wpisane obok przepadłyby po cichu.
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_nie,
+        "status_realizacji": "02c. Czekam na decyzję",
+        "dt": {"godz_od": "09:00", "ilosc_klas": 3},
+    })
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                       (l_nie,)).fetchone()["c"]
+    conn.close()
+    sprawdz("blok DT bez daty nie tworzy spotkania-widma", ile == 1,
+            "eventów: %d" % ile)
+
+    for w in ("formularz2", "formularz3", "formularz4"):
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s: z pól DT twarda jest tylko data" % w,
+                "POLA_DT" in kod_js and "wpisaneDT(POLA_DT[0])" in kod_js
+                and "Podaj godzinę DT." not in kod_js)
+        sprawdz("%s: braki są mówione, nie milczane" % w,
+                "do uzupełnienia" in kod_js)
+        # Toast podmienia treść, więc dwa wywołania obok siebie zjadają się
+        # nawzajem — ostrzeżenia muszą iść jednym komunikatem.
+        sprawdz("%s: ostrzeżenia zbierane w jedno" % w,
+                "var ostrz = []" in kod_js)
+
+    # ==================================================== F7 — wariant 5 (kaskada)
+    print("\nF7 — wariant 5: kaskada od placówki")
+    r5 = KL.get("/formularz/v5")
+    sprawdz("/formularz/v5 zwraca 200", r5.status_code == 200)
+    html5 = KL.get("/formularz/v5?handlowiec=" + H).get_data(as_text=True)
+    sprawdz("cztery kroki kaskady", html5.count('class="f2-sekcja f5-krok"') == 4)
+    sprawdz("kroki 2–4 zwinięte do czasu wyboru placówki",
+            html5.count('data-krok="2" id="f5-sek-kontakt" hidden') == 1)
+    sprawdz("dołącza własny arkusz stylów", "formularz5.css" in html5)
+    # Chipy rodzajów mają iść ze SŁOWNIKA — inaczej dołożenie rodzaju zajęć
+    # wymagałoby zmiany w kodzie, a klient dokłada pozycje sam.
+    sprawdz("chipy rodzajów z tego, co jest w słowniku",
+            'data-typ="DT"' in html5 and 'data-typ="FESTYN"' in html5)
+    sprawdz("START nie jest chipem — nie wpisuje go handlowiec w terenie",
+            'data-typ="START"' not in html5)
+    sprawdz("przedszkolny typ cyklu nie jest osobnym chipem",
+            'data-typ="CYKLICZNE-PRZEDSZKOLE"' not in html5)
+
+    geo = KL.get("/api/formularz/geografia").get_json()
+    sprawdz("geografia oddaje osie: powiat, potem miejscowość",
+            geo["ok"] and [o["poziom"] for o in geo["osie"]] == ["powiat", "miejscowosc"],
+            str([o["poziom"] for o in geo.get("osie", [])]))
+    # Druga oś zawęża się pierwszą — pod powiatem ma być kilka miejscowości,
+    # nie cała lista województwa. To jest kaskada, o którą prosiła Kasia:
+    # powiat będziński → Psary → szkoła.
+    # Własny rekord, nie „SP 2" z F2 — testy auto-zwrotu czyszczą po drodze
+    # `placowki`, więc opieranie się na cudzym rekordzie dawałoby wynik zależny
+    # od kolejności bloków. Test, który zależy od kolejności, nie testuje.
+    conn = db.get_conn()
+    conn.execute("INSERT INTO placowki (nazwa, miejscowosc, powiat, zrodlo) "
+                 "VALUES (?,?,?,?)", ("SP W PSARACH", "Psary", "będziński", "test"))
+    # Lustro rejestru zna w tym powiecie także Czeladź, w której NIE MAMY
+    # jeszcze ani jednej placówki — i to jest przypadek, o który tu chodzi.
+    import rejestr_rspo
+    rejestr_rspo.zaloz_tabele(conn)
+    for rspo, nazwa, miejsc in ((8001, "SP W PSARACH", "Psary"),
+                                (8002, "SP W CZELADZI", "Czeladź")):
+        conn.execute("INSERT OR REPLACE INTO rspo_rejestr "
+                     "(rspo, nazwa, typ, wojewodztwo, powiat, gmina, miejscowosc) "
+                     "VALUES (?,?,?,?,?,?,?)",
+                     (rspo, nazwa, "Szkoła podstawowa", "ŚLĄSKIE", "będziński",
+                      miejsc, miejsc))
+    conn.commit()
+    conn.close()
+    sprawdz("bez powiatu lista miejscowości jest PUSTA, nie „wszystkie”",
+            geo["osie"][1]["wartosci"] == [],
+            str(geo["osie"][1]["wartosci"])[:60])
+
+    zawezone = KL.get("/api/formularz/geografia?powiat=będziński").get_json()
+    miejsc = zawezone["osie"][1]["wartosci"]
+    sprawdz("miejscowości zawężone wybranym powiatem",
+            "Psary" in miejsc and "Katowice" not in miejsc, str(miejsc))
+    # REGUŁA ZMIENIŁA SIĘ 24.08 WIECZOREM — i to jest zmiana, nie usterka.
+    #
+    # Do tego dnia lista miejscowości w formularzu szła z REJESTRU, więc były
+    # na niej także te bez ani jednej naszej placówki (tu: Czeladź). Miało to
+    # jedno uzasadnienie: handlowiec stoi w takiej miejscowości WŁAŚNIE dlatego,
+    # że jeszcze tam nie byliśmy, i musi mieć jej nazwę, żeby ZAŁOŻYĆ placówkę.
+    #
+    # Zakładanie wypadło z formularza tego samego dnia (zgłoszenie Kasi), więc
+    # uzasadnienie zniknęło, a został sam koszt: wybór, po którym lista placówek
+    # jest pusta i nic się z tym nie da zrobić. Wszystkie listy miejscowości idą
+    # dziś z DANYCH.
+    sprawdz("miejscowości bez naszych placówek NIE są już proponowane",
+            "Czeladź" not in miejsc, str(miejsc))
+    conn = db.get_conn()
+    sprawdz("...ale filtr na listach ich nie proponuje (pusta tabela)",
+            "Czeladź" not in geografia.miasta(conn, "będziński"),
+            str(geografia.miasta(conn, "będziński")))
+    conn.close()
+
+    # Placówka BEZ leada — powstaje przy dokładaniu bazy z rejestru RSPO.
+    # Stary `/api/placowki` robi JOIN z `leady` i takiej nie pokazuje wcale.
+    conn = db.get_conn()
+    p_bez = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, typ, zrodlo)"
+                         " VALUES (?,?,?,?)",
+                         ("PRZEDSZKOLE 99", "01. Orzesze", "02. Przedszkole miejskie (PM)",
+                          "rspo")).lastrowid
+    conn.commit()
+    conn.close()
+    lista = KL.get("/api/formularz/placowki?miejscowosc=01.%20Orzesze").get_json()
+    sprawdz("placówka bez leada JEST na liście v5",
+            any(p["placowka_id"] == p_bez for p in lista["pozycje"]))
+    stara = KL.get("/api/placowki?miejscowosc=01.%20Orzesze").get_json()
+    sprawdz("stary endpoint jej nie pokazuje — dlatego v5 ma własny",
+            not any(p["placowka_id"] == p_bez for p in stara["pozycje"]))
+    tylko_p = KL.get("/api/formularz/placowki?miejscowosc=01.%20Orzesze"
+                     "&rodzaj=przedszkola").get_json()
+    sprawdz("filtr rodzaju zawęża listę",
+            all(p["typ"].startswith(("02.", "03.")) for p in tylko_p["pozycje"])
+            and len(tylko_p["pozycje"]) >= 1)
+
+    # ...i musi dać się na niej ZAPISAĆ, nie tylko ją zobaczyć. Do 24.08 v5
+    # wysyłał w tym miejscu blok `placowka` z nazwą przepisaną z rekordu,
+    # w przekonaniu, że serwer rozpozna placówkę po nazwie. Nie rozpoznawał —
+    # wstawiał drugi wiersz. Dubel z tego samego rekordu, czyli dokładnie to,
+    # o czym Kasia pisała, że robią ludzie, tyle że robiony przez aplikację.
+    conn = db.get_conn()
+    ile_przed = conn.execute("SELECT COUNT(*) c FROM placowki").fetchone()["c"]
+    conn.close()
+    kod, j = post("/api/formularz", {"handlowiec": H, "placowka_id": p_bez,
+                                     "kontakt": {"telefon": "600700800"}})
+    conn = db.get_conn()
+    ile_po = conn.execute("SELECT COUNT(*) c FROM placowki").fetchone()["c"]
+    leady_p = conn.execute("SELECT COUNT(*) c FROM leady WHERE placowka_id=?",
+                           (p_bez,)).fetchone()["c"]
+    tel = conn.execute("SELECT telefon FROM placowki WHERE id=?", (p_bez,)).fetchone()["telefon"]
+    conn.close()
+    sprawdz("zapis na placówce bez leada przechodzi", kod == 200, str(j)[:100])
+    sprawdz("NIE powstał drugi wiersz placówki", ile_po == ile_przed,
+            "%d → %d" % (ile_przed, ile_po))
+    sprawdz("powstał dokładnie jeden lead do tego rekordu", leady_p == 1, "jest %d" % leady_p)
+    sprawdz("kontakt wylądował przy istniejącej placówce", tel == "600700800", str(tel))
+
+    # Drugie wejście na tę samą placówkę ma trafić w ZAŁOŻONY lead, nie zrobić
+    # kolejnego — inaczej dubel wróciłby piętro niżej, w tabeli leadów.
+    kod, _ = post("/api/formularz", {"handlowiec": H, "placowka_id": p_bez,
+                                     "kontakt": {"telefon": "600700801"}})
+    conn = db.get_conn()
+    leady_p2 = conn.execute("SELECT COUNT(*) c FROM leady WHERE placowka_id=?",
+                            (p_bez,)).fetchone()["c"]
+    conn.close()
+    sprawdz("drugi zapis nie mnoży leadów", kod == 200 and leady_p2 == 1,
+            "jest %d" % leady_p2)
+
+    kod, j = post("/api/formularz", {"handlowiec": H, "placowka_id": 999999})
+    sprawdz("nieistniejąca placówka odrzucona", kod == 404, "kod %s" % kod)
+
+    # --- lista miejscowości w formularzu MUSI trafiać w bazę ----------------
+    #
+    # Zgłoszenie Pawła 24.08: „w ogóle nie działa v3 wybór szkół… wszystkie
+    # stare formularze". Warianty 2–4 wybierają szkołę parą list
+    # „miejscowość → placówka" i brały pierwszą ze SŁOWNIKA `miasto`, a etap M8
+    # wyczyścił nazwy w BAZIE. Słownik ma „01. Orzesze", baza „Orzesze" —
+    # CZĘŚĆ WSPÓLNA PUSTA, więc każdy wybór dawał zero szkół.
+    #
+    # Na demo tego nie było widać, bo demo nie było jeszcze zmigrowane: usterka
+    # czekała na moment migracji, czyli ujawniłaby się u handlowców. Dlatego
+    # test porównuje listę Z EKRANU z zawartością bazy, a nie sam kod.
+    print("\n-- miejscowości w formularzu idą z danych, nie ze słownika --")
+    conn = db.get_conn()
+    pid_o = conn.execute(
+        "INSERT INTO placowki (nazwa, miejscowosc, powiat, zrodlo) "
+        "VALUES ('SP W ORZESZU', 'Orzesze', 'mikołowski', 'test')").lastrowid
+    # Lead, bo stary `/api/placowki` (para list w v2–v4) robi JOIN z `leady`
+    # — placówka bez leada jest dla niego niewidoczna.
+    conn.execute("INSERT INTO leady (placowka_id, status_realizacji) VALUES (?,?)",
+                 (pid_o, "01. Próba kontaktu (Brak konkretów)"))
+    # Pozycja słownika, której NIE MA w żadnej placówce — to ona rozstrzyga,
+    # z którego źródła idzie lista. („01. Orzesze" by nie rozstrzygnęła: wcześniejsze
+    # bloki testu zakładają placówki właśnie z wartościami ze słownika.)
+    conn.execute("INSERT OR IGNORE INTO slowniki (rodzaj, wartosc, aktywny) "
+                 "VALUES ('miasto', '98. Miasto Tylko W Slowniku', 1)")
+    conn.commit()
+    conn.close()
+    for adres, w in (("/formularz/ciagly", "v2"), ("/formularz/v3", "v3"),
+                     ("/formularz/cykliczne", "v4")):
+        h = KL.get(adres).get_data(as_text=True)
+        sprawdz("%s: na liście jest nazwa Z BAZY" % w,
+                '<option value="Orzesze">' in h, adres)
+        # Słownik `miasto` ZOSTAJE w bazie — używa go `aliasy` przy imporcie
+        # arkuszy klienta. Ma tylko nie trafiać na tę listę.
+        sprawdz("%s: nazwa istniejąca TYLKO w słowniku nie trafia na listę" % w,
+                "98. Miasto Tylko W Slowniku" not in h, adres)
+    lista = KL.get("/api/placowki?miejscowosc=Orzesze").get_json()
+    sprawdz("wybór z tej listy naprawdę zwraca szkoły",
+            any(p["nazwa"] == "SP W ORZESZU" for p in lista["pozycje"]),
+            str(len(lista.get("pozycje") or [])))
+
+    # KONTAKT NALEŻY DO PLACÓWKI — zgłoszenie wróciło trzeci raz.
+    #
+    # Kasia (o wariantach 2–4): „wprowadziłam dane typu osoba do kontaktu,
+    # a potem zmieniłam szkołę, to osoba się nie zmieniła". Paweł dwa razy
+    # 24.08 o v5, drugi raz słowami „dalej źle wpisuje dane, gdy wybiorę
+    # z listy szkołę, i potem chcę inną wybrać".
+    #
+    # Pierwsza poprawka v5 chroniła to, co wpisał człowiek (reguła P04), i przez
+    # to przenosiła dyrektorkę jednego przedszkola do karty drugiego. Nie ma tu
+    # czego chronić: sekcja kontaktu jest ZAKRYTA, dopóki nie wybrano placówki,
+    # więc każda wartość w niej dotyczy POPRZEDNIEJ szkoły.
+    js5 = open("static/formularz5.js", encoding="utf-8").read()
+    cialo5 = js5[js5.index("function podstawKontakt("):
+                 js5.index("root.addEventListener", js5.index("function podstawKontakt("))]
+    sprawdz("v5: podstawienie kontaktu nie zależy już od zawartości pola",
+            "if (!el.value" not in cialo5 and "kontaktAuto" not in js5)
+    sprawdz("v5: pusta wartość ze szkoły CZYŚCI pole", "el.value = zrodla[id];" in cialo5)
+    sprawdz("v5: mówi o podmianie zamiast robić ją po cichu",
+            "Kontakt podmieniony" in cialo5)
+
+    # KAŻDY rodzaj zajęć musi dać się przypisać PROWADZĄCEMU — bez tego wpis nie
+    # ma jak trafić do grafiku trenera, czyli do jedynego miejsca, dla którego
+    # kalendarz w ogóle istnieje.
+    #
+    # Zgłoszenie Pawła 24.08: „w formularzu nie ma wyboru prowadzącego". Sekcja
+    # cykliczna rysowała sam harmonogram, więc `polaRodzaju()` dla cyklu — z
+    # prowadzącym, godzinami, sprzętem i uwagami — było MARTWYM kodem, choć
+    # wyglądało na kompletne. Pilnujemy więc nie tekstu, tylko struktury:
+    # ma być JEDNA ścieżka rysująca pola rodzaju, wspólna dla obu gałęzi.
+    sprawdz("v5: pola rodzaju rysuje jedna funkcja dla obu gałęzi",
+            js5.count("function polaHtml(") == 1
+            and js5.count("polaRodzaju(typ).map(") == 1)
+    sprawdz("v5: sekcja cykliczna dokłada wspólne pola do harmonogramu",
+            "sekcjaCyklu(typ) + polaHtml(typ)" in js5)
+    sprawdz("v5: prowadzący jest w definicji każdego rodzaju",
+            js5.count("POLE_TRENER") == 4)          # 1 definicja + 3 rodzaje
+
+    # --- panel dostępności prowadzących: v5 dostaje to samo co v3 ------------
+    #
+    # Zgłoszenie Pawła 24.08: „brakuje w v5 dostępności prowadzącego jak w v3".
+    # Sam select niesie pełny słownik 40 trenerów, więc bez panelu „niedostępny"
+    # przechodzi bez słowa aż do ekranu sukcesu.
+    #
+    # Jedyna różnica wobec v3 wynika z kaskady: v3 umawia JEDNO spotkanie, więc
+    # ma jeden panel na ekran; v5 umawia kilka rzeczy naraz, każdą z własną datą
+    # i osobą, więc panel siedzi PRZY SEKCJI. Jeden wspólny pokazywałby
+    # dostępność na termin, którego akurat nie wypełniasz — czyli kłamałby.
+    sprawdz("v5 wczytuje ten sam arkusz panelu co v3, bez kopii stylu",
+            "formularz3.css" in html5)
+    sprawdz("v5: panel dostępności doklejany do KAŻDEJ sekcji",
+            "sekcjaDostepnosci(typ)" in js5)
+    sprawdz("v5: panele rozróżniane typem zajęć, nie jednym id",
+            'data-dost="' in js5 and 'data-status="' in js5 and 'data-dzien="' in js5)
+    sprawdz("v5: kandydat trafia do sekcji, z której go kliknięto",
+            "el.dataset.dla" in js5 and 'data-dla="' in js5)
+    sprawdz("v5: zmiana daty albo godzin przelicza dostępność",
+            '["data", "godz_od", "godz_do"].indexOf(el.dataset.pole)' in js5)
+    # `rysujSekcje()` przerysowuje wszystkie sekcje przy każdym kliknięciu chipa.
+    # Bez bufora każde takie przerysowanie wysyłałoby żądanie na sekcję — w
+    # terenie, po LTE.
+    sprawdz("v5: odpowiedź buforowana kluczem termin+miasto",
+            "function kluczDostepnosci(" in js5 and "buf.klucz === klucz" in js5)
+    # Cykl trwa miesiącami, a API odpowiada o JEDEN dzień. Panel ma to mówić,
+    # zamiast pozwolić handlowcowi uznać, że sprawdziliśmy całą serię.
+    sprawdz("v5: przy cyklu panel mówi, że sprawdza PIERWSZE zajęcia",
+            "dalszych tygodni nie sprawdzamy" in js5)
+    # Bez godziny startu serwer nie liczy kolizji (`przydzial._zakres_spotkania`),
+    # więc ranking udawałby pełną wiedzę.
+    sprawdz("v5: bez godziny startu panel ostrzega, że nie liczy kolizji",
+            "żeby sprawdzić kolizje" in js5)
+
+    # --- ekran potwierdzenia po zapisie -------------------------------------
+    #
+    # Zgłoszenie Pawła 24.08: „po zapisie myśli i potem przeskakuje na widok
+    # wpisywania v5 formularza od nowa". v5 robił `location.reload()`, czyli
+    # oddawał pusty formularz i żadnej odpowiedzi na pytanie, co poszło do bazy.
+    # W v5 to pytanie jest ostrzejsze niż w v1–v4, bo jednym zapisem można
+    # umówić DT, cykl i festyn naraz: „zapisało się wszystko czy jedno?".
+    sprawdz("v5: po zapisie pokazuje potwierdzenie, nie pustą stronę",
+            "pokazSukces(j, z.odlozone)" in js5 and 'id="f5-sukces"' in html5)
+    sprawdz("v5: potwierdzenie wypisuje rodzaje zajęć z terminem",
+            "f5-sukces-lista" in js5)
+    sprawdz("v5: potwierdzenie mówi o sekcjach wypełnionych, ale odznaczonych",
+            "chip był odznaczony" in js5)
+    sprawdz("v5: z potwierdzenia da się wejść na kartę szkoły",
+            'id="f5-do-leada"' in html5 and "/lead/" in js5)
+    sprawdz("v5: szkoła schodzi z „Planu na dziś” bez przeładowania (P23)",
+            "FX_PLAN_ZROBIONE" in js5)
+
+    # Ekran potwierdzenia ma KAŻDY wariant — to jest odpowiedź na „czy się
+    # zapisało", a nie ozdoba jednego z układów.
+    for w, tpl in (("v1", "formularz.html"), ("v2", "formularz2.html"),
+                   ("v3", "formularz3.html"), ("v4", "formularz4.html"),
+                   ("v5", "formularz5.html")):
+        h = open("templates/%s" % tpl, encoding="utf-8").read()
+        sprawdz("%s: ma ekran potwierdzenia po zapisie" % w, "fx-sukces" in h)
+    # Styl tego ekranu siedzi w `formularz2.css`, bo wczytują go wszystkie
+    # warianty poza v1 — do 24.08 potwierdzenie w v2–v5 było BEZ stylu, czyli
+    # gołym tekstem zamiast zielonego znacznika.
+    sprawdz("styl potwierdzenia jest tam, gdzie sięgają wszystkie warianty",
+            ".fx-sukces{" in open("static/formularz2.css", encoding="utf-8").read())
+
+    # --- zapis listą `zajecia`: kilka rodzajów jednym żądaniem ---------------
+    l_v5 = dodaj_lead(db.get_conn(), "SP V5", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_v5,
+        "zajecia": [
+            {"typ": "DT", "data": dni(7), "godz_od": "09:00", "ilosc_klas": 3},
+            {"typ": "FESTYN", "data": dni(20), "grupa": "cała szkoła"},
+            {"typ": "CYKLICZNE", "cykl_dzien": "wtorek", "co_ile_tygodni": 1},
+        ],
+    })
+    sprawdz("trzy rodzaje zajęć w jednym żądaniu", kod == 200 and len(j["eventy"]) == 3,
+            str(j)[:120])
+    conn = db.get_conn()
+    typy = [r["typ"] for r in conn.execute(
+        "SELECT typ FROM eventy WHERE lead_id=? ORDER BY typ", (l_v5,))]
+    conn.close()
+    sprawdz("każdy z osobnym typem", typy == ["CYKLICZNE", "DT", "FESTYN"], str(typy))
+
+    # PROWADZĄCY PRZY CYKLU: do wpisania, ale NIEOBOWIĄZKOWY (decyzja Pawła,
+    # 24.08). Zgodne z zasadą projektu — ostrzegamy, nie blokujemy: w terenie
+    # cykl umawia się często zanim wiadomo, kto go poprowadzi, a odmowa zapisu
+    # znaczy notatkę na kartce. Wpis bez prowadzącego ma w kalendarzu własny,
+    # bursztynowy wiersz „— bez prowadzącego —" (S17), więc nie ginie.
+    conn = db.get_conn()
+    cykl_bez = conn.execute("SELECT trener FROM eventy WHERE lead_id=? AND typ='CYKLICZNE'",
+                            (l_v5,)).fetchone()["trener"]
+    conn.close()
+    sprawdz("cykl zapisuje się BEZ prowadzącego", not cykl_bez, "jest %r" % cykl_bez)
+
+    l_cyk = dodaj_lead(db.get_conn(), "SP CYKL Z TRENEREM", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_cyk,
+        "zajecia": [{"typ": "CYKLICZNE", "cykl_dzien": "środa", "godz_od": "14:00",
+                     "trener": T, "sprzet": sprzet[0], "grupa": "kl. 3a"}],
+    })
+    conn = db.get_conn()
+    ev_c = dict(conn.execute("SELECT * FROM eventy WHERE lead_id=?", (l_cyk,)).fetchone())
+    conn.close()
+    sprawdz("...a wpisany prowadzący przy cyklu naprawdę zapada w bazę",
+            kod == 200 and ev_c["trener"] == T, str(ev_c.get("trener")))
+    sprawdz("razem z godziną, sprzętem i grupą — reszta pól cyklu też działa",
+            ev_c["godz_od"] == "14:00" and ev_c["sprzet"] == sprzet[0]
+            and ev_c["grupa"] == "kl. 3a",
+            "%s %s %s" % (ev_c["godz_od"], ev_c["sprzet"], ev_c["grupa"]))
+
+    # Wpis, którego kalendarz nie pokazuje, jest gorszy niż odmowa (10.08).
+    import calendar_view as _cv5
+    conn = db.get_conn()
+    widoczne = [e["typ"] for e in _cv5.events_for_month(conn, dni(7)[:7])
+                if e["lead_id"] == l_v5]
+    conn.close()
+    sprawdz("zapisane rodzaje są widoczne w kalendarzu", "DT" in widoczne,
+            str(widoczne))
+
+    # Status „03. DT umówione" ma stawiać WYŁĄCZNIE DT. Gdyby festyn albo VR
+    # go stawiały, raport „ile DT" kłamałby w jedyną stronę, która boli.
+    l_fest = dodaj_lead(db.get_conn(), "SP FESTYN", "08. Katowice", handlowiec=H,
+                        status="01. Próba kontaktu (Brak konkretów)")
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_fest,
+        "zajecia": [{"typ": "FESTYN", "data": dni(9)}],
+    })
+    conn = db.get_conn()
+    st = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                      (l_fest,)).fetchone()["status_realizacji"]
+    conn.close()
+    sprawdz("sam festyn NIE ustawia „DT umówione”",
+            kod == 200 and not st.startswith("03."), st)
+
+    # Rodzaj spoza słownika TEGO profilu — twarda blokada w obie strony.
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_v5,
+        "zajecia": [{"typ": "PIKNIK-WYMYSLONY", "data": dni(3)}],
+    })
+    sprawdz("rodzaj spoza słownika odrzucony", kod == 400 and "Nieznany rodzaj" in j["error"],
+            str(j)[:80])
+
+    # Zajęcie bez daty pomijamy zamiast tworzyć wpis-widmo (niewidoczny
+    # w kalendarzu, a wyglądający na zrobiony).
+    conn = db.get_conn()
+    przed = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                         (l_fest,)).fetchone()["c"]
+    conn.close()
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_fest,
+        "zajecia": [{"typ": "VR", "godz_od": "10:00"}],
+    })
+    conn = db.get_conn()
+    po = conn.execute("SELECT COUNT(*) c FROM eventy WHERE lead_id=?",
+                      (l_fest,)).fetchone()["c"]
+    conn.close()
+    sprawdz("zajęcie bez daty nie tworzy wpisu-widma", kod == 200 and po == przed,
+            "%d → %d" % (przed, po))
+
+    # --- ZAPORA: stare warianty mają tego nie zauważyć ----------------------
+    # Cztery warianty istnieją po to, żeby klient porównywał UKŁAD. Gdyby v5
+    # zmienił kontrakt API, porównanie przestałoby cokolwiek znaczyć.
+    l_stary = dodaj_lead(db.get_conn(), "SP STARE API", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {
+        "handlowiec": H, "lead_id": l_stary,
+        "dt": {"data": dni(5), "godz_od": "08:00", "ilosc_klas": 2, "ilosc_dzieci": 40},
+        "cykl": {"typ": "CYKLICZNE", "cykl_dzien": "środa", "co_ile_tygodni": 1},
+    })
+    conn = db.get_conn()
+    stare_typy = [r["typ"] for r in conn.execute(
+        "SELECT typ FROM eventy WHERE lead_id=? ORDER BY typ", (l_stary,))]
+    st_stary = conn.execute("SELECT status_realizacji FROM leady WHERE id=?",
+                            (l_stary,)).fetchone()["status_realizacji"]
+    conn.close()
+    sprawdz("payload sprzed v5 przechodzi bez zmian",
+            kod == 200 and stare_typy == ["CYKLICZNE", "DT"]
+            and st_stary == "03. DT umówione", str(stare_typy))
+    for w in ("formularz", "formularz2", "formularz3", "formularz4"):
+        kod_js = open("static/%s.js" % w, encoding="utf-8").read()
+        sprawdz("%s nie wysyła listy zajęć — kontrakt bez zmian" % w,
+                "zajecia" not in kod_js)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

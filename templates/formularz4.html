@@ -116,11 +116,18 @@
         <label class="f2-etykieta" for="f2-miasto">Miejscowość <span class="f2-wym">*</span></label>
         <select id="f2-miasto" class="f2-pole">
           <option value="">Wybierz miejscowość</option>
-          {% for m in slowniki.miasto %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          {# Z DANYCH, nie ze słownika `miasto` — patrz komentarz w app.py
+             przy `_kontekst_formularza`. #}
+          {% for m in miejscowosci %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
         </select>
       </div>
       <div class="f2-pole-grupa">
         <label class="f2-etykieta" for="f2-szkola">Placówka (szkoła) <span class="f2-wym">*</span></label>
+        {# Wpisywanie zamiast przewijania listy kilkuset szkół kciukiem (P07).
+           Ukryte, dopóki nie ma czego filtrować. #}
+        <input type="search" id="f2-szkola-szukaj" class="f2-pole f2-szukaj"
+               placeholder="Filtruj listę — nazwa albo numer, np. 12"
+               autocomplete="off" hidden>
         <select id="f2-szkola" class="f2-pole" disabled>
           <option value="">Najpierw wybierz miejscowość</option>
         </select>
@@ -128,31 +135,15 @@
       </div>
     </div>
 
-    {# Makieta nie przewiduje dodania nowej szkoły — a w terenie to się zdarza
-       i bez tego handlowiec zapisuje ustalenia na kartce. #}
-    <button type="button" class="f2-link" id="f2-nowa-otworz">
-      + Nie ma jej na liście — dodaj nową placówkę
-    </button>
-
-    <div id="f2-nowa" class="f2-nowa" hidden>
-      <div class="f2-siatka f2-siatka-2">
-        <div class="f2-pole-grupa">
-          <label class="f2-etykieta" for="f2-nowa-nazwa">Nazwa placówki <span class="f2-wym">*</span></label>
-          <input type="text" id="f2-nowa-nazwa" class="f2-pole" placeholder="np. SP 12 im. Kopernika">
-        </div>
-        <div class="f2-pole-grupa">
-          <label class="f2-etykieta" for="f2-nowa-typ">Typ</label>
-          <select id="f2-nowa-typ" class="f2-pole">
-            <option value="">Wybierz typ</option>
-            {% for t in slowniki.typ_placowki %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="f2-pole-grupa">
-        <label class="f2-etykieta" for="f2-nowa-adres">Adres</label>
-        <input type="text" id="f2-nowa-adres" class="f2-pole" placeholder="ulica i numer">
-      </div>
-    </div>
+    {# Do 24.08 stała tu droga „dodaj nową placówkę" — usunięta na wyraźne
+       zgłoszenie Kasi: „PH wpisują coś z ręki sami i będą się dublować rzeczy,
+       a wpisują nazwy jak popadnie". Wypada we wszystkich pięciu wariantach
+       naraz: gdyby została w jednym, handlowiec po prostu zakładałby placówki
+       tamtym, a porównanie wariantów przestałoby dotyczyć układu. #}
+    <p class="f2-info">
+      Nie znajdujesz szkoły? Sprawdź miejscowość i pisownię — baza obejmuje cały
+      rejestr z terenu firmy. Nowe placówki zakłada koordynatorka.
+    </p>
 
     <div class="f2-siatka f2-siatka-3">
       <div class="f2-pole-grupa">
@@ -167,6 +158,50 @@
         <label class="f2-etykieta" for="f2-mail">Mail</label>
         <input type="email" id="f2-mail" class="f2-pole" inputmode="email"
                autocapitalize="off" spellcheck="false" placeholder="sekretariat@...">
+      </div>
+    </div>
+  </section>
+
+  {# ====================================================== WYNIK WIZYTY (P22)
+     Kasia, 20.08: „musza byc opcje w formularzu ze bez daty dt można wprowadzić
+     szkołę i wybrać z listy rozwijanej opcje (…) I pole uwagi do wpisania
+     notatki".
+
+     Do 20.08 formularz umiał zapisać dokładnie JEDEN wynik wizyty — „DT
+     umówione", z kompletem sześciu wymaganych pól. Wszystko inne, co się
+     w terenie zdarza (nikt nie odbiera, dyrektor się zastanawia, szkoła
+     odmawia), nie miało gdzie trafić. Skutek był taki, że ludzie omijali
+     formularz i klikali status wprost w karcie leada — a wtedy szkoła zostawała
+     na liście zadań, bo „zrobione" liczyło się z terminu DT (zgłoszenie Zuzi).
+
+     Statusy są ze słownika koordynatorki, bez „00." — to stany techniczne
+     nieprzydzielonego leada, nie wyniki rozmowy w szkole. #}
+  <section class="f2-sekcja">
+    <h2 class="f2-tytul">
+      <span class="f2-ikona">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M4 3h16v14l-4 4H4zm2 2v14h8v-3h3V5zm2 3h10v2H8zm0 4h7v2H8z"/>
+        </svg>
+      </span>
+      Wynik wizyty
+    </h2>
+
+    <div class="f2-siatka f2-siatka-2">
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-wynik">Czym się skończyło</label>
+        <select id="f2-wynik" class="f2-pole">
+          <option value="">— wybierz —</option>
+          {% for v in slowniki.status_realizacji if not v.startswith('00.') %}
+          <option value="{{ v }}">{{ v }}</option>
+          {% endfor %}
+        </select>
+        <p class="f2-info">Wypełnij, jeśli nie umawiasz dziś Dnia Technologii.</p>
+      </div>
+      <div class="f2-pole-grupa">
+        <label class="f2-etykieta" for="f2-uwagi">Notatka</label>
+        <textarea id="f2-uwagi" class="f2-pole" rows="2"
+                  placeholder="Co powiedzieli, na kiedy wrócić, kto decyduje…"></textarea>
+        <p class="f2-info">Zostaje przy szkole — przeczyta ją koordynatorka i następny handlowiec.</p>
       </div>
     </div>
   </section>

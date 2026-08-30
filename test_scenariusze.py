@@ -98,6 +98,15 @@ def main():
     conn = db.get_conn()
     sprawdz("słownik handlowców niepusty", len(db.slownik_values(conn, "handlowiec")) >= 5)
     sprawdz("słownik trenerów niepusty", len(db.slownik_values(conn, "trener")) >= 30)
+    # Wartości, które KOD zna ze stałej, muszą być w słowniku — inaczej wpis
+    # da się utworzyć (walidacja idzie po stałej), ale nie da się go już
+    # POPRAWIĆ: edycja na karcie szkoły odbija się od słownika, a to jedna
+    # z dwóch jedynych twardych blokad w aplikacji. Na produkcji zdarzyło się
+    # to realnie: baza powstała 10.08, zanim doszedł CYKLICZNE-PRZEDSZKOLE.
+    typy_ev = db.slownik_values(conn, "typ_eventu")
+    brak_typow = [t for t in db.TYPY_CYKLICZNE if t not in typy_ev]
+    sprawdz("słownik typ_eventu zna wszystkie typy cykliczne z kodu",
+            not brak_typow, "brakuje: %s" % ", ".join(brak_typow) if brak_typow else "")
     m0 = repo.metryki(conn)
     conn.close()
     sprawdz("zero leadów na starcie", m0["leady"] == 0)
@@ -535,6 +544,312 @@ def main():
     sprawdz("wybrana pozycja zostaje zaznaczona po przeładowaniu",
             'value="DT,CYKLICZNE" selected'
             in KL.get("/kalendarz?m=2027-03&typ=DT,CYKLICZNE").get_data(as_text=True))
+
+    # --- P05: na czym otwiera się kalendarz (zgłoszenie K11) ---------------
+    #
+    # „kalendarz ustawia się na czerwiec na starcie a nie na wrzesień" — Kasia,
+    # 20.08. Dwie przyczyny, obie warte testu: fallback brał miesiąc NAJDALSZY
+    # w przyszłość (przy cyklach sięgających pół roku to miesiąc, w którym nikt
+    # nie pracuje), a zapamiętany w sesji wybór nie miał daty ważności.
+    print("\n-- P05: domyślny miesiąc kalendarza --")
+    prawdziwe_dzis = A.dzis
+    try:
+        A.dzis = lambda: "2026-08-20"
+        sprawdz("pusty sierpień → skacze na wrzesień, nie na październik",
+                A._miesiac_domyslny(["2026-07", "2026-09", "2026-10"]) == "2026-09")
+        sprawdz("bieżący miesiąc wygrywa, gdy coś w nim jest",
+                A._miesiac_domyslny(["2026-07", "2026-08", "2026-09"]) == "2026-08")
+        sprawdz("same przeszłe miesiące → ostatni z nich",
+                A._miesiac_domyslny(["2026-05", "2026-06"]) == "2026-06")
+        sprawdz("pusta baza → bieżący miesiąc",
+                A._miesiac_domyslny([]) == "2026-08")
+
+        # Sedno zgłoszenia: jedno zajrzenie do czerwca nie może zostać na 30 dni.
+        with KL.session_transaction() as s:
+            s["miesiac"] = "2026-06"
+        r = KL.get("/kalendarz")
+        sprawdz("kalendarz się otwiera", r.status_code == 200, "kod %s" % r.status_code)
+        with KL.session_transaction() as s:
+            sprawdz("zapamiętany czerwiec został skasowany z sesji",
+                    s.get("miesiac") != "2026-06", s.get("miesiac"))
+
+        # ...ale miesiąc PRZYSZŁY dalej przeżywa przejście na sąsiedni ekran
+        # (to była poprawka z 09.08 i nie wolno jej odkręcić).
+        with KL.session_transaction() as s:
+            s["miesiac"] = "2026-10"
+        KL.get("/kalendarz")
+        with KL.session_transaction() as s:
+            sprawdz("przyszły miesiąc dalej jest pamiętany",
+                    s.get("miesiac") == "2026-10", s.get("miesiac"))
+    finally:
+        A.dzis = prawdziwe_dzis
+        with KL.session_transaction() as s:
+            s.pop("miesiac", None)
+
+    # --- P24: filtr „bez prowadzącego" (pytanie Zuzi 20.08) -----------------
+    #
+    # „czy można już wyszukiwać bez prowadzącego?" — do 20.08 nie. Licznik
+    # w nagłówku pokazywał, ile takich zajęć jest, ale nie dało się do nich
+    # dojść: filtr na chipach szuka WPISANEGO TEKSTU, a brak prowadzącego to
+    # brak wartości, którego żadnym fragmentem nie da się wpisać.
+    print("\n-- P24: filtr „bez prowadzącego” --")
+    sprawdz("sam filtr: zostają tylko wpisy bez prowadzącego",
+            [e["id"] for e in cv.tylko_bez_obsady(
+                [{"id": 1, "trener": "13. Cebula"}, {"id": 2, "trener": ""},
+                 {"id": 3, "trener": None}, {"id": 4, "trener": "   "}])] == [2, 3, 4])
+    sprawdz("drukarz nie zastępuje prowadzącego",
+            len(cv.tylko_bez_obsady([{"trener": "", "drukarz": "04. Zemela"}])) == 1)
+
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES "
+                       "('SP WOLNA do obsadzenia', 'test')")
+    l_wolna = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)",
+                           (cur.lastrowid,)).lastrowid
+    cur = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES "
+                       "('SP OBSADZONA przez trenera', 'test')")
+    l_obsadzona = conn.execute("INSERT INTO leady (placowka_id) VALUES (?)",
+                               (cur.lastrowid,)).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-11-04', '09:00')", (l_wolna,))
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener) "
+                 "VALUES (?, 'DT', '2026-11-05', '09:00', '13. Cebula')", (l_obsadzona,))
+    conn.commit()
+    conn.close()
+
+    for widok in ("macierz", "agenda", "starty"):
+        r = KL.get("/kalendarz?m=2026-11&widok=%s&bez_obsady=1" % widok)
+        html = r.get_data(as_text=True)
+        sprawdz("%s: zostaje szkoła bez prowadzącego" % widok,
+                "SP WOLNA do obsadzenia" in html, "kod %s" % r.status_code)
+        sprawdz("%s: znika szkoła z prowadzącym" % widok,
+                "SP OBSADZONA przez trenera" not in html)
+
+    r = KL.get("/kalendarz?m=2026-11&widok=agenda")
+    html = r.get_data(as_text=True)
+    sprawdz("bez filtra widać obie", "SP WOLNA do obsadzenia" in html
+            and "SP OBSADZONA przez trenera" in html)
+    sprawdz("licznik braków prowadzi do filtra", "bez_obsady=1" in html)
+
+    # --- P08: odwołanie DT ze śladem (zgłoszenie K12) -----------------------
+    #
+    # „nie widzę też możliwości wykasowania czegoś z kalendarza, w razie jakby
+    # np. szkoła w ostatnim momencie odmówiła współpracy" — Kasia, 20.08.
+    #
+    # Odwołujemy ZE ŚLADEM zamiast kasować: wpis zostaje w bazie jako dowód, że
+    # temat był i się nie udał (raport wykonania liczy właśnie takie przypadki),
+    # ale znika z grafiku i przestaje zajmować trenerowi termin.
+    print("\n-- P08: odwołanie DT --")
+    l_odw = nowa_szkola("SP 77 do odwołania", miasto="15. Będzin")
+    post("/api/przypisz", {"ids": [l_odw], "handlowiec": "04. Chytry"})
+    kod, _ = post("/api/event", {"lead_id": l_odw, "typ": "DT", "data": "2026-12-08",
+                                 "godz_od": "09:00", "trener": "01. Małolepsza"})
+    sprawdz("DT do odwołania dodane", kod == 200)
+    row = [r for r in leady() if r["id"] == l_odw][0]
+    sprawdz("status wskoczył na sukces", row["status_realizacji"].startswith("03."))
+
+    conn = db.get_conn()
+    ev_id = conn.execute("SELECT id FROM eventy WHERE lead_id=?", (l_odw,)).fetchone()["id"]
+    conn.close()
+
+    kod, j = post("/api/event/%d/odwolaj" % ev_id, {"powod": "szkoła wycofała się dzień przed"})
+    sprawdz("odwołanie przechodzi", kod == 200, str(j)[:90])
+    sprawdz("aplikacja mówi, że szkoła wróciła do umawiania",
+            (j or {}).get("wrocil_do_umawiania") is True)
+
+    conn = db.get_conn()
+    w_grafiku = [e for e in cv.events_for_month(conn, "2026-12") if e["lead_id"] == l_odw]
+    conn.close()
+    sprawdz("odwołane zajęcia znikają z grafiku", not w_grafiku)
+
+    row = [r for r in leady() if r["id"] == l_odw][0]
+    sprawdz("lead przestał być domknięty",
+            not (row["status_realizacji"] or "").startswith("03."), row["status_realizacji"])
+    sprawdz("termin DT zniknął z karty leada", not row["dt_data"], str(row["dt_data"]))
+    sprawdz("szkoła NIE wróciła do puli — handlowiec zostaje",
+            row["handlowiec"] == "04. Chytry", str(row["handlowiec"]))
+
+    conn = db.get_conn()
+    ile = conn.execute("SELECT COUNT(*) c FROM eventy WHERE id=?", (ev_id,)).fetchone()["c"]
+    powod = conn.execute("SELECT powod_odwolania p FROM eventy WHERE id=?",
+                         (ev_id,)).fetchone()["p"]
+    conn.close()
+    sprawdz("wpis został w bazie jako dowód", ile == 1)
+    sprawdz("powód zapisany przy wpisie", "wycofała" in (powod or ""))
+
+    # Pulpit i kalendarz muszą mówić to samo. Licznik, który liczy odwołane,
+    # a grafik, który ich nie pokazuje, to dwie liczby i żadnej wiadomo, która
+    # kłamie — a to najgorszy rodzaj błędu w tym projekcie.
+    conn = db.get_conn()
+    m = repo.metryki(conn)
+    wszystkich_dt = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE typ='DT'").fetchone()["c"]
+    czynnych_dt = conn.execute(
+        "SELECT COUNT(*) c FROM eventy WHERE typ='DT' "
+        "AND (odwolane IS NULL OR odwolane='')").fetchone()["c"]
+    conn.close()
+    sprawdz("pulpit liczy tylko czynne DT, nie wszystkie wiersze",
+            m["eventy_dt"] == czynnych_dt and czynnych_dt < wszystkich_dt,
+            "pulpit %d, czynnych %d, w bazie %d" % (m["eventy_dt"], czynnych_dt,
+                                                    wszystkich_dt))
+    sprawdz("pulpit pokazuje odwołane osobno", m["eventy_odwolane"] >= 1,
+            "odwołanych: %s" % m["eventy_odwolane"])
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
+    sprawdz("cofnięcie odwołania przechodzi", kod == 200)
+    conn = db.get_conn()
+    w_grafiku = [e for e in cv.events_for_month(conn, "2026-12") if e["lead_id"] == l_odw]
+    conn.close()
+    sprawdz("po cofnięciu zajęcia wracają do grafiku", len(w_grafiku) == 1)
+
+    # Kafel cyklu to WYSTĄPIENIE reguły — przycisk odwołania po `e.id` skasowałby
+    # z grafiku cały pakiet. Lepiej nie dać przycisku, niż dać mylący.
+    szablon = open("templates/kalendarz.html", encoding="utf-8").read()
+    sprawdz("odwołanie w grafiku tylko dla wpisów niecyklicznych",
+            # P31 wsunął przed ten warunek gałąź „to jest odwołane → przywróć",
+            # więc `if` zamienił się w `elif`. Sam warunek jest ten sam i to
+            # jego pilnujemy: przycisk odwołania nie ma prawa pojawić się na
+            # kaflu cyklu.
+            "{% elif e.typ not in TYPY_CYKLICZNE %}" in szablon
+            and 'data-odwolaj="{{ e.id }}"' in szablon)
+
+    # -----------------------------------------------------------------
+    print("\nS19 — P30/P31: braki w DT widać w kalendarzu, odwołane mają swoją listę")
+
+    # DT z kompletem danych i DT „zaczęty" — dokładnie to, co od P27 wolno
+    # zapisać z terenu. Kalendarz jest jedynym miejscem, gdzie widać różnicę.
+    conn = db.get_conn()
+    p_id = conn.execute(
+        "INSERT INTO placowki (nazwa, miejscowosc, typ) VALUES (?,?,?)",
+        ("SP Braki", "01. Katowice", "01. Szkoła podstawowa")).lastrowid
+    l_braki = conn.execute("INSERT INTO leady (placowka_id, handlowiec) VALUES (?,?)",
+                           (p_id, "04. Chytry")).lastrowid
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od, trener, "
+                 "ilosc_klas, ilosc_dzieci) VALUES (?,?,?,?,?,?,?)",
+                 (l_braki, "DT", "2026-12-08", "09:00", "01. Małolepsza", 3, 60))
+    id_niepelny = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, trener) VALUES (?,?,?,?)",
+        (l_braki, "DT", "2026-12-09", "01. Małolepsza")).lastrowid
+    conn.commit()
+
+    evs = {e["id"]: e for e in cv.events_for_month(conn, "2026-12")}
+    sprawdz("komplet danych = brak ostrzeżenia",
+            evs[id_niepelny - 1]["braki"] == [], str(evs[id_niepelny - 1]["braki"]))
+    sprawdz("DT bez godziny, klas i dzieci wymienia wszystkie trzy braki",
+            evs[id_niepelny]["braki"] == ["godzina", "liczba klas", "liczba dzieci"],
+            str(evs[id_niepelny]["braki"]))
+
+    mac = cv.build_matrix(conn, "2026-12")
+    sprawdz("licznik „do uzupełnienia” liczy tylko niepełne wpisy",
+            mac["n_do_uzupelnienia"] == sum(1 for e in evs.values() if e["braki"]),
+            "licznik %d" % mac["n_do_uzupelnienia"])
+    tylko_braki = cv.build_matrix(conn, "2026-12", do_uzupelnienia=True)
+    sprawdz("filtr braków zostawia same niepełne wpisy",
+            tylko_braki["n_events"] == mac["n_do_uzupelnienia"]
+            and tylko_braki["n_events"] < mac["n_events"],
+            "%d z %d" % (tylko_braki["n_events"], mac["n_events"]))
+    conn.close()
+
+    # Zajęcia cykliczne nie mają liczby klas i nigdy nie będą miały — gdyby
+    # wchodziły do licznika, „do uzupełnienia" pokazywałoby całą jesień.
+    sprawdz("cykl nie jest „do uzupełnienia”",
+            cv.braki_dt({"typ": "CYKLICZNE"}) == [])
+
+    # P31 — lista odwołanych. Do 20.08 dało się je zobaczyć TYLKO na karcie
+    # konkretnej szkoły, czyli trzeba było wiedzieć, której szukać.
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"powod": "sala zajęta"})
+    sprawdz("odwołanie na potrzeby listy przechodzi", kod == 200)
+    conn = db.get_conn()
+    lista = cv.events_for_month(conn, "2026-12", odwolane=True)
+    grafik = cv.events_for_month(conn, "2026-12")
+    conn.close()
+    sprawdz("tryb „odwołane” pokazuje odwołane", [e["id"] for e in lista] == [ev_id],
+            str([e["id"] for e in lista]))
+    sprawdz("…i tylko je — grafik ich nie ma",
+            ev_id not in [e["id"] for e in grafik])
+    sprawdz("wpis niesie powód i osobę",
+            (lista[0]["odwolanie"] or {}).get("powod") == "sala zajęta"
+            and (lista[0]["odwolanie"] or {}).get("kto"),
+            str(lista[0]["odwolanie"]))
+    sprawdz("czynny wpis nie udaje odwołanego",
+            grafik[0]["odwolanie"] is None)
+
+    # Nazwa `odwolanie` jest celowo inna niż `odwolane`: to drugie w
+    # calendar_view znaczy „odwołane WYSTĄPIENIE cyklu" i jest zerowane przy
+    # każdym wpisie bez wyjątku. Przy pierwszym podejściu zjadło znacznik.
+    zrodlo = open("calendar_view.py", encoding="utf-8").read()
+    sprawdz("odwołanie spotkania ma własną nazwę pola",
+            'e["odwolanie"] = ' in zrodlo and 'ev["odwolane"] = False' in zrodlo)
+
+    szablon = open("templates/kalendarz.html", encoding="utf-8").read()
+    sprawdz("wszystkie trzy widoki znaczą braki",
+            szablon.count("tag tag-braki") == 3, str(szablon.count("tag tag-braki")))
+    sprawdz("tryb odwołanych mówi wprost, że to nie grafik",
+            "nie grafik" in szablon)
+    sprawdz("z listy odwołanych da się przywrócić termin",
+            szablon.count("btn-przywroc-event") == 3,
+            str(szablon.count("btn-przywroc-event")))
+
+    kod, _ = post("/api/event/%d/odwolaj" % ev_id, {"cofnij": True})
+    sprawdz("sprzątanie po S19: termin wraca", kod == 200)
+
+    # ================================================================== S20
+    print("\nS20 — M5/M6: powiat jako oś filtrowania")
+    import geografia
+    conn = db.get_conn()
+    # Lustro rejestru w miniaturze — tyle, ile trzeba, żeby dało się wywieść
+    # powiat z nazwy miejscowości.
+    import rejestr_rspo
+    rejestr_rspo.zaloz_tabele(conn)
+    for rspo, nazwa, powiat, gmina, miejsc in (
+            (9001, "SP W CZELADZI", "będziński", "Czeladź", "Czeladź"),
+            (9002, "SP W PSARACH", "będziński", "Psary", "Psary"),
+            (9003, "SP W KATOWICACH", "Katowice", "Katowice", "Katowice")):
+        conn.execute("INSERT OR REPLACE INTO rspo_rejestr "
+                     "(rspo, nazwa, typ, wojewodztwo, powiat, gmina, miejscowosc) "
+                     "VALUES (?,?,?,?,?,?,?)",
+                     (rspo, nazwa, "Szkoła podstawowa", "ŚLĄSKIE", powiat, gmina, miejsc))
+    conn.commit()
+
+    # Placówka wpisana po staremu: prefiks ze słownika, zero geografii.
+    pid = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES (?,?,?)", ("SP CZELADŹ", "24. Czeladź", "test")).lastrowid
+    lid = conn.execute("INSERT INTO leady (placowka_id, status_realizacji) VALUES (?,?)",
+                       (pid, "01. Próba kontaktu (Brak konkretów)")).lastrowid
+    conn.commit()
+
+    r = geografia.uzupelnij(conn, zapisz=True)
+    powiat = conn.execute("SELECT powiat FROM placowki WHERE id=?", (pid,)).fetchone()[0]
+    # Sedno zgłoszenia Kasi: Czeladź nie zniknęła z bazy — zniknęła z NAZW,
+    # bo wpadła do worka `15. Będzin` po urwanym przy imporcie słowie „powiat".
+    # Powiat da się wywieść z rejestru BEZ czekania na numery RSPO (etap M3).
+    sprawdz("powiat wywiedziony z nazwy, bez numeru RSPO", powiat == "będziński",
+            str(powiat))
+    sprawdz("raport mówi, ile skąd", r["z_nazwy"] >= 1)
+
+    f = repo.pusty_filtr()
+    f["powiat"] = "będziński"
+    sprawdz("filtr po powiecie łapie placówkę z worka",
+            any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+    f["powiat"] = "Katowice"
+    sprawdz("i nie łapie jej w cudzym powiecie",
+            not any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+
+    # Miejscowość zostaje DRUGĄ osią — Kasia prosiła o nią wprost obok powiatu.
+    geografia.czysc_miejscowosci(conn, zapisz=True)
+    miejsc = conn.execute("SELECT miejscowosc FROM placowki WHERE id=?",
+                          (pid,)).fetchone()[0]
+    sprawdz("miejscowość bez prefiksu ze słownika", miejsc == "Czeladź", str(miejsc))
+    sprawdz("lista miast zawężona powiatem", geografia.miasta(conn, "będziński") == ["Czeladź"],
+            str(geografia.miasta(conn, "będziński")))
+    sprawdz("lista powiatów z danych, nie ze słownika",
+            "będziński" in geografia.powiaty(conn))
+
+    f = repo.pusty_filtr()
+    f["powiat"] = "będziński"
+    f["miasto"] = "Czeladź"
+    sprawdz("obie osie naraz zawężają poprawnie",
+            any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
+    conn.close()
 
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)

@@ -42,8 +42,7 @@
 
   var stan = {
     handlowiec: root.dataset.handlowiec || "",
-    wybrana: null,
-    nowa: false
+    wybrana: null
   };
 
   var moje = window.FX_MOJE || [];
@@ -103,15 +102,84 @@
       if (m.miejscowosc) licz[m.miejscowosc] = (licz[m.miejscowosc] || 0) + 1;
     });
     Array.prototype.forEach.call(selMiasto.options, function (o) {
-      if (licz[o.value]) o.textContent = o.textContent + "  (twoje: " + licz[o.value] + ")";
+      // Gwiazdka, a NIE „(twoje: 12)". Kasia czytała ten dopisek jako liczbę
+      // szkół w mieście: „w Katowicach pojawiają się tylko moje 12 szkół, nie
+      // ma całej listy placówek" — i prosiła wprost, żeby nie było tego słowa
+      // w nawiasie. Gwiazdka to ten sam znak co przy szkołach na liście,
+      // więc znaczy dokładnie to samo i nie da się jej wziąć za licznik.
+      if (licz[o.value]) o.textContent = "★ " + o.textContent;
     });
   })();
+
+  /* P07 (zgłoszenie K08 Kasi, 20.08): „jedno pole jest potrzebne w wyszukiwaniu
+     sam numer szkoły jak wpiszę miasto i numer że mi przefiltruje a nie szukam
+     na liscie".
+
+     Filtrujemy to, co JUŻ wczytaliśmy dla wybranej miejscowości — bez pytania
+     serwera. Dzięki temu reaguje z każdym znakiem, także wtedy, gdy zasięg
+     w szkolnym korytarzu ledwie starczył na jedno żądanie. */
+  var poleSzukaj = $("f2-szkola-szukaj");
+  var wczytane = [];                   // placówki ostatnio wybranej miejscowości
+
+  function bezOgonkow(s) {
+    return (s || "").toLowerCase()
+      .replace(/ą/g, "a").replace(/ć/g, "c").replace(/ę/g, "e").replace(/ł/g, "l")
+      .replace(/ń/g, "n").replace(/ó/g, "o").replace(/ś/g, "s").replace(/[żź]/g, "z");
+  }
+
+  function pasuje(p, fraza) {
+    var nazwa = bezOgonkow(p.nazwa);
+    // KAŻDY człon musi trafić, więc „sp 12" zawęża mocniej niż samo „12",
+    // a numer da się wpisać osobno — dokładnie o to prosiła Kasia.
+    return bezOgonkow(fraza).split(/\s+/).every(function (czesc) {
+      return !czesc || nazwa.indexOf(czesc) >= 0;
+    });
+  }
+
+  function rysujSzkoly() {
+    var fraza = poleSzukaj ? (poleSzukaj.value || "").trim() : "";
+    var lista = fraza ? wczytane.filter(function (p) { return pasuje(p, fraza); }) : wczytane;
+    var bylo = selSzkola.value;
+    // Wybrana szkoła zostaje na liście, nawet gdy wypadła z filtra. Inaczej
+    // select po cichu gubi wybór, a formularz dalej go pamięta i zapisuje.
+    if (bylo && indeks[bylo] && lista.indexOf(indeks[bylo]) < 0) {
+      lista = [indeks[bylo]].concat(lista);
+    }
+    var moich = 0;
+    var html = '<option value="">Wybierz szkołę z listy</option>';
+    lista.forEach(function (p) {
+      if (p.moja) moich++;
+      html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
+              (p.moja ? "  ★" : "") + "</option>";
+    });
+    selSzkola.innerHTML = html;
+    selSzkola.disabled = !wczytane.length;
+    if (bylo) selSzkola.value = bylo;
+
+    if (!wczytane.length) {
+      infoSzkola.textContent = "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+    } else if (fraza) {
+      infoSzkola.textContent = lista.length + " z " + wczytane.length +
+        " pasuje do wpisanego tekstu";
+    } else {
+      /* P06 (zgłoszenie K04): „na liście miast przy wpisywaniu DT katoice
+         pojawiają się tylko jako moje 12 szkół, nie ma całej listy plaówek".
+         Lista NIGDY nie była zawężona do własnych szkół — mylił dopisek przy
+         nazwie miasta. Mówimy więc wprost, że to cała baza miejscowości:
+         ukryte zawężenie wygląda jak brakujące dane. */
+      infoSzkola.textContent = wczytane.length + " szkół w tej miejscowości — cała baza" +
+        (moich ? ", twoich " + moich + " ★" : "");
+    }
+  }
+
+  if (poleSzukaj) poleSzukaj.addEventListener("input", rysujSzkoly);
 
   function wczytajSzkoly(miasto, poWczytaniu) {
     if (!miasto) {
       selSzkola.innerHTML = '<option value="">Najpierw wybierz miejscowość</option>';
       selSzkola.disabled = true;
       infoSzkola.textContent = "";
+      if (poleSzukaj) poleSzukaj.hidden = true;
       return;
     }
     selSzkola.disabled = true;
@@ -120,24 +188,18 @@
                "&handlowiec=" + encodeURIComponent(stan.handlowiec))
       .then(function (j) {
         indeks = {};
-        var moich = 0;
-        var html = '<option value="">Wybierz szkołę z listy</option>';
         // szkoły handlowca na górze, reszta alfabetycznie
         j.pozycje.sort(function (a, b) {
           if (a.moja !== b.moja) return a.moja ? -1 : 1;
           return a.nazwa.localeCompare(b.nazwa, "pl");
         });
-        j.pozycje.forEach(function (p) {
-          indeks[p.placowka_id] = p;
-          if (p.moja) moich++;
-          html += '<option value="' + p.placowka_id + '">' + esc(p.nazwa) +
-                  (p.moja ? "  ★" : "") + "</option>";
-        });
-        selSzkola.innerHTML = html;
-        selSzkola.disabled = false;
-        infoSzkola.textContent = j.pozycje.length
-          ? (j.pozycje.length + " placówek" + (moich ? ", w tym " + moich + " twoich (★)" : ""))
-          : "Brak placówek w tej miejscowości — dodaj nową poniżej.";
+        j.pozycje.forEach(function (p) { indeks[p.placowka_id] = p; });
+        wczytane = j.pozycje;
+        if (poleSzukaj) {
+          poleSzukaj.value = "";
+          poleSzukaj.hidden = !wczytane.length;
+        }
+        rysujSzkoly();
         if (poWczytaniu) poWczytaniu();
       })
       .catch(function (e) {
@@ -153,16 +215,40 @@
     zapiszSzkic();
   });
 
+  /* Dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ, a nie
+     wpisywać od zera przy każdym spotkaniu.
+
+     P04 (zgłoszenie K09 Kasi, 20.08): przy ZMIANIE szkoły pola zostawały
+     wypełnione danymi poprzedniej — „wybrałam z listy szkołę, uzupełniły się
+     dane typu osoba do kontaktu, a potem zmieniłam szkołę, to osoba się nie
+     zmieniła". Skutek jest gorszy niż pusta rubryka: do bazy wchodzi cudzy
+     mail przy dobrej szkole i nikt tego nie zauważy.
+
+     Nadpisujemy więc ZAWSZE, także pustą wartością — szkoła bez kontaktu ma
+     pole wyczyścić, a nie odziedziczyć poprzednie — i mówimy o tym, zgodnie
+     z zasadą projektu: ostrzegamy, nie blokujemy. */
+  function podstawKontakt(szkola) {
+    var mapa = [["f2-osoba", "osoba_kontakt"],
+                ["f2-telefon", "telefon"],
+                ["f2-mail", "mail"]];
+    var podmiana = false;
+    for (var i = 0; i < mapa.length; i++) {
+      var pole = $(mapa[i][0]);
+      var nowa = (szkola && szkola[mapa[i][1]]) || "";
+      // Komunikat należy się tylko wtedy, gdy coś WYPARŁO wpisaną wartość.
+      // Pierwsze wypełnienie pustego formularza nie jest podmianą.
+      if (pole.value && pole.value !== nowa) podmiana = true;
+      pole.value = nowa;
+    }
+    return podmiana;
+  }
+
   selSzkola.addEventListener("change", function () {
     stan.wybrana = indeks[selSzkola.value] || null;
     if (stan.wybrana) {
-      stan.nowa = false;
-      $("f2-nowa").hidden = true;
-      // dane kontaktowe podpowiadamy z bazy — handlowiec ma je POPRAWIĆ,
-      // a nie wpisywać od zera przy każdym spotkaniu
-      if (!$("f2-osoba").value) $("f2-osoba").value = stan.wybrana.osoba_kontakt || "";
-      if (!$("f2-telefon").value) $("f2-telefon").value = stan.wybrana.telefon || "";
-      if (!$("f2-mail").value) $("f2-mail").value = stan.wybrana.mail || "";
+      if (podstawKontakt(stan.wybrana)) {
+        toast("Dane kontaktowe podmienione na te ze szkoły z bazy — sprawdź je.");
+      }
     }
     odswiezDostepnosc();
     zapiszSzkic();
@@ -177,20 +263,6 @@
       selSzkola.dispatchEvent(new Event("change"));
     });
   };
-
-  $("f2-nowa-otworz").addEventListener("click", function () {
-    stan.nowa = !stan.nowa;
-    $("f2-nowa").hidden = !stan.nowa;
-    this.textContent = stan.nowa
-      ? "− Jednak wybieram z listy"
-      : "+ Nie ma jej na liście — dodaj nową placówkę";
-    if (stan.nowa) {
-      stan.wybrana = null;
-      selSzkola.value = "";
-      $("f2-nowa-nazwa").focus();
-    }
-    zapiszSzkic();
-  });
 
   /* ==================================================== DOSTĘPNOŚĆ TRENERÓW */
 
@@ -418,23 +490,44 @@
     root.querySelectorAll(".zly").forEach(function (e) { e.classList.remove("zly"); });
 
     var braki = [];
-    if (stan.nowa) {
-      if (!$("f2-nowa-nazwa").value.trim()) braki.push([$("f2-nowa-nazwa"), "Podaj nazwę placówki."]);
+    if (!stan.wybrana) {
       if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-    } else if (!stan.wybrana) {
-      if (!selMiasto.value) braki.push([selMiasto, "Wybierz miejscowość."]);
-      else braki.push([selSzkola, "Wybierz szkołę z listy albo dodaj nową."]);
+      else braki.push([selSzkola, "Wybierz szkołę z listy."]);
     }
-    [["f2-dt-data", "Podaj datę DT."],
-     ["f2-dt-od", "Podaj godzinę DT."],
-     ["f2-dt-trener", "Wybierz prowadzącego DT."],
-     ["f2-dt-klas", "Podaj liczbę klas 1–4."],
-     ["f2-dt-dzieci", "Podaj liczbę dzieci."],
-     ["f2-mail-rodzice", "Zaznacz, czy szkoła wyśle wiadomość do rodziców."]]
-      .forEach(function (p) {
-        var el = $(p[0]);
-        if (!String(el.value || "").trim()) braki.push([el, p[1]]);
-      });
+    /* P22 (Kasia, 20.08) + P27 (Zuzia, 20.08): sekcja DT przestała być zestawem
+       sześciu pól „wszystko albo nic". Najpierw zdjęliśmy wymóg DT z wizyty bez
+       terminu (P22), teraz — wymóg KOMPLETU z wizyty z terminem.
+
+       Zuzia: „możemy ustalić, że szkoła chce DT, ale dokładna godzina, liczba
+       klas czy liczba dzieci zostanie podana później". Przez tę jedną regułę nie
+       dało się wprowadzić prawie całego jej tygodnia w terenie — a praca, której
+       nie da się zapisać, nie znika: dzieje się dalej, tylko poza aplikacją.
+
+       Twarda zostaje JEDNA rzecz: data. Serwer pomija blok DT bez daty
+       (`if typ == "DT" and not blok["data"]: continue`), więc godzina i liczba
+       dzieci wpisane obok przepadłyby bez śladu. Reszta braków ma być WIDOCZNA,
+       nie zablokowana: ostrzeżenie tutaj i znacznik „do uzupełnienia"
+       w kalendarzu (P30, prośba Kasi z 20.08). */
+    var POLA_DT = [["f2-dt-data", "datę"], ["f2-dt-od", "godzinę"],
+                   ["f2-dt-trener", "prowadzącego"], ["f2-dt-klas", "liczbę klas"],
+                   ["f2-dt-dzieci", "liczbę dzieci"]];
+    function wpisaneDT(p) {
+      var el = $(p[0]);
+      return !!(el && String(el.value || "").trim());
+    }
+    var zaczetyDT = POLA_DT.some(wpisaneDT);
+    if (zaczetyDT) {
+      if (!wpisaneDT(POLA_DT[0])) {
+        braki.push([$("f2-dt-data"),
+                    "Podaj datę DT — bez niej wpis nie trafi do kalendarza, " +
+                    "a godzina i liczby wpisane obok przepadną. Jeśli terminu " +
+                    "jeszcze nie ma, wyczyść tę sekcję i zaznacz wynik wizyty."]);
+      }
+    } else if (!$("f2-wynik").value) {
+      // Zapis bez DT i bez wyniku nie niesie żadnej informacji — powstałaby
+      // szkoła „odwiedzona", o której nie wiadomo nic.
+      braki.push([$("f2-wynik"), "Bez terminu DT zaznacz, czym skończyła się wizyta."]);
+    }
 
     braki.forEach(function (b) { bladPola(b[0], b[1]); });
     if (braki.length) {
@@ -444,10 +537,27 @@
             odmiana(braki.length, "pole", "pola", "pól"), true);
       return false;
     }
+    /* Ostrzeżenia idą JEDNYM komunikatem: `toast` podmienia treść, więc dwa
+       wywołania obok siebie zjadają się nawzajem i człowiek widzi tylko drugie. */
+    var ostrz = [];
     // Data w przeszłości to OSTRZEŻENIE, nie blokada — czasem wpisuje się
-    // ustalenia po fakcie.
-    if ($("f2-dt-data").value < root.dataset.dzis) {
-      toast("Uwaga: data DT jest w przeszłości — zapisuję tak, jak wpisałeś.");
+    // ustalenia po fakcie. Pusta data nie jest „przeszła": porównanie
+    // "" < "2026-08-20" wychodzi prawdą, więc po P22 każda wizyta BEZ DT
+    // dostawała ostrzeżenie o dacie w przeszłości.
+    if (wpisaneDT(POLA_DT[0])) {
+      if ($("f2-dt-data").value < root.dataset.dzis) {
+        ostrz.push("data DT jest w przeszłości");
+      }
+      var brakiDT = POLA_DT.slice(1)
+        .filter(function (p) { return !wpisaneDT(p); })
+        .map(function (p) { return p[1]; });
+      if (brakiDT.length) {
+        ostrz.push("DT bez: " + brakiDT.join(", ") +
+                   " — w kalendarzu będzie oznaczone „do uzupełnienia”");
+      }
+    }
+    if (ostrz.length) {
+      toast("Uwaga: " + ostrz.join(" · ") + ". Zapisuję tak, jak wpisałeś.");
     }
     return true;
   }
@@ -455,17 +565,10 @@
   /* =================================================================== ZAPIS */
 
   function zbierz() {
+    // `sprawdz()` nie przepuszcza zapisu bez wybranej szkoły, więc tu zawsze jest.
     var d = { handlowiec: stan.handlowiec };
-    if (stan.wybrana) {
-      d.lead_id = stan.wybrana.lead_id;
-    } else {
-      d.placowka = {
-        nazwa: $("f2-nowa-nazwa").value.trim(),
-        miejscowosc: selMiasto.value,
-        typ: $("f2-nowa-typ").value,
-        adres: $("f2-nowa-adres").value.trim()
-      };
-    }
+    if (stan.wybrana.lead_id) d.lead_id = stan.wybrana.lead_id;
+    else d.placowka_id = stan.wybrana.placowka_id;
     d.kontakt = {
       osoba_kontakt: $("f2-osoba").value.trim(),
       telefon: $("f2-telefon").value.trim(),
@@ -473,6 +576,10 @@
     };
     d.mail_rodzice = $("f2-mail-rodzice").value;
     d.cykle = $("f2-cykle").value;
+    // P22: wynik wizyty i notatka jadą ZAWSZE, także gdy DT nie ma. Puste
+    // wartości serwer pomija, więc pusty wybór nie skasuje tego, co już jest.
+    d.status_realizacji = $("f2-wynik").value;
+    d.uwagi = $("f2-uwagi").value.trim();
     d.dt = {
       data: $("f2-dt-data").value,
       godz_od: $("f2-dt-od").value,
@@ -541,6 +648,13 @@
       $("f2-sukces-kolizja").hidden = false;
     }
     $("f2-do-leada").href = "/lead/" + j.lead_id;
+    // P23: szkoła schodzi z „Planu na dziś" od razu, bez przeładowania —
+    // ekran sukcesu strony nie odświeża, a licznik „N do zrobienia" musi
+    // odpowiadać na wykonaną pracę, inaczej ludzie przestają na niego patrzeć.
+    if (typeof window.FX_PLAN_ZROBIONE === "function") {
+      window.FX_PLAN_ZROBIONE(j.lead_id);
+    }
+
     $("f2-sukces").hidden = false;
     window.scrollTo(0, 0);
   }
@@ -553,10 +667,10 @@
 
   /* ========================================================= SZKIC W TELEFONIE */
 
-  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail", "f2-nowa-nazwa",
-              "f2-nowa-typ", "f2-nowa-adres", "f2-dt-data", "f2-dt-od", "f2-dt-do",
+  var POLA = ["f2-miasto", "f2-osoba", "f2-telefon", "f2-mail",
+              "f2-dt-data", "f2-dt-od", "f2-dt-do",
               "f2-dt-sala", "f2-dt-trener", "f2-dt-uwagi", "f2-dt-klas", "f2-dt-dzieci",
-              "f2-mail-rodzice", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
+              "f2-mail-rodzice", "f2-wynik", "f2-uwagi", "f2-cykle", "f2-cykl-dzien", "f2-cykl-od",
               "f2-cykl-sala", "f2-cykl-sprzet", "f2-cykl-uwagi"];
 
   var timerSzkicu = null;
@@ -571,7 +685,6 @@
           kiedy: new Date().toISOString(),
           handlowiec: stan.handlowiec,
           placowka_id: stan.wybrana ? stan.wybrana.placowka_id : null,
-          nowa: stan.nowa,
           pola: pola
         }));
         var t = new Date();
@@ -606,11 +719,6 @@
       // listę szkół podstawiamy dopiero po doczytaniu placówek dla miasta
       if (el && id !== "f2-szkola") el.value = s.pola[id];
     });
-    if (s.nowa) {
-      stan.nowa = true;
-      $("f2-nowa").hidden = false;
-      $("f2-nowa-otworz").textContent = "− Jednak wybieram z listy";
-    }
     if (selMiasto.value) {
       wczytajSzkoly(selMiasto.value, function () {
         if (s.placowka_id && indeks[s.placowka_id]) {
@@ -634,7 +742,7 @@
 
   function czyCosWpisane() {
     if (zapisano) return false;
-    if (stan.wybrana || stan.nowa) return true;
+    if (stan.wybrana) return true;
     return POLA.some(function (id) {
       var el = $(id);
       return el && String(el.value || "").trim();

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Obszary działania{% endblock %}
+
+{#
+  PODGLĄD, nie edytor — świadomie (23.08). Obszary da się dziś zmienić tylko
+  narzędziem `narzedzia/migracja_rspo.py`, bo zanim dopuścimy do nich klikanie,
+  musi być gotowa cała ścieżka M5–M7: obszar zmienia to, KTÓRE placówki są
+  „nasze", więc pomyłka nie kończy się na jednym rekordzie.
+
+  Ekran ma odpowiedzieć na jedno pytanie: czy zakres z listy Kasi zgadza się
+  z tym, co naprawdę siedzi w bazie. Dlatego liczby są rozbite na typy —
+  „2 552 placówki" nic nie znaczy, dopóki nie widać, że szkół i przedszkoli
+  jest z tego 1 259, a reszta to licea i poradnie, po których nikt nie dzwoni.
+#}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="kicker">Zakres pracy firmy wg rejestru RSPO</div>
+    <h1>Obszary działania</h1>
+  </div>
+  <div class="head-actions">
+    <span class="muted small nums">
+      lustro: {{ lustro }} placówek śląskich ·
+      w obszarach: {{ w_obszarach }} ·
+      <b>{{ nasze_typy }} w naszych typach</b>
+    </span>
+  </div>
+</div>
+
+{% if not lustro %}
+<p class="pusto">
+  Lustro rejestru jest puste. Wgraj je narzędziem:<br>
+  <code>python narzedzia/migracja_rspo.py lustro --csv rspo_2026_08_08.csv</code>
+</p>
+{% else %}
+
+<p class="moj-filtr moj-filtr-off">
+  To jest podgląd. Obszary zmienia się na razie narzędziem
+  <code>narzedzia/migracja_rspo.py obszary</code> — ekran do klikania powstanie,
+  gdy migracja dojdzie do etapu M9.
+</p>
+
+<div class="table-scroll">
+<table class="table">
+  <thead>
+    <tr>
+      <th>Obszar</th>
+      <th>Zakres z rejestru</th>
+      <th class="num">Szkoły podst.</th>
+      <th class="num">Przedszkola</th>
+      <th class="num">Punkty przedszk.</th>
+      <th class="num">Zespoły</th>
+      <th class="num">Razem nasze</th>
+      <th class="num">Wszystko w rejestrze</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for o in obszary %}
+    <tr>
+      <td class="strong">{{ o.nazwa }}</td>
+      <td>
+        {% for z in o.zakresy %}
+        {# Wielkość litery NIESIE ZNACZENIE i dlatego pokazujemy wartość
+           dosłownie z rejestru: „Rybnik" to miasto na prawach powiatu,
+           „rybnicki" to osobny powiat ziemski, którego nie obsługujemy. #}
+        <span class="tag {{ 'tag-accent' if z.rodzaj == 'gmina' else 'tag-outline' }}"
+              title="{{ 'Sama gmina — reszta powiatu NIE wchodzi' if z.rodzaj == 'gmina'
+                        else 'Cały powiat' }}">{{ z.rodzaj }}: {{ z.wartosc }}</span>
+        {% endfor %}
+      </td>
+      <td class="num">{{ o.sp or '—' }}</td>
+      <td class="num">{{ o.przedszkola or '—' }}</td>
+      <td class="num">{{ o.punkty or '—' }}</td>
+      <td class="num">{{ o.zespoly or '—' }}</td>
+      <td class="num strong">{{ o.nasze }}</td>
+      <td class="num muted">{{ o.wszystko }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td class="strong">Razem</td>
+      <td class="muted small">{{ obszary|length }} obszarów</td>
+      <td class="num">{{ suma.sp }}</td>
+      <td class="num">{{ suma.przedszkola }}</td>
+      <td class="num">{{ suma.punkty }}</td>
+      <td class="num">{{ suma.zespoly }}</td>
+      <td class="num strong">{{ nasze_typy }}</td>
+      <td class="num muted">{{ w_obszarach }}</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+<div class="legend">
+  <span>Dziś w bazie roboczej jest <b>{{ placowek_roboczych }}</b> placówek,
+    z czego <b>{{ z_numerem }}</b> ma numer RSPO. Brakujące dołoży etap M7
+    migracji — patrz <code>docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md</code>.</span>
+  <span><span class="tag tag-accent">gmina</span> bije powiat — tak Knurów
+    wchodzi bez reszty powiatu gliwickiego.</span>
+</div>
+{% endif %}
+{% endblock %}

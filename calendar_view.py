@@ -123,6 +123,7 @@ SELECT e.id, e.lead_id, e.typ, e.data, e.godz_od, e.godz_do,
        e.trener, e.trener2, e.zastepstwo, e.drukarz,
        e.numer_sali, e.grupa, e.sprzet, e.ilosc_klas, e.ilosc_dzieci,
        e.cykl_dzien, e.co_ile_tygodni, e.kod_tinkercad, e.link_tinkercad, e.uwagi,
+       e.odwolane, e.powod_odwolania, e.odwolal,
        l.handlowiec, l.status_realizacji,
        p.nazwa AS placowka, p.miejscowosc, p.adres, p.typ AS typ_placowki
 FROM eventy e
@@ -131,12 +132,21 @@ JOIN placowki p ON p.id = l.placowka_id
 WHERE e.data IS NOT NULL AND e.data <> ''
 """
 
+# Odwołane zajęcia zostają w bazie (są dowodem, że temat był), ale znikają
+# z grafiku i nie zajmują trenerowi terminu — P08.
+_ZYWE = "  AND (e.odwolane IS NULL OR e.odwolane = '')"
+# P31 (prośba Pawła z 20.08: „musimy mieć listę odwołanych"). Do 20.08 odwołane
+# spotkanie dało się zobaczyć WYŁĄCZNIE na karcie konkretnej szkoły — czyli
+# trzeba było wiedzieć, której szukać. To odwraca warunek zamiast go zdejmować:
+# lista wymieszana z grafikiem wyglądałaby jak zajęcia, które się odbędą.
+_ODWOLANE = "  AND e.odwolane IS NOT NULL AND e.odwolane <> ''"
+
 # tylko te typy się powtarzają; START to jednorazowa inauguracja grupy
 TYPY_POWTARZALNE = TYPY_CYKLICZNE
 
 
 def _row_to_event(r):
-    return {
+    e = {
         "id": r["id"], "lead_id": r["lead_id"], "typ": r["typ"] or "DT",
         "data": r["data"], "godz_od": r["godz_od"], "godz_do": r["godz_do"],
         "trener": r["trener"], "trener2": r["trener2"],
@@ -150,9 +160,21 @@ def _row_to_event(r):
         "placowka": r["placowka"] or "?", "miejscowosc": r["miejscowosc"] or "",
         "adres": r["adres"] or "", "typ_placowki": r["typ_placowki"] or "",
     }
+    # UWAGA na nazwę. `odwolane` jest w tym module ZAJĘTE: tak nazywa się flaga
+    # odwołanego WYSTĄPIENIA cyklu z `wyjatki_cyklu`, którą `_naloz_wyjatek`
+    # ustawia na False przy każdym wpisie bez wyjątku. Odwołanie całego spotkania
+    # (P08) to co innego i musi mieć własną nazwę — inaczej jedno kasuje drugie
+    # po cichu, co przy pierwszym podejściu zjadło znacznik na kaflu.
+    e["odwolanie"] = ({"kiedy": r["odwolane"], "powod": r["powod_odwolania"],
+                       "kto": r["odwolal"]} if r["odwolane"] else None)
+    # Liczone RAZ, przy wczytaniu — wystąpienia cyklu powstają przez kopię tego
+    # słownika, więc lista braków jedzie z nimi i nie trzeba jej liczyć w trzech
+    # widokach osobno (a przy trzech miejscach jedno zawsze się rozjeżdża).
+    e["braki"] = braki_dt(e)
+    return e
 
 
-def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
+def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False):
     """
     Eventy widoczne w danym miesiącu ('YYYY-MM').
 
@@ -172,7 +194,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True):
 
     wyjatki = _wyjatki(conn)
     terminy = _terminy(conn)
-    rows = conn.execute(_SQL_EVENTY).fetchall()
+    rows = conn.execute(_SQL_EVENTY + (_ODWOLANE if odwolane else _ZYWE)).fetchall()
     out = []
     for r in rows:
         e = _row_to_event(r)
@@ -314,7 +336,13 @@ def _naloz_wyjatek(ev, w):
 
 
 def available_months(conn):
-    """Miesiące, w których cokolwiek się dzieje — bez sztywnego kodowania nazw zakładek."""
+    """
+    Miesiące, w których cokolwiek się dzieje — bez sztywnego kodowania nazw zakładek.
+
+    Odwołane spotkania też się liczą (P31). Miesiąc, w którym WSZYSTKO odwołano,
+    wypada wtedy w wyborze pusty — ale gdyby go tu nie było, do listy odwołanych
+    z tego miesiąca nie dałoby się dojechać żadnym kliknięciem.
+    """
     rows = conn.execute(
         "SELECT DISTINCT substr(data,1,7) m FROM eventy "
         "WHERE data IS NOT NULL AND data <> '' ORDER BY m").fetchall()
@@ -359,6 +387,52 @@ def available_months(conn):
 BEZ_TRENERA = "— bez prowadzącego —"
 
 
+def tylko_bez_obsady(evs):
+    """
+    Zajęcia, przy których nie ma nikogo prowadzącego (P24, pytanie Zuzi 20.08:
+    „czy można już wyszukiwać bez prowadzącego?").
+
+    Osobno od filtra na chipach, bo tamten szuka WPISANEGO TEKSTU w polach —
+    a „nikogo tu nie ma" to brak wartości, którego żadnym fragmentem tekstu nie
+    da się wyrazić. Licznik w nagłówku pokazywał te zajęcia od 10.08, ale nie
+    dało się do nich dojść inaczej niż przewijając cały miesiąc.
+
+    Liczy się WYŁĄCZNIE `trener`, czyli ten, kto prowadzi. Drugi prowadzący,
+    zastępstwo i drukarz to obsada dodatkowa — zajęcia z samym drukarzem dalej
+    nie mają kto poprowadzić.
+    """
+    return [e for e in evs if not str(e.get("trener") or "").strip()]
+
+
+# Czego brakuje w DT, żeby dało się go poprowadzić (P30, prośba Kasi z 20.08:
+# „jeśli mam datę DT i wpisało się do kalendarza, a nie mam liczby dzieci albo
+# klas, to w kalendarzu ma się to jakoś podświetlić, że brakuje danych").
+#
+# To druga połowa P27. Formularz przestał żądać kompletu przy zapisie — inaczej
+# nie dało się wpisać wizyty, po której szkoła chce DT, ale godzinę poda
+# sekretariat. Samo zdjęcie wymogu zamieniłoby jednak problem „nie da się
+# zapisać" na gorszy: „zapisane, wygląda na gotowe, nikt tam już nie wróci".
+#
+# Prowadzący ma własny licznik i własny filtr (P24), więc TUTAJ go nie liczymy:
+# dwa liczniki mówiące o tym samym wpisie różne liczby są gorsze niż jeden.
+BRAKI_DT = [("godz_od", "godzina"), ("ilosc_klas", "liczba klas"),
+            ("ilosc_dzieci", "liczba dzieci")]
+
+
+def braki_dt(e):
+    """Lista brakujących szczegółów DT. Dla zajęć cyklicznych pusta — liczba klas
+    nie jest tam informacją, którą ktokolwiek uzupełnia."""
+    if (e.get("typ") or "DT") != "DT":
+        return []
+    return [opis for pole, opis in BRAKI_DT
+            if not str(e.get(pole) or "").strip()]
+
+
+def tylko_do_uzupelnienia(evs):
+    """Zajęcia z niekompletnymi danymi — lista roboty, tak samo jak `bez_obsady`."""
+    return [e for e in evs if e.get("braki")]
+
+
 def roster_trenerow(conn, evs):
     """
     Wiersze macierzy: pełna lista trenerów ze słownika (żeby widać było też wolnych —
@@ -374,7 +448,8 @@ def roster_trenerow(conn, evs):
 # ------------------------------------------------------------------ widok MACIERZ
 
 def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
-                 chipy=(), tryb="lub"):
+                 chipy=(), tryb="lub", bez_obsady=False, do_uzupelnienia=False,
+                 odwolane=False):
     """
     Bloki tygodniowe jeden pod drugim; każdy blok to tabela trenerzy × dni.
     Tak jak w ich arkuszu, tylko że bloki są POD sobą, a nie obok siebie
@@ -389,12 +464,16 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
     y, m = [int(x) for x in month.split("-")]
     ile_dni = 7 if weekend else 5
 
-    evs = events_for_month(conn, month, typy=typy)
+    evs = events_for_month(conn, month, typy=typy, odwolane=odwolane)
     kolizje = find_collisions(evs)
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
+    if do_uzupelnienia:
+        evs = tylko_do_uzupelnienia(evs)
     # przy czynnym filtrze puste wiersze tylko przeszkadzają: skoro pytam „gdzie
     # jest Zemela", nie chcę oglądać 34 pustych wierszy pozostałych trenerów
-    if chipy and any(not c.get("wylaczony") for c in chipy):
+    if bez_obsady or do_uzupelnienia or (chipy and any(not c.get("wylaczony") for c in chipy)):
         tylko_zajete = True
     komorki = {}
     for e in evs:
@@ -436,16 +515,22 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
             "n_events": len(evs), "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": n_bez_trenera,
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
+            "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
             "month": month, "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ widok AGENDA
 
-def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
+def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub",
+                 bez_obsady=False, do_uzupelnienia=False, odwolane=False):
     """Dzień po dniu; w dniu spotkania posortowane po godzinie. Puste dni pomijamy."""
-    evs = events_for_month(conn, month, typy=typy)
+    evs = events_for_month(conn, month, typy=typy, odwolane=odwolane)
     kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
+    if do_uzupelnienia:
+        evs = tylko_do_uzupelnienia(evs)
 
     po_dniach = {}
     for e in evs:
@@ -470,12 +555,14 @@ def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub"):
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
+            "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
             "month": month, "month_label": month_label(month)}
 
 
 # ------------------------------------------------------------------ widok STARTY
 
-def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
+def build_starty(conn, month, weekend=False, chipy=(), tryb="lub", bez_obsady=False,
+                 do_uzupelnienia=False, odwolane=False):
     """
     Plansza całej firmy — odwzorowanie zakładki „STARTY <MIESIĄC>".
     Tygodnie jeden pod drugim, w tygodniu kolumny pon–pt, w kolumnie karty zajęć.
@@ -485,9 +572,13 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
     y, m = [int(x) for x in month.split("-")]
     ile_dni = 7 if weekend else 5
 
-    evs = events_for_month(conn, month)
+    evs = events_for_month(conn, month, odwolane=odwolane)
     kolizje = find_collisions(evs)                # jak w macierzy: przed filtrem
     evs = filtruj_eventy(evs, chipy, tryb)
+    if bez_obsady:
+        evs = tylko_bez_obsady(evs)
+    if do_uzupelnienia:
+        evs = tylko_do_uzupelnienia(evs)
     kolory = trener_colors(conn)
     po_dniach = {}
     for e in evs:
@@ -521,6 +612,7 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub"):
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
+            "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
             "month": month, "month_label": month_label(month)}
 
 

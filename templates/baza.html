@@ -42,10 +42,13 @@
     </label>
     <label class="fld">
       <span class="fld-l">Miejscowość</span>
-      <select class="input" id="np-miejscowosc">
-        <option value="">—</option>
-        {% for v in slowniki.get('miasto', []) %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
-      </select>
+      {# Tekst z podpowiedziami, nie lista zamknięta: miejscowości w zakresie
+         firmy jest ~150 i dochodzą kolejne z rejestru. Podpowiedzi biorą się
+         z tego, co już jest w bazie, więc literówka nie powstaje z niczego. #}
+      <input class="input" id="np-miejscowosc" list="np-miasta" autocomplete="off">
+      <datalist id="np-miasta">
+        {% for v in miasta|default([]) %}<option value="{{ v }}">{% endfor %}
+      </datalist>
     </label>
     <label class="fld">
       <span class="fld-l">Handlowiec (opcjonalnie)</span>

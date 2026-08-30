@@ -72,7 +72,16 @@ PLACOWKA_FIELDS = [
     ("Nr RSPO",        "rspo",          "text",             None),
     ("Nazwa placówki", "nazwa",         "text",             "Numer placówki"),
     ("Typ",            "typ",           "slownik:typ_placowki", None),
-    ("Miejscowość",    "miejscowosc",   "slownik:miasto",   "Miejscowość"),
+    # MIEJSCOWOŚĆ TO TEKST, NIE POZYCJA SŁOWNIKA — od przełączenia filtrów
+    # na powiat (etap M6). Powód: osią filtrowania jest teraz `powiat` (kolumna
+    # poza tą listą, patrz PLACOWKA_KOLUMNY_GEOGRAFIA), a miejscowości w zakresie
+    # firmy jest ~150 — w tym wsie powiatów będzińskiego i pszczyńskiego, których
+    # słownik nigdy nie zawierał. Lista rozwijana na 150 pozycji przestaje być
+    # pomocą, a twarda blokada „wartość spoza słownika" zamieniłaby każdą nową
+    # wieś z rejestru w rekord, którego NIE DA SIĘ POPRAWIĆ w karcie.
+    # Słownik `miasto` ZOSTAJE w bazie — używa go jeszcze tabela `aliasy` przy
+    # imporcie arkuszy klienta.
+    ("Miejscowość",    "miejscowosc",   "text",             "Miejscowość"),
     ("Adres",          "adres",         "text",             "Adres placówki"),
     ("Osoba kontaktowa", "osoba_kontakt", "text",           "Osoby decyzyjne i kontakt"),
     ("Telefon",        "telefon",       "text",             "numer telefonu"),
@@ -132,6 +141,44 @@ EVENT_FIELDS = [
 PLACOWKA_KEYS = [f[1] for f in PLACOWKA_FIELDS]
 LEAD_KEYS = [f[1] for f in LEAD_FIELDS] + [f[1] for f in JULIA_FIELDS]
 EVENT_KEYS = [f[1] for f in EVENT_FIELDS]
+
+# Kolumny techniczne spotkania — dokładane do tabeli, ale ŚWIADOMIE poza
+# EVENT_FIELDS (P08, zgłoszenie K12 Kasi: „nie widzę możliwości wykasowania
+# czegoś z kalendarza, w razie jakby np. szkoła w ostatnim momencie odmówiła").
+#
+# Poza EVENT_FIELDS, bo odwołanie ma iść własnym endpointem, który zapisuje
+# powód, osobę i chwilę JEDNYM ruchem. Gdyby `odwolane` było zwykłym polem
+# karty, dałoby się je wpisać ręcznie bez powodu — a odwołanie bez powodu jest
+# gorsze niż jego brak: wygląda na decyzję, o której nikt nic nie wie.
+EVENT_KOLUMNY_TECHNICZNE = ["odwolane", "powod_odwolania", "odwolal"]
+
+# Geografia placówki z rejestru RSPO — ten sam wzorzec co wyżej: kolumny są
+# w tabeli, ale ŚWIADOMIE poza PLACOWKA_FIELDS, więc karta placówki ich nie
+# pokazuje i nie da się ich wpisać z ręki.
+#
+# Powód jest ten sam, dla którego lustro rejestru to osobna tabela: powiat
+# i gmina mają JEDNO źródło — rejestr, po numerze RSPO. Gdyby były zwykłym
+# polem karty, po miesiącu połowa bazy miałaby „będziński", a połowa „Będziński
+# (powiat)", i filtr po powiecie — czyli to, o co prosił klient — przestałby
+# odpowiadać na pytanie „ile mamy szkół w powiecie".
+#
+# `obszar` jest WYLICZANY (obszary.przelicz(): gmina bije powiat), więc tym
+# bardziej nie jest polem do wpisywania — jego wartość zmienia się sama, gdy
+# koordynatorka dołoży gminę do zakresu firmy.
+PLACOWKA_KOLUMNY_GEOGRAFIA = ["powiat", "gmina", "obszar"]
+
+
+def sql_nieodwolane(alias="e"):
+    """
+    Warunek „to spotkanie nadal jest aktualne" — do dopisania w każdym pytaniu
+    o to, co się dzieje.
+
+    Odwołane zajęcia ZOSTAJĄ w bazie, bo są dowodem, że temat był i się nie
+    udał (raport wykonania handlowca liczy właśnie takie przypadki). Ale nie
+    zajmują trenerowi terminu, nie liczą się do kolizji i nie wiszą w grafiku.
+    """
+    p = (alias + ".") if alias else ""
+    return "({0}odwolane IS NULL OR {0}odwolane = '')".format(p)
 
 INT_KEYS = {"ilosc_klas", "ilosc_dzieci", "co_ile_tygodni"}
 
@@ -381,7 +428,9 @@ def migruj(conn):
     `CREATE TABLE IF NOT EXISTS` nie zmienia istniejącej tabeli, więc bez tego
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
     """
-    tabele = {"placowki": PLACOWKA_KEYS, "leady": LEAD_KEYS, "eventy": EVENT_KEYS}
+    tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
+              "leady": LEAD_KEYS,
+              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}
         if not istniejace:

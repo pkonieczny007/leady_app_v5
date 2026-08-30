@@ -17,7 +17,7 @@
 #}
 
 {% macro kafel(e, kolor) %}
-<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}"
+<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}{{ ' ev-braki' if e.braki and not e.odwolanie }}{{ ' ev-odwolany' if e.odwolanie }}"
      style="--ev-color:{{ kolor or '#9b9797' }}"
      title="{{ e.placowka }} · {{ e.miejscowosc|bez_prefiksu }}{{ ' · ' ~ e.adres if e.adres }}
 {{ e.typ }}{{ ' ' ~ e.godz_od if e.godz_od }}{{ '–' ~ e.godz_do if e.godz_do }}
@@ -31,10 +31,36 @@
   {% endif %}
   {% if e.typ in TYPY_CYKLICZNE and e['_cykl_nr'] %}<span class="ev-nr">cykl #{{ e['_cykl_nr'] }}</span>{% endif %}
   {% if e.kolizja %}<span class="tag tag-solid-2 ev-kol">kolizja</span>{% endif %}
+  {# P30 (Kasia, 20.08). Odkąd formularz nie żąda kompletu danych DT (P27),
+     kalendarz jest jedynym miejscem, gdzie widać, że wpis jest zaczęty, a nie
+     skończony. Bursztyn, nie czerwień: to robota do dokończenia, nie awaria —
+     w danych klienta 45 z 61 wrześniowych wystąpień nie ma godziny, więc alarm
+     na każdym z nich byłby szumem, który po dniu przestaje się widzieć. #}
+  {% if e.braki and not e.odwolanie %}<span class="tag tag-braki ev-kol"
+       title="Brakuje: {{ e.braki|join(', ') }} — uzupełnia handlowiec albo koordynator">⚠ do uzupełnienia</span>{% endif %}
+  {% if e.odwolanie %}<span class="tag tag-neutral ev-kol"
+       title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}">odwołane{{ ' · ' ~ e.odwolanie.powod|krotka(24) if e.odwolanie.powod }}</span>{% endif %}
   {# Szukana osoba jest tu, ale NIE jako prowadząca — czyli wpis siedzi w cudzym
      wierszu. Bez tego podpisu wygląda na pomyłkę filtra („czemu Olszewska
      wyświetla mi Gawrona"), a to jest prawdziwa informacja. #}
   {% if e['_rola'] %}<span class="tag tag-rola" title="Szukana osoba jest na tym spotkaniu jako: {{ e['_rola'] }}">{{ e['_rola'] }}</span>{% endif %}
+  {# P08 (zgłoszenie K12): odwołanie WPROST Z GRAFIKU. Kasia patrzy na kalendarz,
+     widzi martwy DT po odmowie szkoły i do 20.08 nie miała jak go tknąć —
+     kasowanie było tylko na karcie leada, dwa kliknięcia i przewijanie dalej.
+
+     Tylko dla wpisów niecyklicznych. Kafel cyklu to WYSTĄPIENIE reguły, więc
+     odwołanie po `e.id` skasowałoby z grafiku cały pakiet zajęć zamiast jednego
+     terminu. Pojedyncze wystąpienia obsługuje `wyjatki_cyklu` i to osobna
+     robota — lepiej nie dać przycisku, niż dać taki, który robi co innego. #}
+  {% if e.odwolanie %}
+  {# W trybie „odwołane" ten sam róg kafla robi ruch odwrotny: szkoła się
+     rozmyśliła z powrotem i termin wraca do grafiku. #}
+  <button type="button" class="ev-odwolaj btn-przywroc-event" data-id="{{ e.id }}"
+          title="Przywróć to spotkanie do grafiku">↺</button>
+  {% elif e.typ not in TYPY_CYKLICZNE %}
+  <button type="button" class="ev-odwolaj" data-odwolaj="{{ e.id }}"
+          title="Odwołaj to spotkanie — zostanie z powodem, zniknie z grafiku">✕</button>
+  {% endif %}
 </div>
 {% endmacro %}
 
@@ -59,6 +85,16 @@
     </p>
     {% endif %}
 
+    {# Tryb „odwołane" musi być powiedziany WPROST. Kalendarz pokazujący pięć
+       wpisów zamiast sześćdziesięciu wygląda jak utrata danych, a nie jak
+       wybrany widok — ten sam powód, dla którego filtr „mój" ma plakietkę. #}
+    {% if odwolane %}
+    <p class="moj-filtr">
+      Pokazuję <b>odwołane spotkania</b> tego miesiąca — nie grafik.
+      <a href="{{ url_for('kalendarz', widok=widok, m=month) }}">Wróć do grafiku →</a>
+    </p>
+    {% endif %}
+
   </div>
   <div class="head-actions">
     {# Liczniki braków obok liczby spotkań. Nie ostrzeżenie, tylko lista rzeczy
@@ -67,7 +103,34 @@
     <span class="muted small nums">
       {{ cal.n_events }} spotkań ·
       <b class="alert">{{ cal.n_kolizji }} w kolizji</b>
-      {% if cal.n_bez_trenera %} · <b class="uwaga">{{ cal.n_bez_trenera }} bez prowadzącego</b>{% endif %}
+      {# Licznik jest KLIKALNY (P24). Od 10.08 mówił, ile zajęć nie ma kto
+         poprowadzić, ale nie dało się do nich dojść inaczej niż przewijając
+         cały miesiąc — a to jest lista rzeczy do obsadzenia, czyli robota. #}
+      {% if cal.n_bez_trenera %} · <a class="uwaga"
+         href="{{ url_for('kalendarz', widok=widok, m=month, d=dzien or none, typ=typ or none,
+                          osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
+                          weekend='1' if weekend else none,
+                          zajete='1' if tylko_zajete else '0',
+                          braki='1' if do_uzupelnienia else none,
+                          odwolane='1' if odwolane else none,
+                          bez_obsady=none if bez_obsady else '1') }}"
+         title="{{ 'Pokaż z powrotem wszystkie zajęcia' if bez_obsady
+                   else 'Pokaż tylko zajęcia bez prowadzącego' }}"><b>{{ cal.n_bez_trenera }}
+         bez prowadzącego</b>{{ ' ✕' if bez_obsady else ' →' }}</a>{% endif %}
+      {# P30: ten licznik jest klikalny od pierwszego dnia. Licznik „bez
+         godziny" wisiał tu od 10.08 jako sama liczba i przez to nie był listą
+         roboty, tylko ciekawostką — nie dało się przejść do tych wpisów. #}
+      {% if cal.n_do_uzupelnienia %} · <a class="uwaga"
+         href="{{ url_for('kalendarz', widok=widok, m=month, d=dzien or none, typ=typ or none,
+                          osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
+                          weekend='1' if weekend else none,
+                          zajete='1' if tylko_zajete else '0',
+                          bez_obsady='1' if bez_obsady else none,
+                          odwolane='1' if odwolane else none,
+                          braki=none if do_uzupelnienia else '1') }}"
+         title="{{ 'Pokaż z powrotem wszystkie zajęcia' if do_uzupelnienia
+                   else 'Pokaż tylko DT, w których brakuje godziny, liczby klas albo dzieci' }}"><b>{{ cal.n_do_uzupelnienia }}
+         do uzupełnienia</b>{{ ' ✕' if do_uzupelnienia else ' →' }}</a>{% endif %}
       {% if cal.n_bez_godziny %} · {{ cal.n_bez_godziny }} bez godziny{% endif %}
     </span>
     <div class="seg">
@@ -77,7 +140,10 @@
       <a class="seg-opt {{ 'on' if widok == k }}"
          href="{{ url_for('kalendarz', widok=k, m=month, d=dzien or none, typ=typ or none,
                           osoby=ch.tekst or none, osoby_tryb='oraz' if ch.tryb == 'oraz' else none,
-                          weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0') }}">{{ ikona }} {{ nazwa }}</a>
+                          weekend='1' if weekend else none, zajete='1' if tylko_zajete else '0',
+                          braki='1' if do_uzupelnienia else none,
+                          odwolane='1' if odwolane else none,
+                          bez_obsady='1' if bez_obsady else none) }}">{{ ikona }} {{ nazwa }}</a>
       {% endfor %}
     </div>
   </div>
@@ -132,6 +198,26 @@
     {{ 'checked' if weekend }} onchange="this.form.submit()"> weekend</label>
   <label class="check"><input type="checkbox" name="zajete" value="1"
     {{ 'checked' if tylko_zajete }} onchange="this.form.submit()"> tylko zajęci trenerzy</label>
+  {# P24. Osobny przełącznik, a nie chip: chipy szukają WPISANEGO TEKSTU
+     w polach wpisu, a „nie ma prowadzącego" to brak wartości — nie da się go
+     wpisać żadnym fragmentem. #}
+  <label class="check"><input type="checkbox" name="bez_obsady" value="1"
+    {{ 'checked' if bez_obsady }} onchange="this.form.submit()"
+    title="Zajęcia, przy których nie ma jeszcze nikogo prowadzącego">
+    bez prowadzącego</label>
+  {# P30. To samo co wyżej i z tego samego powodu: „nie ma godziny" to brak
+     wartości, a chipy szukają wpisanego tekstu. #}
+  <label class="check"><input type="checkbox" name="braki" value="1"
+    {{ 'checked' if do_uzupelnienia }} onchange="this.form.submit()"
+    title="DT, w których brakuje godziny, liczby klas albo liczby dzieci">
+    do uzupełnienia</label>
+  {# P31. Tryb, nie filtr: zaznaczone POKAZUJE odwołane ZAMIAST grafiku.
+     Wymieszane z resztą wyglądałyby jak zajęcia, które się odbędą — a to jest
+     lista „czego nie udało się utrzymać", oglądana raz na jakiś czas. #}
+  <label class="check"><input type="checkbox" name="odwolane" value="1"
+    {{ 'checked' if odwolane }} onchange="this.form.submit()"
+    title="Pokaż odwołane spotkania zamiast grafiku — z powodem i osobą, która odwołała">
+    odwołane</label>
 
   <span class="filters-right">
     <span class="muted small">{{ cal.month_label }}</span>
@@ -239,6 +325,15 @@
             {%- if e.ilosc_klas %} · {{ e.ilosc_klas }} klas{% endif %}</span>
           {% if e.typ in TYPY_CYKLICZNE %}<span class="tag tag-accent">cykl{{ ' #' ~ e['_cykl_nr'] if e['_cykl_nr'] }}</span>{% endif %}
           {% if e.kolizja %}<span class="tag tag-solid-2">kolizja</span>{% endif %}
+          {# Agenda ma własny wiersz zamiast kafla, więc znaczniki P30/P31 trzeba
+             dołożyć i tutaj. To jest widok, w którym Kasia przegląda dzień po
+             dniu — czyli miejsce, gdzie „brakuje godziny" najbardziej boli. #}
+          {% if e.braki and not e.odwolanie %}<span class="tag tag-braki"
+               title="Brakuje: {{ e.braki|join(', ') }}">⚠ do uzupełnienia</span>{% endif %}
+          {% if e.odwolanie %}<span class="tag tag-neutral"
+               title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}">odwołane{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}</span>
+          <button type="button" class="btn btn-ghost btn-sm btn-przywroc-event" data-id="{{ e.id }}"
+                  title="Przywróć to spotkanie do grafiku">↺ przywróć</button>{% endif %}
           {% if e['_rola'] %}<span class="tag tag-rola">{{ e['_rola'] }}</span>{% endif %}
           <span class="agenda-trener">{{ e.trener|bez_prefiksu or '— brak trenera —' }}</span>
         </div>
@@ -307,6 +402,15 @@
             {% if e.zastepstwo %}<div class="small alert">Zastępstwo: {{ e.zastepstwo|bez_prefiksu }}</div>{% endif %}
             {% if e.drukarz %}<div class="small muted">Drukarz: {{ e.drukarz|bez_prefiksu }}</div>{% endif %}
             {% if e.kolizja %}<div><span class="tag tag-solid-2">kolizja trenera</span></div>{% endif %}
+            {# P30/P31 — trzeci widok, te same dwa znaczniki. Karta Startów jest
+               tym, co trener realnie bierze na zajęcia, więc brak liczby dzieci
+               widać tu najdotkliwiej. #}
+            {% if e.braki and not e.odwolanie %}<div><span class="tag tag-braki"
+                 title="Brakuje: {{ e.braki|join(', ') }}">⚠ do uzupełnienia: {{ e.braki|join(', ') }}</span></div>{% endif %}
+            {% if e.odwolanie %}<div><span class="tag tag-neutral"
+                 title="odwołał: {{ e.odwolanie.kto or '—' }} · {{ e.odwolanie.kiedy }}">odwołane{{ ' · ' ~ e.odwolanie.powod if e.odwolanie.powod }}</span>
+              <button type="button" class="btn btn-ghost btn-sm btn-przywroc-event" data-id="{{ e.id }}"
+                      title="Przywróć to spotkanie do grafiku">↺ przywróć</button></div>{% endif %}
             {% if e.kod_tinkercad or e.link_tinkercad %}
             <div class="start-foot">
               {% if e.kod_tinkercad %}<span class="start-kod">{{ e.kod_tinkercad }}</span>{% endif %}

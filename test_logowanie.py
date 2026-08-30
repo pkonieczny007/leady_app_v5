@@ -207,18 +207,41 @@ def main():
     sprawdz("odczyty nie wymagają tokenu", kc.get("/pulpit").status_code == 200)
 
     # ============================== L6 — formularz podpisuje się sesją, nie ciałem
+    #
+    # Scenariusz zmienił się 24.08: zakładanie placówki wypadło z formularza
+    # (zgłoszenie Kasi), więc podszycie sprawdzamy tam, gdzie handlowiec dziś
+    # w ogóle może coś podpisać — na SZKOLE NICZYJEJ. Reguła jest ta sama
+    # i ważniejsza niż wtedy: formularz przypisuje szkołę tylko wtedy, gdy nie
+    # ma opiekuna, a nazwisko bierze z sesji.
     print("\nL6 — nie da się podpisać cudzym nazwiskiem")
+    conn = db.get_conn()
+    pid = conn.execute("INSERT INTO placowki (nazwa, miejscowosc, zrodlo) "
+                       "VALUES ('SP Podszycie', ?, 'test')", (miasto,)).lastrowid
+    conn.execute("INSERT INTO leady (placowka_id, status_realizacji) VALUES (?,?)",
+                 (pid, "01. Próba kontaktu (Brak konkretów)"))
+    conn.commit()
+    lid = conn.execute("SELECT id FROM leady WHERE placowka_id=?", (pid,)).fetchone()["id"]
+    conn.close()
+
     r = kh.post("/api/formularz", json={
+        "lead_id": lid,
         "handlowiec": H2,                       # próba podszycia się pod kolegę
-        "placowka": {"nazwa": "SP Podszycie", "miejscowosc": miasto},
         "dt": {"data": "2026-10-01", "godz_od": "09:00"}})
     sprawdz("zapis przechodzi", r.status_code == 200, str(r.get_json())[:90])
     conn = db.get_conn()
-    wl = conn.execute(
-        "SELECT l.handlowiec FROM leady l JOIN placowki p ON p.id=l.placowka_id "
-        "WHERE p.nazwa=?", ("SP Podszycie",)).fetchone()["handlowiec"]
+    wl = conn.execute("SELECT handlowiec FROM leady WHERE id=?", (lid,)).fetchone()["handlowiec"]
     conn.close()
     sprawdz("właściciel wzięty z SESJI, nie z żądania", wl == H, "jest %s" % wl)
+
+    # Handlowiec nie zakłada placówek od 24.08 — ani przez formularz, ani przez
+    # ekran „Baza". Blokada jest przy ZAPISIE, bo przycisku i tak nie ma.
+    r = kh.post("/api/formularz", json={
+        "placowka": {"nazwa": "SP Z Ręki", "miejscowosc": miasto}})
+    sprawdz("handlowiec nie założy placówki formularzem", r.status_code == 403,
+            "status %d" % r.status_code)
+    r = kh.post("/api/lead", json={"nazwa": "SP Z Ręki 2"})
+    sprawdz("handlowiec nie założy placówki na ekranie Baza", r.status_code == 403,
+            "status %d" % r.status_code)
 
     conn = db.get_conn()
     kto = conn.execute("SELECT kto FROM log ORDER BY id DESC LIMIT 1").fetchone()["kto"]
