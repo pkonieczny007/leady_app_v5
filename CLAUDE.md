@@ -752,12 +752,30 @@ Małolepszej do usunięcia na prod, zostaje PH + ew. trener) · braki = dane
 ZAJĘĆ, nie kontaktowe · oddawanie leada z powodem zamiast twardego kasowania ·
 standalone PWA zostaje (zoom na iOS blokuje system, nie my).
 
-Zostało na kolejne rundy: **pkt 18+21** (edycja dat cykli + odwoływanie
-pojedynczych wystąpień — `wyjatki_cyklu` ma model, nie ma UI; UWAGA: „Odwołaj"
-przy cyklu w karcie kasuje z grafiku CAŁY pakiet) · **pkt 7** („inna placówka"
-dla PH — tylko typy pozaszkolne, blokada po typie w API) · dopisywanie placówki
-po nr RSPO · **most Zuzi** (eksport do jej arkusza; `drukarz` już jest polem
-eventu).
+**Cykle przestały być nietykalne (pkt 18 i 21).** Do 30.08 pojedynczych zajęć
+nie dało się ani odwołać, ani przesunąć — i to nie był brak przycisku, tylko
+skutek modelu: kafel cyklu w grafiku to WYSTĄPIENIE reguły, a nie wiersz
+w bazie, więc każda operacja „po `e.id`" dotyczyła całego pakietu. Obie
+brakujące operacje dostały więc własne drogi:
+- **odwołanie jednych zajęć** → wyjątek na datę w `wyjatki_cyklu` (tabela
+  istniała od początku, pisał do niej tylko importer); ślad jak przy DT
+- **przesunięcie jednych zajęć** → `materializuj_terminy()` rozwija regułę na
+  listę konkretnych dat w `terminy_cyklu` przy PIERWSZEJ edycji, potem
+  poprawiamy jeden wiersz. Dla ekranów niewidoczne (kalendarz zawsze wolał
+  listę od reguły), ale trzeba o tym wiedzieć czytając bazę: po edycji cykl
+  ma ~41 wierszy terminów zamiast samej reguły
+- przesunięcie PIERWSZYCH zajęć aktualizuje kolumnę `eventy.data` — niesie ją
+  pół aplikacji (sortowania, statystyki, `WHERE e.data`)
+- „Odwołaj" w karcie przy cyklu nazywa się teraz **„Odwołaj cały cykl"**; do
+  30.08 mówił „Odwołaj" i zdejmował z grafiku wszystkie wystąpienia naraz
+
+⚠️ **Po wdrożeniu pkt 18 zostaje robota z Kasią:** skasować DT, które PH
+powpisywali jako obejście braku edycji dat cykli („jak zrobisz możliwość
+edycji, wykasujemy DT z tej placówki") — które to, wie ona.
+
+Zostało na kolejne rundy: **pkt 7** („inna placówka" dla PH — tylko typy
+pozaszkolne, blokada po typie w API) · dopisywanie placówki po nr RSPO ·
+**most Zuzi** (eksport do jej arkusza; `drukarz` już jest polem eventu).
 
 ---
 
