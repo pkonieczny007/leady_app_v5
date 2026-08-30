@@ -674,15 +674,23 @@ dnia: 2 placówki i 3 DT dopisane między rankiem a wieczorem. **Zgodność co d
 tej różnicy jest lepszym dowodem niż zgodność co do liczby** — pokazuje, że
 migracja wzięła bazę taką, jaka była.
 
-⚠️ **Produkcja stoi na gałęzi `poprawki-2026-08`, nie na `main`.** Dopóki tego
-nie scalimy, dotychczasowe wyjście awaryjne (`git checkout main && ./wdroz.sh
-prod`) jest PUŁAPKĄ: cofa kod, ale nie bazę, a kod z `main` szuka miejscowości
-w słowniku (`01. Orzesze`), których baza po M8 już nie ma (`Orzesze`) — wybór
-szkoły w formularzach przestałby działać. Cofać trzeba jedno i drugie naraz.
+✅ **Scalone do `main`** (`4d8355f`, `--no-ff`), tag **`v5.1-rspo`**. `main` znów
+znaczy „to, co działa u klienta". Zostaje jedno: na serwerze produkcyjnym
+`git checkout main` — katalog stoi jeszcze na gałęzi, treść jest identyczna,
+więc bez przebudowy.
+
+⚠️ **Cofnięcie kodu do wersji sprzed migracji NIE wystarczy.** Baza ma po M8
+czyste nazwy miejscowości (`Orzesze`), których starszy kod szuka w słowniku
+(`01. Orzesze`) — wybór szkoły w formularzach przestałby działać. Cofać kod
+i bazę naraz.
+
+### Otwarte zadania są w GitHub Issues
+Kamień milowy **„Po migracji RSPO"**, etykiety `migracja` / `formularz` /
+`dane` / `zgloszenie-klienta`. Tam planujemy dalsze rundy — nie w plikach.
+⚠️ Repo jest PUBLICZNE: w zgłoszeniach role zamiast nazwisk, żadnych nazw
+szkół ani numerów.
 
 ### Do zrobienia w pierwszej kolejności
-0. **Scalić `poprawki-2026-08` do `main`** (`--no-ff`) i otagować, żeby `main`
-   znów znaczyło „to, co działa u klienta". Dalsza praca z nowych gałęzi.
 1. ✅ **Demo wdrożone i zmigrowane 24.08 po południu.** Migrowaliśmy W MIEJSCU,
    nie wgrywając gotowego `.db` — odwrotnie niż produkcję w sierpniu, bo tamta
    reguła („baza powstaje lokalnie i jedzie plikiem") straciła podstawę:

@@ -288,7 +288,44 @@ tego nie zgłosił, bo działał, tylko wyglądał jak nieskończony.
 
 ---
 
-## 6f. ⚠️ Produkcja stoi na GAŁĘZI, nie na `main`
+## 6g. Domknięcie: `main` scalone, praca przeniesiona na GitHuba
+
+**Scalone 24.08:** `poprawki-2026-08` → `main` przez `--no-ff`, commit
+`4d8355f`, tag **`v5.1-rspo`**. `main` znów znaczy „to, co działa u klienta",
+a wyjście awaryjne `git checkout main && ./wdroz.sh prod` przestało być pułapką
+(kod z `main` jest teraz tym samym kodem, który stoi na produkcji).
+
+**Na serwerze produkcyjnym zostaje przełączyć katalog na `main`** — dziś stoi
+na gałęzi. Treść identyczna, więc to jedno polecenie bez przebudowy:
+`git checkout main`.
+
+**Otwarte zadania przeniesione do GitHub Issues** (kamień milowy
+„Po migracji RSPO"), żeby dalsze planowanie działo się tam, a nie w plikach:
+
+| # | rzecz |
+|---|---|
+| 1 | M4 — narzędzie do scalania 18 par dubli |
+| 2 | 27 placówek bez numeru RSPO — plik decyzyjny |
+| 3 | P28 — placówka bez miejscowości, niewidoczna we filtrach |
+| 4 | konto handlowca zamiast wspólnego konta koordynatora |
+| 5 | przegląd 12 placówek dopisanych ręcznie z formularza |
+| 6 | formularz v5 — etapy E1–E4, E6 |
+
+Etykiety: `migracja`, `formularz`, `dane`, `zgloszenie-klienta`.
+
+⚠️ **Repozytorium jest PUBLICZNE** — w treści zgłoszeń nie ma nazwisk, nazw
+szkół ani numerów. Role zamiast imion. Nowe zgłoszenia pisać tak samo.
+
+⚠️ **Osobno, NIE jako publiczne zgłoszenie:** w repo leży
+`docs/poprawka 23.08.2026/dopasowanie_prod_2026-08-23.xlsx` — arkusz
+dopasowania z produkcji, wszedł 23.08, zanim `.gitignore` dostał regułę na
+arkusze (reguła blokuje nowe pliki, nie usuwa śledzonych). Do sprawdzenia
+zawartości i usunięcia; git nie zapomina historii, więc samo skasowanie pliku
+nie wystarczy, jeśli w środku są dane osobowe.
+
+---
+
+## 6f. Produkcja stała na GAŁĘZI, nie na `main` (rozwiązane — patrz 6g)
 
 `git checkout poprawki-2026-08` na serwerze produkcyjnym znaczy, że `main`
 przestało opisywać to, co działa u klienta. Dwa skutki, oba realne:
