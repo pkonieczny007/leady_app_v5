@@ -152,6 +152,13 @@ EVENT_KEYS = [f[1] for f in EVENT_FIELDS]
 # gorsze niż jego brak: wygląda na decyzję, o której nikt nic nie wie.
 EVENT_KOLUMNY_TECHNICZNE = ["odwolane", "powod_odwolania", "odwolal"]
 
+# Oddanie leada przez handlowca (30.08, pkt 12 Kasi: „może usuwać, ale tylko
+# wpisując powód — i on się pojawia u koordynatora na czerwono"). Ten sam
+# wzorzec co odwołanie spotkania: kolumny są w tabeli, ale POZA LEAD_FIELDS,
+# bo oddanie idzie własnym endpointem, który zapisuje powód, osobę i chwilę
+# jednym ruchem — zwykłe pole karty dałoby oddanie bez powodu.
+LEAD_KOLUMNY_TECHNICZNE = ["zwrot_zgloszony", "zwrot_powod", "zwrot_kto"]
+
 # Geografia placówki z rejestru RSPO — ten sam wzorzec co wyżej: kolumny są
 # w tabeli, ale ŚWIADOMIE poza PLACOWKA_FIELDS, więc karta placówki ich nie
 # pokazuje i nie da się ich wpisać z ręki.
@@ -307,6 +314,9 @@ def init_db(conn):
           godz_od TEXT,
           godz_do TEXT,
           uwagi TEXT,
+          powod_odwolania TEXT,       -- ten sam ślad co przy odwołaniu DT (30.08)
+          odwolal TEXT,
+          odwolane_kiedy TEXT,
           UNIQUE(event_id, data)
         );
 
@@ -427,10 +437,21 @@ def migruj(conn):
     Dokłada kolumny, które pojawiły się po utworzeniu bazy.
     `CREATE TABLE IF NOT EXISTS` nie zmienia istniejącej tabeli, więc bez tego
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
+
+    ODPORNE NA WYŚCIG MIĘDZY WORKERAMI. Na serwerze stoi gunicorn z kilkoma
+    procesami i wszystkie startują naraz: każdy sprawdza `PRAGMA table_info`,
+    każdy widzi brak kolumny, każdy próbuje ją dodać — i drugi w kolejce
+    dostaje `duplicate column name`. Wywalony worker podnosi się sam po
+    sekundzie, więc wdrożenie „działa", ale w logu produkcyjnym zostaje wpis
+    wyglądający jak awaria, a przy pracujących ludziach to kilka sekund
+    niedostępności bez żadnego powodu. Kolumna dodana przez sąsiedni proces to
+    nie błąd — to dokładnie ten stan, który chcieliśmy osiągnąć.
     """
     tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
-              "leady": LEAD_KEYS,
-              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
+              "leady": LEAD_KEYS + LEAD_KOLUMNY_TECHNICZNE,
+              "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE,
+              # ślad przy odwołaniu POJEDYNCZEGO terminu cyklu (30.08)
+              "wyjatki_cyklu": ["powod_odwolania", "odwolal", "odwolane_kiedy"]}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}
         if not istniejace:
@@ -438,7 +459,11 @@ def migruj(conn):
         for k in klucze:
             if k not in istniejace:
                 typ = "INTEGER" if k in INT_KEYS else "TEXT"
-                conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, k, typ))
+                try:
+                    conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (tabela, k, typ))
+                except sqlite3.OperationalError as e:
+                    if "duplicate column" not in str(e).lower():
+                        raise
 
 
 # ------------------------------------------------------------------ słowniki

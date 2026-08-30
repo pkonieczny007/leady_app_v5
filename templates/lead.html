@@ -25,7 +25,17 @@
             data-pin="{{ 1 if lead.pin_tydzien else 0 }}"
             title="przypnij na plan tygodnia">{{ '★' if lead.pin_tydzien else '☆' }}</button>
     <a class="btn btn-secondary btn-sm" href="{{ url_for('leady') }}">← Lista leadów</a>
+    {# Kasowanie leada jest koordynatorskie (`api_lead_delete` w TYLKO_KOORDYNATOR)
+       — handlowiec widział ten przycisk, klikał, potwierdzał „nie da się cofnąć"
+       i dostawał 403. Martwy przycisk uczy ludzi, że aplikacja kłamie. #}
+    {% if ja and ja.rola == 'koordynator' %}
     <button type="button" class="btn btn-danger btn-sm" id="btn-usun-lead" data-id="{{ lead.id }}">Usuń lead</button>
+    {% elif ja and ja.rola == 'handlowiec' and lead.handlowiec == ja.osoba %}
+    {# Handlowiec zamiast kasowania ODDAJE szkołę z powodem (pkt 12, 30.08) —
+       u koordynatora świeci na czerwono, notatki i historia zostają. #}
+    <button type="button" class="btn btn-danger btn-sm" id="btn-oddaj-lead" data-id="{{ lead.id }}"
+            title="Szkoła wróci do koordynatora z Twoim powodem — notatki zostają">Oddaj lead</button>
+    {% endif %}
   </div>
 </div>
 
@@ -82,8 +92,20 @@
         <button type="button" class="btn btn-secondary btn-sm btn-kandydaci" data-id="{{ e.id }}"
                 title="Pokaż, kto może pojechać na to spotkanie">
           {{ 'Zmień trenera' if e.trener else 'Kogo wysłać?' }}</button>
+        {# Dwa odwołania obok siebie i to jest celowe: przy cyklu „jedne zajęcia"
+           i „cały pakiet" to zupełnie różne decyzje, a do 30.08 istniał tylko
+           ten drugi przycisk pod nazwą „Odwołaj" — czyli nazwa obiecywała jedno,
+           a robiła drugie. Teraz oba są nazwane wprost i stoją razem, żeby wybór
+           był widoczny w miejscu, w którym koordynatorka pracuje ze spotkaniem. #}
+        {% if e.typ in TYPY_CYKLICZNE %}
+        <button type="button" class="btn btn-secondary btn-sm btn-terminy-cyklu" data-id="{{ e.id }}"
+                title="Przesuń albo odwołaj pojedyncze zajęcia — reszta cyklu jedzie dalej">Terminy zajęć</button>
+        {% endif %}
         <button type="button" class="btn btn-ghost btn-odwolaj-event" data-id="{{ e.id }}"
-                title="Odwołaj — wpis zostaje z powodem, znika z grafiku">Odwołaj</button>
+                title="{{ 'Odwołuje CAŁY cykl — wszystkie terminy znikną z grafiku'
+                          if e.typ in TYPY_CYKLICZNE
+                          else 'Odwołaj — wpis zostaje z powodem, znika z grafiku' }}">{{
+                  'Odwołaj cały cykl' if e.typ in TYPY_CYKLICZNE else 'Odwołaj' }}</button>
         {% else %}
         <button type="button" class="btn btn-ghost btn-przywroc-event" data-id="{{ e.id }}"
                 title="Cofnij odwołanie — spotkanie wraca do grafiku">Przywróć</button>
@@ -106,14 +128,83 @@
       {# Pakiet konkretnych terminów — przedszkola umawiają N spotkań zamiast
          reguły „co wtorek". Data w nagłówku karty to PIERWSZE zajęcia; bez tej
          listy reszta pakietu byłaby widoczna wyłącznie w kalendarzu. #}
+      {# Lista bywa długa: cykl „co wtorek" po pierwszej edycji terminu rozwija
+         się na konkretne daty (patrz materializuj_terminy) i potrafi mieć ich
+         czterdzieści. Pokazujemy nadchodzące, resztę zliczamy — karta ma
+         odpowiadać na „kiedy najbliższe zajęcia", a nie być wydrukiem roku. #}
       {% if e.terminy %}
+      {% set przyszle = e.terminy | rejectattr('data', 'lt', today) | list %}
       <div class="event-terminy">
-        <span class="kv-l">Terminy pakietu ({{ e.terminy|length }})</span>
+        <span class="kv-l">Terminy pakietu ({{ e.terminy|length }}{% if przyszle|length < e.terminy|length %}, w tym {{ przyszle|length }} przed nami{% endif %})</span>
         <ol class="terminy-lista">
-          {% for t in e.terminy %}
+          {% set widoczne = (przyszle or e.terminy) %}
+          {% for t in widoczne[:16] %}
           <li{{ ' class=minelo'|safe if t.data < today else '' }}>
             <span class="nums">{{ t.data|pl_data }}</span>
             <span class="nums muted">{{ t.godz_od or '' }}{{ '–' ~ t.godz_do if t.godz_do }}</span>
+          </li>
+          {% endfor %}
+          {% if widoczne|length > 16 %}
+          <li class="muted">…i {{ widoczne|length - 16 }} dalszych</li>
+          {% endif %}
+        </ol>
+      </div>
+      {% endif %}
+      {# Lista najbliższych terminów TEGO cyklu, rozwijana przyciskiem „Odwołaj
+         zajęcia" — ten sam wzorzec co panel „Kogo wysłać?": klik rozwija to,
+         czego akurat potrzeba, zamiast trzymać na ekranie wszystko naraz.
+         Terminy liczy ten sam kod co kalendarz, więc lista nie może się
+         rozjechać z grafikiem. #}
+      {% if e.typ in TYPY_CYKLICZNE %}
+      {% set moje = wystapienia | selectattr('id', 'equalto', e.id) | list %}
+      <div class="event-terminy tc-panel" id="tc-{{ e.id }}" hidden>
+        <span class="kv-l">Najbliższe terminy — przesuń albo odwołaj pojedyncze zajęcia</span>
+        {% if moje %}
+        <ol class="terminy-lista tc-lista">
+          {% for w in moje %}
+          <li class="tc-wiersz">
+            {# Data i godzina są POLAMI, nie tekstem (pkt 18, 30.08): „są zmiany
+               w trakcie roku, a PH nie może sam tego zmienić — przez to wpisał
+               cykle jako DT". Zmiana dotyczy TYCH zajęć; reszta pakietu zostaje
+               tam, gdzie była. #}
+            <input type="date" class="input input-sm tc-data" value="{{ w.data }}"
+                   min="{{ data_min }}" max="{{ data_max }}"
+                   data-id="{{ e.id }}" data-data="{{ w.data }}"
+                   title="Przesuń TE zajęcia na inny dzień">
+            <input type="time" class="input input-sm tc-godz" value="{{ w.godz_od or '' }}"
+                   data-id="{{ e.id }}" data-data="{{ w.data }}" data-pole="godz_od"
+                   title="Godzina rozpoczęcia tych zajęć">
+            {% if w.trener %}<span class="muted small">{{ w.trener|bez_prefiksu }}</span>{% endif %}
+            <button type="button" class="btn btn-ghost btn-sm btn-odwolaj-termin"
+                    data-id="{{ e.id }}" data-data="{{ w.data }}"
+                    title="Odwołaj te zajęcia — reszta cyklu zostaje">✕ odwołaj</button>
+          </li>
+          {% endfor %}
+        </ol>
+        <p class="legend">Zmiana dotyczy WYBRANYCH zajęć — pozostałe terminy zostają
+          bez zmian. Żeby przesunąć cały cykl, zmień „Datę" w polach spotkania wyżej;
+          cały pakiet zdejmuje „Odwołaj cały cykl".</p>
+        {% else %}
+        <p class="empty">Ten cykl nie ma już przyszłych terminów w grafiku.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# Odwołane pojedyncze zajęcia z tego cyklu (30.08) — reszta pakietu jedzie
+         dalej, więc bez tej listy jedyny ślad wisiałby w kalendarzu w trybie
+         „odwołane", do którego trzeba wiedzieć, że się wchodzi. #}
+      {% if e.odwolane_terminy %}
+      <div class="event-terminy">
+        <span class="kv-l">Odwołane zajęcia ({{ e.odwolane_terminy|length }})</span>
+        <ol class="terminy-lista">
+          {% for t in e.odwolane_terminy %}
+          <li class="minelo">
+            <span class="nums">{{ t.data|pl_data }}</span>
+            <span class="tag tag-neutral">odwołane</span>
+            <span class="muted small">{{ t.powod_odwolania or '—' }}{{ ' · ' ~ t.odwolal if t.odwolal }}</span>
+            <button type="button" class="btn btn-ghost btn-sm btn-przywroc-termin"
+                    data-id="{{ e.id }}" data-data="{{ t.data }}"
+                    title="Przywróć te zajęcia do grafiku">↺ przywróć</button>
           </li>
           {% endfor %}
         </ol>
@@ -131,6 +222,30 @@
   {% else %}
   <p class="empty">Brak spotkań. Dodaj pierwsze DT poniżej — status leada przejdzie
     wtedy na „03. DT umówione".</p>
+  {% endif %}
+
+  {# Pkt 19 (30.08): „w kalendarzu jest cykl 11.12, a w karcie w datach nie ma
+     takiego wydarzenia — nie zaktualizował się kalendarz?". Kalendarz liczył
+     dobrze — karta pokazywała tylko REGUŁĘ (datę pierwszych zajęć). Ta lista
+     to rozwinięcie reguły policzone TYM SAMYM kodem co grafik (wyjątki
+     i odwołania już uwzględnione), więc karta i kalendarz mówią jednym głosem. #}
+  {% if wystapienia %}
+  <div class="card event-terminy">
+    <span class="kv-l">Najbliższe zajęcia cykliczne wg kalendarza</span>
+    <ol class="terminy-lista">
+      {% for w in wystapienia[:10] %}
+      <li>
+        <span class="nums">{{ w.data|pl_data }}</span>
+        <span class="nums muted">{{ w.godz_od or '' }}{{ '–' ~ w.godz_do if w.godz_do }}</span>
+        {% if w.trener %}<span class="nowrap">{{ dot(kolory.get(w.trener)) }}{{ w.trener|bez_prefiksu }}</span>
+        {% else %}<span class="tag tag-accent-2">bez obsady</span>{% endif %}
+        {% if w._cykl_nr %}<span class="muted small nums">cykl #{{ w._cykl_nr }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="legend">Terminy wyliczone z reguły cyklu (albo z listy pakietu) — dokładnie
+      te, które widać w Kalendarzu DT. Zmiana daty pierwszych zajęć przesuwa całość.</p>
+  </div>
   {% endif %}
 
   {# Jeden lead = wiele spotkań. Drugie i trzecie DT tego samego trenera w tym samym

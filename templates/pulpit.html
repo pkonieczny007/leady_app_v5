@@ -170,21 +170,32 @@
   {# ---------------------------------------------------------------- prawa kolumna #}
   <div>
     <section class="section">
+      {# Pkt 4 z 30.08 (raport dla Wojtka): „ile szkół ma przydzielony PH,
+         w ilu zrobił kontakt, w ilu DT, ilu nie ruszył, w ilu mu się nie
+         udało". Cztery warstwy lejka sumują się do „Leadów" — patrz
+         repo.per_handlowiec. Kolumny klikalne prowadzą na listę z gotowym
+         filtrem, żeby liczba była wejściem do pracy, nie tylko liczbą. #}
       <h2 class="h2-inline">Podział wg handlowca</h2>
       {% if per_h %}
       <table class="table table-tight">
         <thead><tr>
           <th>Handlowiec</th>
           <th class="right">Leadów</th>
-          <th class="right">DT</th>
-          <th style="width:26%">Skuteczność</th>
+          <th class="right" title="status pusty albo 00.">Nie ruszył</th>
+          <th class="right" title="statusy 01. i 02. — próby kontaktu i umawianie">Kontakt</th>
+          <th class="right" title="statusy 03 — DT umówione, grupa otwarta / nie otworzyła się">DT</th>
+          <th class="right" title="statusy 04. — brak kontaktu, brak zgody, odpuszczone">Nie udało się</th>
+          <th style="width:20%">Skuteczność</th>
         </tr></thead>
         <tbody>
           {% for r in per_h %}
           <tr>
             <td><a href="{{ url_for('leady', handlowiec=r.handlowiec) }}">{{ r.handlowiec|bez_prefiksu }}</a></td>
             <td class="right nums">{{ r.leadow }}</td>
-            <td class="right nums">{{ r.umowione }}</td>
+            <td class="right nums{{ ' muted' if not r.nieruszone }}">{{ r.nieruszone }}</td>
+            <td class="right nums">{{ r.kontakt }}</td>
+            <td class="right nums strong">{{ r.dt_lacznie }}</td>
+            <td class="right nums{{ ' muted' if not r.odpadle }}">{{ r.odpadle }}</td>
             <td>
               <span class="bar"><span class="bar-fill" style="width:{{ r.proc }}%"></span></span>
               <span class="muted small nums">{{ r.proc }}%</span>
@@ -193,6 +204,8 @@
           {% endfor %}
         </tbody>
       </table>
+      <p class="legend">Nie ruszył + Kontakt + DT + Nie udało się = Leadów.
+        „DT" liczy statusy 03 łącznie z grupą otwartą i nieotwartą.</p>
       {% else %}
       <p class="empty">Żaden lead nie ma jeszcze przypisanego handlowca.</p>
       {% endif %}

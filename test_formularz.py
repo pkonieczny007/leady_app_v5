@@ -215,13 +215,19 @@ def main():
             "Formularz v1" in html and "Formularz v2" in html
             and "Formularz v3" in html and "Formularz CYKLICZNE" in html
             and "FORMULARZ v1" not in html)
-    sprawdz("v3 opisany jako rekomendowany", "Rekomendowany" in html)
-    sprawdz("wariant cykliczny opisany jako testowy",
-            "testowy: CYKLICZNE-PRZEDSZKOLE" in html)
-    # Piąty kafelek MUSI być opisany jako testowy — kto wejdzie z ciekawości,
-    # ma wiedzieć, na czym stoi. To był warunek decyzji „v5 obok, nie zamiast".
-    sprawdz("piąty wariant jest i jest opisany jako testowy",
-            "Formularz v5" in html and "testowy: kaskada" in html)
+    # Od 30.08 (decyzja Kasi: „ukryj niepotrzebne formularze") rekomendowany
+    # jest v5, a v1–v4 siedzą złożone pod <details> — dostępne świadomie,
+    # niewidoczne przy zwykłym wejściu. Plakietkę „Rekomendowany" nosi TYLKO
+    # jeden kafelek; gdyby nosiły ją dwa, wybór znów wymagałby zgadywania.
+    sprawdz("rekomendowany jest dokładnie jeden wariant",
+            html.count("Rekomendowany") == 1)
+    sprawdz("rekomendowany kafelek prowadzi do v5",
+            html.index("/formularz/v5") < html.index("Rekomendowany"))
+    sprawdz("stare warianty złożone pod przyciskiem",
+            "<details" in html and "Pozostałe warianty" in html)
+    sprawdz("stare warianty opisane jako testowe",
+            "testowy: CYKLICZNE-PRZEDSZKOLE" in html
+            and "testowy: poprzedni rekomendowany" in html)
     sprawdz("pyta, kto wypełnia", 'id="fw-kto"' in html)
 
     # ============================================ F4 — wariant 1 (krok po kroku)
@@ -1509,6 +1515,34 @@ def main():
         kod_js = open("static/%s.js" % w, encoding="utf-8").read()
         sprawdz("%s nie wysyła listy zajęć — kontrakt bez zmian" % w,
                 "zajecia" not in kod_js)
+
+    # ============================== F8 — notatki z wizyt (pkt 10 z 30.08)
+    # Zwykły UPDATE kasował notatkę poprzedniej wizyty — czyli dokładnie to,
+    # czego szuka koordynator i handlowiec przejmujący placówkę. Stempel
+    # [data · kto] dokleja serwer, żeby podpisane były notatki ze WSZYSTKICH
+    # wariantów, nie tylko z v5.
+    print("\nF8 — notatka dopisuje się, wizyta bez zajęć zostawia ślad")
+    l_wiz = dodaj_lead(db.get_conn(), "SP NOTATKI", "08. Katowice", handlowiec=H)
+    kod, j = post("/api/formularz", {"handlowiec": H, "lead_id": l_wiz,
+                                     "uwagi": "pierwsza wizyta, dyrektorka na urlopie"})
+    conn = db.get_conn()
+    uw = conn.execute("SELECT uwagi FROM leady WHERE id=?", (l_wiz,)).fetchone()["uwagi"]
+    sprawdz("notatka dostaje stempel [data · kto] z serwera",
+            kod == 200 and (uw or "").startswith("[%s · %s]" % (dni(0), H)), str(uw))
+    slad = conn.execute("SELECT * FROM log WHERE lead_id=? AND pole='wizyta'",
+                        (l_wiz,)).fetchall()
+    sprawdz("wizyta bez umówionych zajęć zostawia wpis w historii", len(slad) == 1)
+    conn.close()
+
+    kod, j = post("/api/formularz", {"handlowiec": H, "lead_id": l_wiz,
+                                     "uwagi": "druga wizyta, umowa do podpisu"})
+    conn = db.get_conn()
+    uw = conn.execute("SELECT uwagi FROM leady WHERE id=?", (l_wiz,)).fetchone()["uwagi"]
+    conn.close()
+    sprawdz("druga notatka NIE kasuje pierwszej",
+            kod == 200 and "pierwsza wizyta" in uw and "druga wizyta" in uw, str(uw))
+    sprawdz("najświeższa notatka na górze (listy pokazują początek tekstu)",
+            uw.index("druga wizyta") < uw.index("pierwsza wizyta"))
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))

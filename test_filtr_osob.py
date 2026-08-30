@@ -348,6 +348,30 @@ def main():
     sprawdz("…a „wszystko” daje też szkoły, które sprzedała",
             kal("w:" + frag_h1) == (3, 3, 3), str(kal("w:" + frag_h1)))
 
+    # Od 30.08 kalendarz ma OSOBNY zakres „H" (pkt 3 Kasi: „filtr w kalendarzu
+    # po PH — nie ma takiej możliwości"). „H" pyta „czyja to szkoła" i nie rusza
+    # poprawki z Olszewską: „n" dalej nie zagląda w pole handlowca.
+    print("\nG2c — chip „H handlowiec” na kalendarzu (30.08)")
+
+    def kal_h(osoby, tryb="lub"):
+        conn = db.get_conn()
+        c = fl.parsuj(osoby, fl.ZAKRESY_KALENDARZ)
+        wyn = tuple(b(conn, MIES, chipy=c, tryb=tryb)["n_events"]
+                    for b in (cv.build_matrix, cv.build_agenda, cv.build_starty))
+        conn.close()
+        return wyn
+
+    ch = fl.parsuj("h:" + frag_h1, fl.ZAKRESY_KALENDARZ)
+    sprawdz("kalendarz zna zakres „h”", ch and ch[0]["zakres"] == "h", str(ch))
+    sprawdz("chip „H” daje spotkania ze szkół sprzedanych przez handlowca",
+            kal_h("h:" + frag_h1) == (3, 3, 3), str(kal_h("h:" + frag_h1)))
+    sprawdz("chip „H” NIE łapie po prowadzącym",
+            kal_h("h:" + frag_t2) == (0, 0, 0), str(kal_h("h:" + frag_t2)))
+    sprawdz("ekran kalendarza przyjmuje chip „H”",
+            KL.get("/kalendarz?m=%s&osoby=h%%3A%s" % (MIES, frag_h1)).status_code == 200)
+    sprawdz("dostępność „h” nie dostaje — chip spada do „wszystko”, wpis zostaje",
+            fl.parsuj("h:Iks", fl.ZAKRESY_GRAFIK)[0]["zakres"] == "w")
+
     def role(osoby):
         conn = db.get_conn()
         evs = cv.build_agenda(conn, MIES,

@@ -69,14 +69,17 @@ JAWNE = {"logowanie", "api_logowanie", "static"}
 # Ekrany i akcje wyłącznie dla koordynatora. Handlowiec ma formularz i swoje
 # szkoły — reszta to praca koordynatorki, a przypadkowe kliknięcie w „Import"
 # albo w słowniki potrafi narobić bałaganu w danych wszystkich naraz.
+# `export_xlsx` NIE jest na tej liście od 30.08 — Kasia chce raportów z filtrów
+# „dla PH i dla koordynowania". Handlowiec dostaje eksport, ale endpoint sam
+# przybija mu filtr do własnych szkół (nazwisko z sesji, nie z adresu).
 TYLKO_KOORDYNATOR = {
     "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
-    "export_xlsx", "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
+    "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
     "api_przypisz", "api_odbierz", "api_przedluz", "api_slownik_add", "api_slownik_patch",
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
-    "api_dostepnosc_demo",
+    "api_dostepnosc_demo", "api_lead_zwrot_rozpatrzony",
     # ZAKŁADANIE PLACÓWEK PRZESZŁO DO KOORDYNATORA (Kasia, 24.08): „usuń tę
     # możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
     # dublować rzeczy, a wpisują nazwy jak popadnie". Do 20.08 endpoint był
@@ -495,11 +498,18 @@ def index():
 NA_STRONE = int(os.environ.get("NA_STRONE", "150"))
 
 
+def _query_z_zakresem(f):
+    """Query string z jawnym zakresem (wartości zakresu to zawsze goły ASCII)."""
+    q = request.query_string.decode("utf-8")
+    if f["zakres"] and "zakres=" not in q:
+        q += ("&" if q else "") + "zakres=" + f["zakres"]
+    return q
+
+
 def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
     conn = get_conn()
     f = repo.czytaj_filtr(request.args)
-    if not f["zakres"] and zakres_domyslny:
-        f["zakres"] = zakres_domyslny
+    repo.domknij_zakres(f, zakres_domyslny)
 
     # FILTR PRZYPIĘTY, ALE ZMIENIALNY — wprost z ustaleń: „konkretny handlowiec
     # żeby domyślnie miał wyfiltrowane swoje dane, przyczepione, ale z możliwością
@@ -538,7 +548,10 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
         "today": dzis(), "poniedzialek": poniedzialek(),
         "tytul": tytul, "kicker": kicker,
         "zakres_domyslny": zakres_domyslny,
-        "query": request.query_string.decode("utf-8"),
+        # Zakres MUSI być w query jawnie, nawet gdy wszedł z domyślki. Eksport,
+        # stronicowanie i topbar czytają ten string — bez tego gołe /baza
+        # pokazywało 1223 rekordy, a „Pobierz XLSX" oddawał wszystkie 1617.
+        "query": _query_z_zakresem(f),
         "moj_filtr": moj_filtr,
     }
     ctx.update(extra)
@@ -560,10 +573,18 @@ def baza():
                  WHERE lead_id IS NOT NULL GROUP BY lead_id) ost
              ON ost.lead_id = l1.lead_id AND ost.mid = l1.id
            WHERE l1.co = 'auto-zwrot po terminie'""")}
+    # Leady oddane przez handlowca z powodem (pkt 12, 30.08) — czerwona
+    # plakietka, w przeciwieństwie do bursztynowej automatu. Gaśnie przy
+    # przydzieleniu albo po kliknięciu „rozpatrzone".
+    oddane = {r["id"]: {"kto": r["zwrot_kto"], "powod": r["zwrot_powod"],
+                        "kiedy": (r["zwrot_zgloszony"] or "")[:10]}
+              for r in conn.execute(
+                  "SELECT id, zwrot_kto, zwrot_powod, zwrot_zgloszony "
+                  "FROM leady WHERE zwrot_zgloszony IS NOT NULL")}
     conn.close()
     return _ekran_leadow("baza.html", zakres_domyslny="nieprzydzielone",
                          tytul="Baza placówek", kicker="Koordynator · rozdawanie leadów",
-                         zwroty=zwroty)
+                         zwroty=zwroty, oddane=oddane)
 
 
 @app.route("/leady")
@@ -607,27 +628,36 @@ def lead_detail(lead_id):
         "kolory": trener_colors(conn),
         "lead_fields": LEAD_FIELDS, "julia_fields": JULIA_FIELDS,
         "event_fields": EVENT_FIELDS, "placowka_fields": PLACOWKA_FIELDS,
+        # pkt 19 (30.08): karta pokazuje najbliższe WYSTĄPIENIA cykli, liczone
+        # tym samym kodem co kalendarz — koniec z „kalendarz się nie zaktualizował".
+        # Limit wyższy niż podgląd na dole karty, bo z tej samej listy korzysta
+        # rozwijane „Odwołaj zajęcia" przy KAŻDYM cyklu z osobna.
+        "wystapienia": cv.wystapienia_leada(conn, lead_id, ile=24),
         "today": dzis(),
+        # widełki lat dla pól daty przy terminach cyklu — ten sam bezpiecznik
+        # co w kalendarzu (rok „0002" z literówki)
+        "data_min": DATA_MIN, "data_max": DATA_MAX,
     }
     conn.close()
     return render_template("lead.html", **ctx)
 
 
-def _chipy_grafiku(args):
+def _chipy_grafiku(args, dozwolone=fl.ZAKRESY_GRAFIK):
     """
-    Filtr na chipach dla kalendarza i dostępności: zakresy „wszystko" i „nazwisko".
+    Filtr na chipach dla kalendarza i dostępności: zakresy „wszystko" i „nazwisko"
+    (kalendarz od 30.08 dokłada „H handlowiec" — patrz filtry.ZAKRESY_KALENDARZ).
 
     Stary parametr `trener=` (jedna wartość z listy rozwijanej) przepuszczamy
     jako chip „nazwisko". Lista rozwijana zniknęła — działała tylko w widoku
     Agenda, a w Macierzy i Startach udawała filtr, nie robiąc nic — ale stare
     zakładki i linki mają dalej działać, tyle że teraz we wszystkich widokach.
     """
-    ch = fl.czytaj(args, fl.ZAKRESY_GRAFIK)
+    ch = fl.czytaj(args, dozwolone)
     stary = (args.get("trener") or "").strip()
     if stary and not ch["lista"]:
         ch = fl.czytaj({"osoby": "n:" + stary,
                         "osoby_tryb": args.get("osoby_tryb") or ""},
-                       fl.ZAKRESY_GRAFIK)
+                       dozwolone)
 
     # TRENER: własne nazwisko wchodzi jako chip PRZYPIĘTY (kłódka), tak samo jak
     # handlowiec dostaje domyślnie swoje szkoły. Trener otwiera grafik po to,
@@ -641,7 +671,7 @@ def _chipy_grafiku(args):
     u = uz.zalogowany()
     ch["moj_filtr"] = False
     if u and u["rola"] == "trener" and "osoby" not in args:
-        ch = fl.czytaj({"osoby": "#n:" + u["osoba"]}, fl.ZAKRESY_GRAFIK)
+        ch = fl.czytaj({"osoby": "#n:" + u["osoba"]}, dozwolone)
         ch["moj_filtr"] = True
     return ch
 
@@ -717,7 +747,7 @@ def kalendarz():
     # z grafikiem wyglądałyby jak zajęcia, które się odbędą.
     odwolane = request.args.get("odwolane") == "1"
     typ, typy = _typy_kalendarza(request.args)
-    ch = _chipy_grafiku(request.args)
+    ch = _chipy_grafiku(request.args, fl.ZAKRESY_KALENDARZ)
 
     if widok == "agenda":
         cal = cv.build_agenda(conn, month, weekend=True, typy=typy,
@@ -745,6 +775,8 @@ def kalendarz():
         "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
+        # pkt 16 (30.08): zbiorczo przez wszystkie miesiące, wg daty
+        "calosc": cv.liczniki_calosci(conn),
         "today": dzis(), "dzien": dzien,
         "data_min": DATA_MIN, "data_max": DATA_MAX,
     }
@@ -977,8 +1009,11 @@ def api_przypisz():
         # nie cofamy statusu, jeśli lead już był dalej w procesie
         if st and not st.startswith("00.") and not st.startswith("04."):
             nowy_status = st
+        # Przydzielenie gasi też czerwoną plakietkę „oddana z powodem" —
+        # przypisanie nowemu handlowcowi JEST rozpatrzeniem zgłoszenia.
         conn.execute("UPDATE leady SET handlowiec=?, deadline=COALESCE(?, deadline), "
-                     "status_realizacji=?, updated_at=datetime('now') WHERE id=?",
+                     "status_realizacji=?, zwrot_zgloszony=NULL, zwrot_powod=NULL, "
+                     "zwrot_kto=NULL, updated_at=datetime('now') WHERE id=?",
                      (handlowiec or None, deadline, nowy_status, lead_id))
         zapisz_log(conn, lead_id=lead_id, co="przypisanie", pole="handlowiec",
                    przed=stary["handlowiec"], po=handlowiec)
@@ -1060,6 +1095,58 @@ def api_odbierz():
     conn.commit()
     conn.close()
     return jsonify(ok=True, n=n)
+
+
+@app.route("/api/lead/<int:lead_id>/oddaj", methods=["POST"])
+def api_lead_oddaj(lead_id):
+    """
+    Handlowiec oddaje lead, którego nie powinien był dostać (pkt 12 z 30.08).
+
+    Kasia: „może usuwać, ale tylko wpisując powód — i on się pojawia
+    u koordynatora na czerwono". Z perspektywy handlowca szkoła znika z listy;
+    naprawdę wraca do puli z czerwoną plakietką i powodem, a koordynator
+    decyduje, co dalej. Twarde kasowanie ZOSTAJE koordynatorskie — oddanie
+    zabiera wyłącznie przypisanie, notatki i historia zostają przy placówce
+    (ta sama zasada co przy auto-zwrocie).
+    """
+    d = request.get_json(force=True)
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        return jsonify(ok=False, error="Podaj powód oddania — bez niego "
+                       "koordynator nie wie, co poprawić w rozdzielaniu"), 400
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    stary = conn.execute("SELECT handlowiec FROM leady WHERE id=?",
+                         (lead_id,)).fetchone()
+    if not stary:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego leada"), 404
+    u = uz.zalogowany() or {}
+    kto = u.get("osoba") or "?"
+    conn.execute(
+        "UPDATE leady SET handlowiec=NULL, deadline=NULL, pin_tydzien=NULL, "
+        "zwrot_zgloszony=datetime('now'), zwrot_powod=?, zwrot_kto=?, "
+        "updated_at=datetime('now') WHERE id=?",
+        (powod, kto, lead_id))
+    zapisz_log(conn, lead_id=lead_id, kto=kto, co="oddanie leada z powodem",
+               pole="handlowiec", przed=stary["handlowiec"], po=powod)
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
+
+
+@app.route("/api/lead/<int:lead_id>/zwrot-rozpatrzony", methods=["POST"])
+def api_lead_zwrot_rozpatrzony(lead_id):
+    """Koordynator gasi plakietkę oddania bez przydzielania — np. gdy szkoła
+    ma po prostu poczekać w puli. Przydzielenie gasi ją samo (api_przypisz)."""
+    conn = get_conn()
+    conn.execute("UPDATE leady SET zwrot_zgloszony=NULL, zwrot_powod=NULL, "
+                 "zwrot_kto=NULL, updated_at=datetime('now') WHERE id=?", (lead_id,))
+    zapisz_log(conn, lead_id=lead_id, co="zgłoszenie oddania rozpatrzone")
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
 
 
 @app.route("/api/pin", methods=["POST"])
@@ -1285,6 +1372,165 @@ def api_event_odwolaj(event_id):
     conn.commit()
     conn.close()
     return jsonify(ok=True, odwolane=True, wrocil_do_umawiania=wrocil)
+
+
+@app.route("/api/event/<int:event_id>/odwolaj-termin", methods=["POST"])
+def api_event_odwolaj_termin(event_id):
+    """
+    Odwołanie JEDNYCH zajęć z cyklu — bez ruszania reszty pakietu (pkt 21, 30.08:
+    „cykli nie da się odwołać, nie ma tego krzyżyka").
+
+    DT ma odwołanie od 20.08 i klient słusznie pyta, czemu cykl nie ma. Powód
+    był techniczny: kafel cyklu w grafiku to WYSTĄPIENIE reguły, a nie osobny
+    wiersz w bazie — `api_event_odwolaj` po `e.id` zdjąłby z kalendarza cały
+    pakiet (u nas do 40 terminów). Lepiej było nie dać przycisku, niż dać taki,
+    który robi co innego, niż mówi.
+
+    Ten endpoint zapisuje wyjątek NA JEDNĄ DATĘ (`wyjatki_cyklu`) — ta tabela
+    istniała od początku i dokładnie po to, ale pisał do niej wyłącznie importer.
+    Ślad jest ten sam co przy DT: powód wymagany, nazwisko z sesji, wpis
+    zostaje w bazie i widać go w trybie „odwołane".
+
+    Odwołanie CAŁEGO cyklu zostaje pod `api_event_odwolaj` — w karcie placówki
+    przycisk nazywa się teraz wprost „Odwołaj cały cykl".
+    """
+    d = request.get_json(silent=True) or {}
+    data = (d.get("data") or "").strip()
+    if not data:
+        return jsonify(ok=False, error="Nie wiadomo, który termin odwołujemy"), 400
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    e = conn.execute("SELECT lead_id, typ FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego wpisu"), 404
+    if e["typ"] not in TYPY_CYKLICZNE:
+        conn.close()
+        return jsonify(ok=False, error="To nie są zajęcia cykliczne — użyj zwykłego "
+                                       "odwołania spotkania"), 400
+
+    ja = uz.zalogowany() or {}
+    if d.get("cofnij"):
+        # Wyjątek potrafi nieść też zastępstwo albo zmienioną godzinę, więc
+        # zdejmujemy TYLKO odwołanie, a nie cały wiersz — inaczej cofnięcie
+        # odwołania kasowałoby przy okazji ustalenia, o których nikt nie pytał.
+        conn.execute("UPDATE wyjatki_cyklu SET odwolane=0, powod_odwolania=NULL, "
+                     "odwolal=NULL, odwolane_kiedy=NULL WHERE event_id=? AND data=?",
+                     (event_id, data))
+        zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+                   co="cofnięcie odwołania terminu", pole=e["typ"], po=data)
+        conn.commit(); conn.close()
+        return jsonify(ok=True, odwolane=False)
+
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        conn.close()
+        return jsonify(ok=False, error="Napisz, dlaczego odwołujemy te zajęcia — "
+                                       "bez tego za miesiąc nikt tego nie odtworzy"), 400
+
+    # UPSERT: wyjątek na tę datę może już istnieć (np. wpisane zastępstwo).
+    conn.execute("INSERT INTO wyjatki_cyklu (event_id, data, odwolane, powod_odwolania, "
+                 "odwolal, odwolane_kiedy) VALUES (?,?,1,?,?,datetime('now')) "
+                 "ON CONFLICT(event_id, data) DO UPDATE SET odwolane=1, "
+                 "powod_odwolania=excluded.powod_odwolania, odwolal=excluded.odwolal, "
+                 "odwolane_kiedy=excluded.odwolane_kiedy",
+                 (event_id, data, powod, ja.get("osoba") or ""))
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id,
+               co="odwołanie terminu zajęć", pole=e["typ"], przed=data, po=powod)
+    conn.commit(); conn.close()
+    return jsonify(ok=True, odwolane=True)
+
+
+@app.route("/api/event/<int:event_id>/termin", methods=["POST"])
+def api_event_termin(event_id):
+    """
+    Przesunięcie JEDNYCH zajęć cyklu na inną datę/godzinę (pkt 18, 30.08).
+
+    Kasia: „edytuj daty cykli — jest to potrzebne, bo są zmiany w trakcie roku
+    i PH nie może sam tego zmienić… przez to PH wpisał cykle jako DT, bo nie
+    mógł edytować dat cykli". Ostatnie zdanie jest tu najważniejsze: brak edycji
+    nie sprawił, że zmiany przestały się dziać — sprawił, że zaczęły omijać
+    aplikację i lądować w bazie jako coś, czym nie są.
+
+    Dlaczego to nie jest zwykły UPDATE: dopóki cykl jest REGUŁĄ, jedyną datą
+    w bazie jest data pierwszych zajęć, więc jej zmiana przesuwa cały pakiet.
+    Przy pierwszej edycji rozwijamy więc regułę na listę konkretnych dat
+    (`materializuj_terminy`) i dopiero w niej poprawiamy jeden wiersz. Dla
+    ekranów to niewidoczne — kalendarz od początku woli listę od reguły.
+
+    Kto: koordynator zawsze, handlowiec na SWOJEJ szkole — ta sama reguła co
+    przy każdym innym zapisie. Zamknięcie tego przed handlowcem odtworzyłoby
+    dokładnie ten problem, który Kasia zgłasza.
+    """
+    d = request.get_json(force=True)
+    stara = (d.get("data") or "").strip()
+    nowa = (d.get("data_nowa") or "").strip()
+    godz_od = (d.get("godz_od") or "").strip()
+    godz_do = (d.get("godz_do") or "").strip()
+    if not stara:
+        return jsonify(ok=False, error="Nie wiadomo, który termin zmieniamy"), 400
+    if not nowa and not (godz_od or godz_do):
+        return jsonify(ok=False, error="Podaj nową datę albo godzinę"), 400
+    # Ten sam bezpiecznik na rok co w kalendarzu (rok „0002" z literówki potrafił
+    # wywieźć ekran do naszej ery, a lista miesięcy zna tylko te z danymi).
+    if nowa and not _sensowna_data(nowa):
+        return jsonify(ok=False, error="Data musi być z zakresu %d–%d"
+                       % (ROK_MIN, ROK_MAX)), 400
+
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    e = conn.execute("SELECT lead_id, typ FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego wpisu"), 404
+    if e["typ"] not in TYPY_CYKLICZNE:
+        conn.close()
+        return jsonify(ok=False, error="To nie są zajęcia cykliczne — datę zwykłego "
+                                       "spotkania zmienia się wprost w jego polu"), 400
+
+    cv.materializuj_terminy(conn, event_id)
+    row = conn.execute("SELECT id FROM terminy_cyklu WHERE event_id=? AND data=?",
+                       (event_id, stara)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify(ok=False, error="Tego terminu nie ma w tym cyklu"), 404
+    if nowa and nowa != stara and conn.execute(
+            "SELECT 1 FROM terminy_cyklu WHERE event_id=? AND data=?",
+            (event_id, nowa)).fetchone():
+        conn.close()
+        return jsonify(ok=False, error="Ten cykl ma już zajęcia w tym dniu"), 400
+
+    pola, param = [], []
+    if nowa:
+        pola.append("data=?"); param.append(nowa)
+    if godz_od:
+        pola.append("godz_od=?"); param.append(godz_od)
+    if godz_do:
+        pola.append("godz_do=?"); param.append(godz_do)
+    param.append(row["id"])
+    conn.execute("UPDATE terminy_cyklu SET %s WHERE id=?" % ", ".join(pola), param)
+
+    # Wyjątek (odwołanie, zastępstwo) wisi na DACIE, więc przy przesunięciu
+    # musi pojechać razem z terminem — inaczej zastępstwo zostałoby przy dniu,
+    # w którym już nic nie ma, a nowy termin wyglądałby na nietknięty.
+    if nowa and nowa != stara:
+        conn.execute("UPDATE OR REPLACE wyjatki_cyklu SET data=? "
+                     "WHERE event_id=? AND data=?", (nowa, event_id, stara))
+        # Data pierwszych zajęć jest kolumną eventu i niesie ją pół aplikacji
+        # (sortowania, statystyki, `WHERE e.data`). Gdy przesuwamy właśnie ją,
+        # kolumna musi za tym nadążyć, inaczej cykl „zniknąłby" z miesiąca.
+        pierwszy = conn.execute("SELECT MIN(data) m FROM terminy_cyklu WHERE event_id=?",
+                                (event_id,)).fetchone()["m"]
+        conn.execute("UPDATE eventy SET data=?, updated_at=datetime('now') WHERE id=?",
+                     (pierwszy, event_id))
+
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id, co="zmiana terminu zajęć",
+               pole=e["typ"], przed=stara,
+               po=(nowa or stara) + ((" " + godz_od) if godz_od else ""))
+    conn.commit(); conn.close()
+    return jsonify(ok=True, data=nowa or stara)
 
 
 @app.route("/api/event/<int:event_id>", methods=["DELETE"])
@@ -2211,6 +2457,19 @@ def api_formularz():
         if e:
             return blad("%s: %s" % (k, e))
         if v:
+            if k == "uwagi":
+                # NOTATKA SIĘ DOPISUJE, NIE NADPISUJE. Zwykły UPDATE kasował
+                # notatkę poprzedniej wizyty — czyli dokładnie tę informację,
+                # której szuka koordynator i handlowiec przejmujący placówkę
+                # (zgłoszenie Kasi 30.08, pkt 10; UI v5 od początku obiecywał
+                # dopisywanie). Stempel [data · kto] dokleja SERWER dla
+                # wszystkich wariantów — nazwisko z sesji, nie z żądania.
+                # Najświeższy wpis na górze, bo listy pokazują początek tekstu.
+                stare = conn.execute("SELECT uwagi FROM leady WHERE id=?",
+                                     (lead_id,)).fetchone()["uwagi"]
+                v = "[%s · %s] %s" % (dzis(), handlowiec or "formularz", v)
+                if (stare or "").strip():
+                    v = v + "\n" + stare.strip()
             conn.execute("UPDATE leady SET %s=?, updated_at=datetime('now') WHERE id=?"
                          % k, (v, lead_id))
 
@@ -2305,6 +2564,15 @@ def api_formularz():
             conn.execute("UPDATE leady SET status_realizacji=?, dt=?, "
                          "updated_at=datetime('now') WHERE id=?",
                          ("03. DT umówione", "01. Tak", lead_id))
+
+    # Wizyta bez umówionych zajęć TEŻ jest pracą. `zapisz_log` siedzi w pętli po
+    # spotkaniach, więc zapis bez żadnego chipa (do czego v5 wprost zachęca) nie
+    # zostawiał w historii żadnego śladu — a właśnie z historii koordynator
+    # czyta, „który PH był w szkole" (pkt 10 z 30.08).
+    if not utworzone and (d.get("status_realizacji") or d.get("uwagi")):
+        zapisz_log(conn, lead_id=lead_id, kto=handlowiec or "formularz",
+                   co="formularz terenowy", pole="wizyta",
+                   po=(d.get("status_realizacji") or "").strip() or "notatka z wizyty")
 
     conn.commit()
 
@@ -2500,10 +2768,18 @@ def export_xlsx():
     """
     Eksport DOKŁADNIE tego, co widać po filtrach — wprost zgłoszone życzenie klienta.
     Filtry przychodzą tym samym query stringiem, którego użył widok.
+
+    Od 30.08 dostępny też dla handlowca („raporty wg filtrów… dla PH" — Kasia),
+    ale jego eksport jest PRZYBITY do własnych szkół: nazwisko idzie z sesji,
+    nie z adresu, więc podmiana parametru w URL niczego nie otwiera.
     """
     from exporter import build_workbook
     conn = get_conn()
     f = repo.czytaj_filtr(request.args)
+    ja = uz.zalogowany()
+    if ja and ja.get("rola") == "handlowiec":
+        f["handlowiec"] = ja["osoba"]
+    repo.domknij_zakres(f)
     rows = repo.filtruj_leady(conn, f)
     bio = build_workbook(conn, rows, f)
     conn.close()

@@ -191,6 +191,17 @@ select.f2-pole{
   margin:24px 0 0;font-size:13px;line-height:1.6;color:var(--muted);
 }
 
+/* Stare warianty złożone pod przyciskiem (decyzja Kasi 30.08: widoczny tylko
+   właściwy formularz). <details> zamiast JS — działa bez skryptu i nie wymaga
+   pamiętania stanu. */
+.fw-stare{margin-top:28px}
+.fw-stare-przycisk{
+  cursor:pointer;font-size:13px;color:var(--muted);
+  padding:8px 0;user-select:none;
+}
+.fw-stare-przycisk:hover{color:var(--text)}
+.fw-stare[open] .fw-stare-przycisk{margin-bottom:12px}
+
 /* --- ekran po zapisie ------------------------------------------------------
    Reguły przeniesione z `formularz.css` (wariant 1). Warianty 2–5 używają tej
    samej klasy `fx-sukces` w szablonie, ale tamtego arkusza NIE wczytują — więc

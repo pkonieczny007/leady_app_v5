@@ -194,12 +194,24 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
 
     wyjatki = _wyjatki(conn)
     terminy = _terminy(conn)
-    rows = conn.execute(_SQL_EVENTY + (_ODWOLANE if odwolane else _ZYWE)).fetchall()
+    # W trybie „odwołane" bierzemy TAKŻE spotkania żywe — bo od 30.08 odwołać
+    # da się pojedynczy termin cyklu, a taki wyjątek siedzi w `wyjatki_cyklu`,
+    # nie na evencie. Bez tego odwołanego terminu nie dałoby się ani zobaczyć,
+    # ani przywrócić: znikałby z grafiku i nie pojawiał na liście odwołanych.
+    rows = conn.execute(_SQL_EVENTY + ("" if odwolane else _ZYWE)).fetchall()
     out = []
+
+    def chce(x, calosc_odwolana):
+        """Czy to wystąpienie należy do oglądanego trybu."""
+        if odwolane:
+            return bool(calosc_odwolana or x.get("odwolane"))
+        return not x.get("odwolane")
+
     for r in rows:
         e = _row_to_event(r)
         if typy and e["typ"] not in typy:
             continue
+        calosc_odwolana = bool(e.get("odwolanie"))
         try:
             # Obcięcie do 10 znaków jest celowe. W bazie potrafi wylądować pełny
             # znacznik czasu („2026-09-22T00:00:00") — tak zapisywał daty pierwszych
@@ -217,7 +229,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_key"] = str(e["id"])
                 x["_cykl_nr"] = None
                 _naloz_wyjatek(x, wyjatki.get((e["id"], x["data"])))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             continue
 
@@ -247,7 +259,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_cykl_nr"] = t["nr"]
                 x["_z_listy"] = True
                 _naloz_wyjatek(x, wyjatki.get((e["id"], d.isoformat())))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             continue
 
@@ -270,7 +282,7 @@ def events_for_month(conn, month, typy=None, rozwijaj_cykle=True, odwolane=False
                 x["_key"] = "%d@%s" % (e["id"], d.isoformat())
                 x["_cykl_nr"] = nr
                 _naloz_wyjatek(x, wyjatki.get((e["id"], d.isoformat())))
-                if not x.get("odwolane"):
+                if chce(x, calosc_odwolana):
                     out.append(x)
             krok += 1
             nr += 1
@@ -321,9 +333,17 @@ def _naloz_wyjatek(ev, w):
     if not w:
         ev["odwolane"] = False
         ev["wyjatek"] = None
+        ev["odwolanie_terminu"] = None
         return
     ev["wyjatek"] = w.get("uwagi") or "wyjątek na tę datę"
     ev["odwolane"] = bool(w.get("odwolane"))
+    # Ślad odwołania JEDNEGO terminu (30.08) — ta sama trójka co przy DT.
+    # Osobna nazwa niż `odwolanie` (całe spotkanie), bo w tym module `odwolane`
+    # jest już zajęte i pomieszanie tych dwóch raz już zjadło znacznik na kaflu.
+    ev["odwolanie_terminu"] = ({"powod": w.get("powod_odwolania"),
+                                "kto": w.get("odwolal"),
+                                "kiedy": w.get("odwolane_kiedy")}
+                               if w.get("odwolane") else None)
     if w.get("trener"):
         ev["trener_planowany"] = ev.get("trener")
         ev["trener"] = w["trener"]
@@ -376,6 +396,102 @@ def available_months(conn):
                     m = 1
                     y += 1
     return sorted(set(mies))
+
+
+def _podzial_po_dacie(evs, dzis=None):
+    """(zrealizowane, umówione) wg daty — wspólne dla trzech widoków."""
+    prog = dzis or dt.date.today().isoformat()
+    zreal = sum(1 for e in evs if (e.get("data") or "") < prog)
+    return zreal, len(evs) - zreal
+
+
+def liczniki_calosci(conn, dzis=None):
+    """
+    Zbiorczo przez WSZYSTKIE miesiące z danymi: ile spotkań już się odbyło,
+    a ile dopiero przed nami. Pkt 16 z 30.08 (Kasia): „pokazuje miesięcznie
+    i to jest fajne, ale potrzebuję obok też zbiorczo ile jest umówionych
+    i ile zrealizowanych — to będzie wynikało z daty".
+
+    Liczymy TYM SAMYM kodem co widoki (events_for_month rozwija cykle na
+    wystąpienia i pomija odwołane) — osobne zapytanie SQL liczyłoby reguły
+    cykli jako 1 zamiast liczby zajęć i wyniki nie zgadzałyby się z ekranem.
+    """
+    prog = dzis or dt.date.today().isoformat()
+    zreal = przyszle = 0
+    for m in available_months(conn):
+        for e in events_for_month(conn, m):
+            if (e.get("data") or "") < prog:
+                zreal += 1
+            else:
+                przyszle += 1
+    return {"zrealizowane": zreal, "umowione": przyszle}
+
+
+def materializuj_terminy(conn, event_id, horyzont=None):
+    """
+    Zamienia cykl-REGUŁĘ na listę konkretnych dat w `terminy_cyklu`.
+
+    Potrzebne do edycji pojedynczego terminu (pkt 18 z 30.08: „edytuj daty
+    cykli — są zmiany w trakcie roku… przez to PH wpisał cykle jako DT, bo nie
+    mógł edytować dat"). Dopóki cykl jest regułą, jedyną datą w bazie jest data
+    PIERWSZYCH zajęć, więc przesunięcie jednych zajęć nie ma czego zmienić —
+    zmiana `data` przesuwa wszystkie wystąpienia naraz.
+
+    Po materializacji nic nie zmienia się na ekranie: kalendarz od początku daje
+    liście terminów pierwszeństwo przed regułą i rozwija ją identycznie. Zmienia
+    się to, że każdy termin ma teraz własny wiersz, który da się poprawić.
+
+    Nie robi nic, gdy lista już istnieje (drugie wywołanie jest bezpieczne)
+    i gdy event nie jest cykliczny albo nie ma daty startu.
+    """
+    e = conn.execute("SELECT typ, data, godz_od, godz_do, co_ile_tygodni "
+                     "FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e or e["typ"] not in TYPY_POWTARZALNE or not e["data"]:
+        return 0
+    if conn.execute("SELECT 1 FROM terminy_cyklu WHERE event_id=? LIMIT 1",
+                    (event_id,)).fetchone():
+        return 0
+    try:
+        d0 = dt.date.fromisoformat(str(e["data"])[:10])
+    except (ValueError, TypeError):
+        return 0
+    co_ile = max(1, int(e["co_ile_tygodni"] or 1))
+    ile = (horyzont or CYKL_HORYZONT_TYGODNI) // co_ile + 1
+    n = 0
+    for krok in range(ile):
+        d = d0 + dt.timedelta(days=7 * co_ile * krok)
+        conn.execute("INSERT OR IGNORE INTO terminy_cyklu "
+                     "(event_id, nr, data, godz_od, godz_do) VALUES (?,?,?,?,?)",
+                     (event_id, krok + 1, d.isoformat(), e["godz_od"], e["godz_do"]))
+        n += 1
+    return n
+
+
+def wystapienia_leada(conn, lead_id, od=None, ile=10):
+    """
+    Najbliższe wystąpienia zajęć CYKLICZNYCH jednej placówki — do karty leada.
+
+    Pkt 19 z 30.08: klientka zobaczyła cykl 11.12 w kalendarzu, otworzyła kartę
+    placówki, nie znalazła tej daty i uznała, że „kalendarz się nie
+    zaktualizował". Kalendarz liczył dobrze — to karta pokazywała wyłącznie
+    REGUŁĘ (datę pierwszych zajęć), nie jej rozwinięcie. Liczymy tym samym
+    kodem co grafik (events_for_month: reguła/lista terminów, wyjątki,
+    odwołania) — osobna pętla w karcie prędzej czy później skłamałaby inaczej
+    niż kalendarz i wracamy do punktu wyjścia.
+    """
+    prog = od or dt.date.today().isoformat()
+    out = []
+    for m in available_months(conn):
+        if m < prog[:7]:
+            continue
+        for e in events_for_month(conn, m):
+            if (e["lead_id"] == lead_id and e["typ"] in TYPY_POWTARZALNE
+                    and (e.get("data") or "") >= prog):
+                out.append(e)
+        if len(out) >= ile:
+            break
+    out.sort(key=lambda e: (e["data"], e.get("godz_od") or ""))
+    return out[:ile]
 
 
 # Wiersz macierzy dla zajęć, którym nikt jeszcze nie został przypisany.
@@ -511,11 +627,13 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
         tygodnie.append({"dni": dni, "wiersze": wiersze, "label": label,
                          "ma": n_ev > 0, "n": n_ev})
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"tygodnie": tygodnie, "trenerzy": trenerzy, "kolory": kolory,
             "n_events": len(evs), "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": n_bez_trenera,
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 
@@ -551,11 +669,13 @@ def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub",
                     "mies": MIESIACE_D[d.month], "weekend": d.weekday() >= 5,
                     "dzis": d == dt.date.today(), "eventy": lista, "n": len(lista)})
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"dni": dni, "kolory": kolory, "n_events": sum(d["n"] for d in dni),
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 
@@ -608,11 +728,13 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub", bez_obsady=Fa
                                             ostatni.day, ostatni.month),
         })
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"tygodnie": tygodnie, "kolory": kolory, "n_events": len(evs),
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 

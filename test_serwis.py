@@ -189,6 +189,54 @@ def main():
     sprawdz("bez DATA_DIR wszystkie profile dostępne",
             b._obcy_profil("prod", "test", "pusta") is None)
 
+    # --- migracja przy KILKU workerach gunicorna naraz (30.08) -------------
+    # Na serwerze aplikacja startuje w kilku procesach jednocześnie. Każdy
+    # sprawdza `PRAGMA table_info`, każdy widzi brak kolumny i próbuje ją
+    # dodać — drugi w kolejce dostawał `duplicate column name` i worker padał.
+    # Kontener podnosił go po sekundzie, więc wdrożenie „działało", ale
+    # w logu produkcyjnym zostawał wpis wyglądający jak awaria.
+    print("\nS6 — migracja odporna na wyścig workerów")
+    import shutil
+    import sqlite3
+    import threading
+    kat = tempfile.mkdtemp(prefix="leady_v5_race_")
+    sciezka = os.path.join(kat, "leady_v3.db")
+    conn0 = sqlite3.connect(sciezka)
+    db.init_db(conn0)
+    # baza „sprzed aktualizacji": kolumny, które dokłada migracja, jeszcze nie ma
+    conn0.execute("DROP TABLE IF EXISTS leady")
+    conn0.execute("CREATE TABLE leady (id INTEGER PRIMARY KEY, placowka_id INTEGER)")
+    conn0.commit()
+    conn0.close()
+
+    bariera = threading.Barrier(4)
+    bledy = []
+
+    def rownolegle(_n):
+        c = sqlite3.connect(sciezka, timeout=10)
+        bariera.wait()                 # wszystkie ruszają w tej samej chwili
+        try:
+            db.migruj(c)
+            c.commit()
+        except Exception as exc:       # noqa: BLE001 — o to właśnie pytamy
+            bledy.append(str(exc))
+        finally:
+            c.close()
+
+    watki = [threading.Thread(target=rownolegle, args=(i,)) for i in range(4)]
+    for t in watki:
+        t.start()
+    for t in watki:
+        t.join()
+    sprawdz("cztery równoległe migracje nie wywalają workera", not bledy,
+            "; ".join(bledy[:2]))
+    c = sqlite3.connect(sciezka)
+    kolumny = {r[1] for r in c.execute("PRAGMA table_info(leady)")}
+    c.close()
+    shutil.rmtree(kat, ignore_errors=True)
+    sprawdz("kolumny i tak doszły", "zwrot_powod" in kolumny and "uwagi" in kolumny,
+            str(sorted(kolumny)[:6]))
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

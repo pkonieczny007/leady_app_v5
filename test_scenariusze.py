@@ -701,16 +701,18 @@ def main():
     conn.close()
     sprawdz("po cofnięciu zajęcia wracają do grafiku", len(w_grafiku) == 1)
 
-    # Kafel cyklu to WYSTĄPIENIE reguły — przycisk odwołania po `e.id` skasowałby
-    # z grafiku cały pakiet. Lepiej nie dać przycisku, niż dać mylący.
+    # Kafel cyklu to WYSTĄPIENIE reguły, więc odwołanie po `e.id` zdjęłoby
+    # z grafiku cały pakiet. Do 30.08 cykl nie miał przycisku wcale („lepiej nie
+    # dać, niż dać mylący"); od 30.08 (pkt 21) ma WŁASNY, który odwołuje jedne
+    # zajęcia przez `wyjatki_cyklu`. Pilnujemy więc czego innego niż wcześniej:
+    # że te dwie drogi się nie pomieszały.
     szablon = open("templates/kalendarz.html", encoding="utf-8").read()
-    sprawdz("odwołanie w grafiku tylko dla wpisów niecyklicznych",
-            # P31 wsunął przed ten warunek gałąź „to jest odwołane → przywróć",
-            # więc `if` zamienił się w `elif`. Sam warunek jest ten sam i to
-            # jego pilnujemy: przycisk odwołania nie ma prawa pojawić się na
-            # kaflu cyklu.
-            "{% elif e.typ not in TYPY_CYKLICZNE %}" in szablon
-            and 'data-odwolaj="{{ e.id }}"' in szablon)
+    sprawdz("cykl NIE trafia do zwykłego odwołania spotkania",
+            'data-odwolaj="{{ e.id }}"' in szablon
+            and "{% if e.typ in TYPY_CYKLICZNE %}" not in
+                szablon.split('data-odwolaj="{{ e.id }}"')[0][-120:])
+    sprawdz("cykl ma własny przycisk odwołania jednych zajęć",
+            "btn-odwolaj-termin" in szablon and 'data-data="{{ e.data }}"' in szablon)
 
     # -----------------------------------------------------------------
     print("\nS19 — P30/P31: braki w DT widać w kalendarzu, odwołane mają swoją listę")
@@ -850,6 +852,198 @@ def main():
     sprawdz("obie osie naraz zawężają poprawnie",
             any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
     conn.close()
+
+    # ------------------------------------------- S18 — szkoły z brakami (30.08)
+    # Definicja Kasi: brak ustalonych zajęć, brak trenera, brak godziny, brak
+    # terminu. Flaga, filtr i sortowanie liczą JEDNYM wyrażeniem
+    # (repo.SQL_BRAKI_ZAJEC) — te sprawdzenia pilnują, żeby się nie rozjechały.
+    print("\nS18 — szkoły z brakami")
+    conn = db.get_conn()
+    l_brak = nowa_szkola("SP Z BRAKAMI")
+    conn.execute("UPDATE leady SET status_realizacji='03. DT umówione', "
+                 "handlowiec='04. Chytry' WHERE id=?", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("status „DT umówione” bez żadnego spotkania = braki",
+            any(x["id"] == l_brak for x in r))
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-10-01', '09:00')", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("spotkanie bez trenera to nadal braki",
+            any(x["id"] == l_brak for x in r))
+    conn.execute("UPDATE eventy SET trener='02. Bitner' WHERE lead_id=?", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("komplet danych gasi flagę braków",
+            not any(x["id"] == l_brak for x in r))
+    r = leady(zakres="wszystkie")
+    wiersz = next(x for x in r if x["id"] == l_brak)
+    sprawdz("kolumna braki_zajec dostępna dla listy", wiersz["braki_zajec"] == 0)
+    conn.close()
+
+    # ------------------------------------- S19 — raport Wojtka (pkt 4, 30.08)
+    # „ile szkół ma przydzielony PH, w ilu zrobił kontakt, w ilu DT, ilu nie
+    # ruszył, w ilu mu się nie udało" — cztery warstwy mają sumować się do
+    # liczby leadów, inaczej raport gubi rekordy-widma.
+    print("\nS19 — pulpit: warstwy lejka per handlowiec")
+    conn = db.get_conn()
+    per, _ = repo.per_handlowiec(conn)
+    conn.close()
+    sprawdz("raport zna wszystkie warstwy lejka",
+            bool(per) and all(k in per[0] for k in
+                              ("nieruszone", "kontakt", "dt_lacznie", "odpadle")))
+    sprawdz("warstwy sumują się do liczby leadów",
+            all(r["nieruszone"] + r["kontakt"] + r["dt_lacznie"] + r["odpadle"]
+                == r["leadow"] for r in per),
+            str([(r["handlowiec"], r["leadow"]) for r in per]))
+    html = KL.get("/pulpit").get_data(as_text=True)
+    sprawdz("pulpit pokazuje nowe kolumny",
+            "Nie ruszył" in html and "Nie udało się" in html)
+
+    # ------------------------ S20 — odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08)
+    # „DT ma odwołanie, cykle nie mają krzyżyka." Mają od 30.08, ale osobnym
+    # endpointem: kafel cyklu to wystąpienie reguły, więc odwołanie „po id"
+    # zdjęłoby z grafiku cały pakiet. Te sprawdzenia pilnują właśnie tej granicy.
+    print("\nS20 — odwoływanie pojedynczych zajęć cyklicznych")
+    conn = db.get_conn()
+    l_cyk = nowa_szkola("SP CYKL ODWOLANIA")
+    start = dt.date.today() + dt.timedelta(days=7)
+    while start.weekday() >= 5:                 # dzień roboczy: weekend bywa ukryty
+        start += dt.timedelta(days=1)
+    e_cyk = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, godz_od, trener, co_ile_tygodni) "
+        "VALUES (?, 'CYKLICZNE', ?, '12:00', ?, 1)",
+        (l_cyk, start.isoformat(), db.slownik_values(conn, "trener")[0])).lastrowid
+    conn.commit()
+    mies = start.strftime("%Y-%m")
+
+    def ile_wystapien(odw=False):
+        c2 = db.get_conn()
+        n = len([e for e in cv.events_for_month(c2, mies, odwolane=odw)
+                 if e["lead_id"] == l_cyk])
+        c2.close()
+        return n
+
+    przed = ile_wystapien()
+    sprawdz("cykl rozwija się na wystąpienia", przed >= 2, str(przed))
+    drugi = (start + dt.timedelta(days=7)).isoformat()
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk, {"data": drugi})
+    sprawdz("odwołanie terminu BEZ powodu odrzucone", kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk,
+                  {"data": drugi, "powod": "ferie w szkole"})
+    sprawdz("odwołanie terminu z powodem przechodzi", kod == 200, "kod %s" % kod)
+    sprawdz("z grafiku znika DOKŁADNIE jeden termin, reszta cyklu zostaje",
+            ile_wystapien() == przed - 1, "%d → %d" % (przed, ile_wystapien()))
+    sprawdz("odwołany termin widać w trybie „odwołane”", ile_wystapien(True) == 1)
+
+    conn2 = db.get_conn()
+    w = dict(conn2.execute("SELECT * FROM wyjatki_cyklu WHERE event_id=? AND data=?",
+                           (e_cyk, drugi)).fetchone())
+    ev = dict(conn2.execute("SELECT odwolane FROM eventy WHERE id=?", (e_cyk,)).fetchone())
+    conn2.close()
+    sprawdz("ślad ma powód, osobę i chwilę — jak przy DT",
+            w["powod_odwolania"] == "ferie w szkole" and w["odwolal"]
+            and w["odwolane_kiedy"])
+    sprawdz("SAM EVENT cyklu pozostaje żywy (nie odwołaliśmy całego pakietu)",
+            not ev["odwolane"])
+    html = KL.get("/lead/%d" % l_cyk).get_data(as_text=True)
+    sprawdz("karta szkoły pokazuje odwołane zajęcia z powodem",
+            "Odwołane zajęcia" in html and "ferie w szkole" in html)
+    sprawdz("przycisk w karcie mówi wprost, że bierze CAŁY cykl",
+            "Odwołaj cały cykl" in html)
+
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_cyk, {"data": drugi, "cofnij": True})
+    sprawdz("przywrócenie terminu wraca do grafiku",
+            kod == 200 and ile_wystapien() == przed)
+
+    # DT nie ma się dać odwołać tą drogą — inaczej dwa mechanizmy pilnowałyby
+    # tego samego i prędzej czy później rozjechałyby się co do śladu.
+    e_dt = conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                        "VALUES (?, 'DT', ?, '09:00')",
+                        (l_cyk, start.isoformat())).lastrowid
+    conn.commit()
+    conn.close()
+    kod, _ = post("/api/event/%d/odwolaj-termin" % e_dt,
+                  {"data": start.isoformat(), "powod": "x"})
+    sprawdz("DT odsyłany do zwykłego odwołania spotkania", kod == 400, "kod %s" % kod)
+
+    # ------------------- S21 — przesuwanie pojedynczych zajęć cyklu (pkt 18, 30.08)
+    # „Są zmiany w trakcie roku, a PH nie może sam tego zmienić — przez to
+    # wpisał cykle jako DT". Zmiana ma dotyczyć JEDNYCH zajęć: reszta pakietu
+    # zostaje. Dopóki cykl jest regułą, jedyną datą w bazie jest data pierwszych
+    # zajęć, więc przy pierwszej edycji reguła rozwija się na listę dat.
+    print("\nS21 — edycja dat pojedynczych zajęć cyklu")
+    conn = db.get_conn()
+    l_ed = nowa_szkola("SP EDYCJA CYKLU")
+    st = dt.date.today() + dt.timedelta(days=7)
+    while st.weekday() >= 5:
+        st += dt.timedelta(days=1)
+    e_ed = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, godz_od, co_ile_tygodni) "
+        "VALUES (?, 'CYKLICZNE', ?, '12:00', 1)", (l_ed, st.isoformat())).lastrowid
+    conn.commit(); conn.close()
+    mies_ed = st.strftime("%Y-%m")
+
+    def daty_cyklu():
+        c2 = db.get_conn()
+        d = sorted(e["data"] for e in cv.events_for_month(c2, mies_ed)
+                   if e["lead_id"] == l_ed)
+        c2.close()
+        return d
+
+    przed_dat = daty_cyklu()
+    drugi_t = (st + dt.timedelta(days=7)).isoformat()
+    nowy_t = (st + dt.timedelta(days=8)).isoformat()
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": drugi_t, "data_nowa": nowy_t})
+    po_dat = daty_cyklu()
+    sprawdz("przesunięcie jednych zajęć przechodzi", kod == 200, "kod %s" % kod)
+    sprawdz("przesunął się DOKŁADNIE jeden termin, reszta cyklu stoi",
+            len(po_dat) == len(przed_dat) and nowy_t in po_dat and drugi_t not in po_dat
+            and przed_dat[0] == po_dat[0], "%s → %s" % (przed_dat, po_dat))
+
+    conn = db.get_conn()
+    ile_t = conn.execute("SELECT COUNT(*) c FROM terminy_cyklu WHERE event_id=?",
+                         (e_ed,)).fetchone()["c"]
+    conn.close()
+    sprawdz("reguła rozwinęła się na listę dat (materializacja)", ile_t > 1, str(ile_t))
+
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": nowy_t, "godz_od": "15:30"})
+    conn = db.get_conn()
+    g = conn.execute("SELECT godz_od FROM terminy_cyklu WHERE event_id=? AND data=?",
+                     (e_ed, nowy_t)).fetchone()["godz_od"]
+    inne = conn.execute("SELECT godz_od FROM terminy_cyklu WHERE event_id=? AND data=?",
+                        (e_ed, przed_dat[0])).fetchone()["godz_od"]
+    conn.close()
+    sprawdz("godzinę też da się zmienić na jednych zajęciach",
+            kod == 200 and g == "15:30" and inne == "12:00", "%s / %s" % (g, inne))
+
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": nowy_t, "data_nowa": przed_dat[0]})
+    sprawdz("dwóch zajęć tego samego cyklu w jednym dniu nie zrobimy", kod == 400,
+            "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": nowy_t, "data_nowa": "0002-01-01"})
+    sprawdz("rok z literówki odrzucony (ten sam bezpiecznik co w kalendarzu)",
+            kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": "2099-01-01",
+                                                  "data_nowa": nowy_t})
+    sprawdz("termin spoza cyklu odrzucony", kod == 404, "kod %s" % kod)
+
+    # Przesunięcie PIERWSZYCH zajęć musi pociągnąć kolumnę `data` eventu —
+    # niesie ją pół aplikacji (sortowania, statystyki, WHERE e.data).
+    pierwszy_nowy = (dt.date.fromisoformat(przed_dat[0])
+                     + dt.timedelta(days=1)).isoformat()
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": przed_dat[0], "data_nowa": pierwszy_nowy})
+    conn = db.get_conn()
+    kol = conn.execute("SELECT data FROM eventy WHERE id=?", (e_ed,)).fetchone()["data"]
+    conn.close()
+    sprawdz("przesunięcie pierwszych zajęć aktualizuje datę spotkania",
+            kod == 200 and kol == pierwszy_nowy, "%s" % kol)
+    html = KL.get("/lead/%d" % l_ed).get_data(as_text=True)
+    sprawdz("karta ma pola do zmiany daty i godziny terminu",
+            "tc-data" in html and "tc-godz" in html)
 
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)

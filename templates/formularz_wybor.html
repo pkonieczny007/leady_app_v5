@@ -34,50 +34,55 @@
   <p class="fw-kto-stale">Wypełnia: <b>{{ handlowiec }}</b></p>
   {% endif %}
 
-  {# Każdy kafelek ma DOKŁADNIE tę samą wysokość, ramkę i czcionkę — także ten
-     z plakietką. Gdy jeden wariant wyglądał inaczej (wersaliki w v1, wyższy
-     kafelek v3), czytało się to jak podpowiedź „ten jest ważniejszy", a wybór
-     ma wynikać z opisu pod spodem, nie z wyglądu przycisku. #}
+  {# Od 30.08 (decyzja Kasi: „ukryj niepotrzebne formularze, zostaw tylko ten
+     właściwy") handlowiec widzi JEDEN kafelek — v5. Stare warianty nie znikają
+     z kodu: porównanie na żywych danych to powód, dla którego w ogóle powstały,
+     a v2–v4 po migracji RSPO i tak biorą miejscowości ze słownika, którego baza
+     już nie używa. Siedzą złożone pod <details>, żeby dało się do nich wrócić
+     świadomie, ale żeby nikt nie wszedł przypadkiem. #}
   <nav class="fw-linki">
-    <a class="fw-link" href="{{ url_for('formularz_kroki') }}"
-       data-cel="{{ url_for('formularz_kroki') }}">
-      <span class="fw-link-nazwa">Formularz v1</span>
-    </a>
-    <a class="fw-link" href="{{ url_for('formularz_ciagly') }}"
-       data-cel="{{ url_for('formularz_ciagly') }}">
-      <span class="fw-link-nazwa">Formularz v2</span>
-    </a>
-    <a class="fw-link" href="{{ url_for('formularz_v3') }}"
-       data-cel="{{ url_for('formularz_v3') }}">
-      <span class="fw-link-nazwa">Formularz v3</span>
-      <span class="fw-znacznik fw-znacznik-ok">Rekomendowany</span>
-    </a>
-    <a class="fw-link" href="{{ url_for('formularz_cykliczne') }}"
-       data-cel="{{ url_for('formularz_cykliczne') }}">
-      <span class="fw-link-nazwa">Formularz CYKLICZNE</span>
-      <span class="fw-znacznik">testowy: CYKLICZNE-PRZEDSZKOLE</span>
-    </a>
-    {# PIĄTY KAFELEK — v5 powstaje OBOK czterech, nie zamiast któregoś.
-       Dzięki temu można go budować w dowolnym momencie: handlowiec dalej
-       klika swój v3, a to jest ścieżka, w którą nikt nie wchodzi przypadkiem.
-       Plakietka „testowy" jest tu warunkiem, nie ozdobą — kto wejdzie
-       z ciekawości, ma wiedzieć, na czym stoi. #}
     <a class="fw-link" href="{{ url_for('formularz_v5') }}"
        data-cel="{{ url_for('formularz_v5') }}">
-      <span class="fw-link-nazwa">Formularz v5</span>
-      <span class="fw-znacznik">testowy: kaskada</span>
+      <span class="fw-link-nazwa">Formularz</span>
+      <span class="fw-znacznik fw-znacznik-ok">Rekomendowany</span>
     </a>
   </nav>
 
   <p class="fw-nota">
-    Wszystkie zapisują tak samo — różni je tylko sposób wypełniania.
-    <br>v1: krok po kroku · v2: wszystko na jednym ekranie (wg makiety z 06.08)
-    <br>v3: jak v2, ale widać, kto jest wolny, kto ma kolizję i co się dzieje tego dnia
-    <br>CYKLICZNE: jak v3, ale zajęcia powtarzalne można umówić na konkretne daty
-    (pakiet „5 zajęć"), a nie tylko regułą „co wtorek"
-    <br>v5: kaskada — najpierw placówka, potem chipy „co ustaliłeś"; kilka rodzajów
-    zajęć naraz i sama wizyta bez umawiania czegokolwiek
+    Najpierw placówka (powiat → miejscowość → lista), potem chipy „co ustaliłeś";
+    kilka rodzajów zajęć naraz albo sama wizyta bez umawiania czegokolwiek.
   </p>
+
+  <details class="fw-stare">
+    <summary class="fw-stare-przycisk">Pozostałe warianty (testowe)</summary>
+    <nav class="fw-linki">
+      <a class="fw-link" href="{{ url_for('formularz_kroki') }}"
+         data-cel="{{ url_for('formularz_kroki') }}">
+        <span class="fw-link-nazwa">Formularz v1</span>
+        <span class="fw-znacznik">testowy: krok po kroku</span>
+      </a>
+      <a class="fw-link" href="{{ url_for('formularz_ciagly') }}"
+         data-cel="{{ url_for('formularz_ciagly') }}">
+        <span class="fw-link-nazwa">Formularz v2</span>
+        <span class="fw-znacznik">testowy: jeden ekran</span>
+      </a>
+      <a class="fw-link" href="{{ url_for('formularz_v3') }}"
+         data-cel="{{ url_for('formularz_v3') }}">
+        <span class="fw-link-nazwa">Formularz v3</span>
+        <span class="fw-znacznik">testowy: poprzedni rekomendowany</span>
+      </a>
+      <a class="fw-link" href="{{ url_for('formularz_cykliczne') }}"
+         data-cel="{{ url_for('formularz_cykliczne') }}">
+        <span class="fw-link-nazwa">Formularz CYKLICZNE</span>
+        <span class="fw-znacznik">testowy: CYKLICZNE-PRZEDSZKOLE</span>
+      </a>
+    </nav>
+    <p class="fw-nota">
+      Wszystkie zapisują tak samo — różni je tylko sposób wypełniania.
+      Uwaga: v2–v4 biorą miejscowości ze starego słownika i po migracji bazy
+      na rejestr RSPO wybór szkoły może nie działać.
+    </p>
+  </details>
 </div>
 {% endblock %}
 

@@ -100,6 +100,42 @@
 </script>
 {% endif %}
 
+{% if oddane %}
+<script>
+  // Czerwona plakietka „oddana z powodem" (pkt 12, 30.08) — handlowiec oddał
+  // lead, którego nie powinien był dostać. Czerwień odróżnia świadome „to nie
+  // moje" od bursztynowego automatu po terminie. Klik = rozpatrzone.
+  (function () {
+    var oddane = {{ oddane | tojson }};
+    Object.keys(oddane).forEach(function (id) {
+      var tr = document.querySelector('tr[data-lead="' + id + '"]');
+      if (!tr) return;
+      tr.classList.add("oddana");
+      var td = tr.querySelector("td:nth-child(3)");   // kolumna „placówka"
+      if (!td) return;
+      var o = oddane[id];
+      var b = document.createElement("span");
+      b.className = "tag tag-oddana";
+      b.textContent = "oddana: " + (o.kto || "?");
+      b.title = "Oddana " + o.kiedy + " przez " + (o.kto || "?") + ".\nPowód: "
+              + (o.powod || "—") + "\n\nKliknij, żeby oznaczyć jako rozpatrzone "
+              + "(przydzielenie innemu handlowcowi też gasi plakietkę).";
+      b.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        if (!confirm("Oznaczyć zgłoszenie jako rozpatrzone?\n\nPowód oddania: "
+                     + (o.powod || "—"))) return;
+        fetch("/api/lead/" + id + "/zwrot-rozpatrzony", {
+          method: "POST",
+          headers: { "Content-Type": "application/json",
+                     "X-CSRF": (document.querySelector('meta[name="csrf"]') || {}).content || "" }
+        }).then(function (r) { if (r.ok) { b.remove(); tr.classList.remove("oddana"); } });
+      });
+      td.appendChild(b);
+    });
+  })();
+</script>
+{% endif %}
+
 {{ stronicowanie(strona, stron, total, pokazano, na_strone, query) }}
 
 {{ legenda('Przypisanie leada to zmiana właściciela i statusu — rekord zostaje w jednej

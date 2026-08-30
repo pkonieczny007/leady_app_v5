@@ -26,6 +26,23 @@ SORT_POLA = {
     "aktywnosc": "l.ostatnia_aktywnosc",
 }
 
+# „Szkoła z brakami" wg definicji Kasi (30.08, pkt 13): brak ustalonych zajęć,
+# brak trenera, brak godziny, brak terminu. Czyli: jest żywe spotkanie, któremu
+# brakuje trenera / godziny / daty, ALBO status mówi „03. DT umówione" (i dalej:
+# 03b/03c), a żadnego żywego spotkania nie ma. Braki danych KONTAKTOWYCH tu nie
+# wchodzą — Kasia wskazała wyłącznie dane zajęć. Jedno wyrażenie dla kolumny,
+# filtra i sortowania, żeby trzy miejsca nie rozjechały się po pierwszej zmianie.
+SQL_BRAKI_ZAJEC = (
+    "(EXISTS (SELECT 1 FROM eventy e WHERE e.lead_id = l.id"
+    " AND (e.odwolane IS NULL OR e.odwolane = '')"
+    " AND (e.trener IS NULL OR e.trener = ''"
+    "      OR e.godz_od IS NULL OR e.godz_od = ''"
+    "      OR e.data IS NULL OR e.data = ''))"
+    " OR (l.status_realizacji LIKE '03%'"
+    "     AND NOT EXISTS (SELECT 1 FROM eventy e WHERE e.lead_id = l.id"
+    "                     AND (e.odwolane IS NULL OR e.odwolane = ''))))"
+)
+
 BAZOWY_SELECT = """
 SELECT l.*,
        p.id   AS placowka_id,
@@ -73,10 +90,11 @@ SELECT l.*,
           AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_dt,
        (SELECT COUNT(*) FROM eventy e WHERE e.lead_id = l.id
           AND e.typ IN (%(cykl)s)
-          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_cykl
+          AND (e.odwolane IS NULL OR e.odwolane = '')) AS n_cykl,
+       %(braki)s AS braki_zajec
 FROM leady l
 JOIN placowki p ON p.id = l.placowka_id
-""" % {"cykl": SQL_TYPY_CYKLICZNE}
+""" % {"cykl": SQL_TYPY_CYKLICZNE, "braki": SQL_BRAKI_ZAJEC}
 
 
 # ------------------------------------------------------------------ FILTR OSÓB
@@ -116,8 +134,27 @@ def pusty_filtr():
     # powiatami, a lista miejscowości powstała z ręcznych wpisów w arkuszu
     # i miesza miasta, wsie i worki powiatowe (`15. Będzin` = 17 miejscowości).
     return {"handlowiec": "", "powiat": "", "miasto": "", "status": "",
-            "status_szkoly": "", "typ": "", "dt": "", "q": "",
+            "status_szkoly": "", "typ": "", "dt": "", "q": "", "braki": "",
             "osoby": "", "osoby_tryb": "", "zakres": "", "sort": "", "kier": ""}
+
+
+def domknij_zakres(f, zakres_domyslny=""):
+    """
+    Ostatni krok czytania filtra — wołają go i widok, i eksport, żeby oba
+    rozumiały zakres tak samo.
+
+    Konkretny handlowiec + zakres „nieprzydzielone" to sprzeczność w SQL
+    (`l.handlowiec = X AND l.handlowiec IS NULL`) — na /baza domyślna zakładka
+    „Do rozdania" dawała ZAWSZE 0 rekordów po wybraniu handlowca, stąd
+    zgłoszenie Kasi „moja baza koordynatora jest pusta" (30.08). Wybór osoby
+    znaczy „pokaż jej szkoły", więc zakres ustępuje i przechodzi na „wszystkie"
+    — jawnie, zakładka w UI też się przełącza.
+    """
+    if not f["zakres"] and zakres_domyslny:
+        f["zakres"] = zakres_domyslny
+    if f["handlowiec"] and f["zakres"] == "nieprzydzielone":
+        f["zakres"] = "wszystkie"
+    return f
 
 
 def czytaj_filtr(args):
@@ -191,6 +228,9 @@ def _warunki(f, dzis):
         w.append("p.typ = ?"); p.append(f["typ"])
     if f["dt"]:
         w.append("l.dt = ?"); p.append(f["dt"])
+    if f["braki"]:
+        # „szkoły z brakami" (pkt 13, 30.08) — definicja w SQL_BRAKI_ZAJEC
+        w.append(SQL_BRAKI_ZAJEC)
     if f["q"]:
         like = "%" + f["q"] + "%"
         w.append("(p.nazwa LIKE ? OR p.miejscowosc LIKE ? OR p.powiat LIKE ? "
@@ -233,13 +273,28 @@ def _warunki(f, dzis):
 def _order_by(f):
     """
     Domyślne sortowanie: przypięte na tydzień NA GÓRZE (wprost z notatek ze spotkania:
-    „wybrane szkoły na tydzień do góry"), potem po terminie, potem alfabetycznie.
+    „wybrane szkoły na tydzień do góry"), potem wg etapu lejka, potem po terminie.
+
+    Warstwa lejka doszła 30.08 (Kasia, pkt 9; wcześniej Zuzia 20.08): „na górze
+    mają się pojawiać szkoły, w których nic jeszcze nie zrobił, a znikać te,
+    które już mają DT". Nie znikają — SPADAJĄ na dół, a zakładka „DT umówione"
+    zostaje ich filtrem; ukryte rekordy wyglądałyby jak zgubione (ta sama
+    lekcja co przy filtrze „mój"). `LIKE '03%'` celowo bez kropki: łapie też
+    03b/03c (grupa otwarta / nie otworzyła się) — każda z nich to szkoła,
+    w której praca handlowca już była.
     """
     if f["sort"] in SORT_POLA:
         kier = "DESC" if f["kier"] == "desc" else "ASC"
         return "ORDER BY %s %s, p.nazwa ASC" % (SORT_POLA[f["sort"]], kier)
+    # Braki zajęć PRZED warstwą lejka: szkoła z DT bez trenera czy godziny ma
+    # NIE spaść na dół razem z domkniętymi — „żeby PH o nich pamiętał, że tam
+    # czegoś brakuje" (pkt 13).
     return ("ORDER BY CASE WHEN l.pin_tydzien IS NOT NULL AND l.pin_tydzien <> '' "
             "THEN 0 ELSE 1 END, "
+            "CASE WHEN braki_zajec THEN 0 ELSE 1 END, "
+            "CASE WHEN l.status_realizacji LIKE '03%' THEN 2 "
+            "WHEN l.status_realizacji IS NULL OR l.status_realizacji = '' "
+            "OR l.status_realizacji LIKE '00%' THEN 0 ELSE 1 END, "
             "CASE WHEN l.deadline IS NULL OR l.deadline='' THEN 1 ELSE 0 END, "
             "l.deadline ASC, l.handlowiec ASC, p.miejscowosc ASC, p.nazwa ASC")
 
@@ -288,8 +343,11 @@ def lead_szczegoly(conn, lead_id):
         return None
     lead = dict(row)
     lead["po_terminie"] = czy_po_terminie(lead)
+    # Chronologicznie, nie po typie: koordynatorka czyta kartę jak kalendarz
+    # placówki („co jest najbliżej?"), a sort po typie ustawiał CYKLICZNE
+    # z grudnia przed CYKLICZNE-PRZEDSZKOLE z października (zgłoszenie 30.08).
     lead["eventy"] = [dict(r) for r in conn.execute(
-        "SELECT * FROM eventy WHERE lead_id=? ORDER BY typ, data, godz_od",
+        "SELECT * FROM eventy WHERE lead_id=? ORDER BY data, godz_od, typ",
         (lead_id,)).fetchall()]
     # Terminy pakietu (przedszkola). Bez tego karta szkoły pokazywałaby jedną
     # datę — pierwszą — a pozostałe cztery istniałyby wyłącznie w kalendarzu.
@@ -301,6 +359,16 @@ def lead_szczegoly(conn, lead_id):
                 "WHERE event_id=? ORDER BY data", (e["id"],)).fetchall()]
         except Exception:
             e["terminy"] = []
+        # Odwołane POJEDYNCZE zajęcia z cyklu (30.08). Ślad ma być tam, gdzie
+        # ludzie go szukają — czyli w karcie szkoły, nie tylko w kalendarzu
+        # w trybie „odwołane", do którego trzeba wiedzieć, że się wchodzi.
+        try:
+            e["odwolane_terminy"] = [dict(r) for r in conn.execute(
+                "SELECT data, powod_odwolania, odwolal, odwolane_kiedy "
+                "FROM wyjatki_cyklu WHERE event_id=? AND odwolane=1 ORDER BY data",
+                (e["id"],)).fetchall()]
+        except Exception:
+            e["odwolane_terminy"] = []
     lead["log"] = [dict(r) for r in conn.execute(
         "SELECT * FROM log WHERE lead_id=? ORDER BY kiedy DESC LIMIT 40",
         (lead_id,)).fetchall()]
@@ -346,10 +414,22 @@ def per_handlowiec(conn, cel_tygodniowy=5, dzis=None):
     """
     dzis_d = dt.date.fromisoformat(dzis) if dzis else dt.date.today()
     poniedzialek = (dzis_d - dt.timedelta(days=dzis_d.weekday())).isoformat()
+    # Cztery warstwy lejka dla raportu Wojtka (pkt 4 z 30.08: „ile szkół ma
+    # przydzielony PH, w ilu zrobił kontakt, w ilu DT, ilu nie ruszył, w ilu mu
+    # się nie udało"). Numery statusów NIOSĄ etap lejka (00 nic → 01/02 kontakt
+    # → 03 DT → 04 odpadło), a `LIKE '03%'` bez kropki łapie też 03b/03c —
+    # dzięki temu cztery warstwy sumują się dokładnie do „leadow" i tabela
+    # nie zostawia rekordów-widm, których nie widać w żadnej kolumnie.
     rows = conn.execute(
         """
         SELECT l.handlowiec,
                COUNT(*) AS leadow,
+               SUM(CASE WHEN l.status_realizacji IS NULL OR l.status_realizacji=''
+                         OR l.status_realizacji LIKE '00%' THEN 1 ELSE 0 END) AS nieruszone,
+               SUM(CASE WHEN l.status_realizacji LIKE '01%'
+                         OR l.status_realizacji LIKE '02%' THEN 1 ELSE 0 END) AS kontakt,
+               SUM(CASE WHEN l.status_realizacji LIKE '03%' THEN 1 ELSE 0 END) AS dt_lacznie,
+               SUM(CASE WHEN l.status_realizacji LIKE '04%' THEN 1 ELSE 0 END) AS odpadle,
                SUM(CASE WHEN l.status_realizacji LIKE ? THEN 1 ELSE 0 END) AS umowione,
                SUM(CASE WHEN l.status_realizacji LIKE ?
                          AND l.ostatnia_aktywnosc IS NOT NULL

@@ -341,6 +341,147 @@ def test_podglad_zostaje(ids):
     sprawdz("lista placówek dalej dostępna", r.status_code == 200, "kod %s" % r.status_code)
 
 
+def _xlsx_teksty(dane):
+    """Wszystkie komórki skoroszytu jako jeden tekst — do prostych asercji."""
+    from io import BytesIO
+    from openpyxl import load_workbook
+    wb = load_workbook(BytesIO(dane), read_only=True)
+    czesci = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            czesci += [str(c) for c in row if c is not None]
+    return " | ".join(czesci)
+
+
+def test_eksport(ids):
+    """Eksport dla PH (30.08): raport z filtrów TAK, ale przybity do własnych
+    szkół — nazwisko z sesji, nie z adresu, więc podmiana parametru w URL
+    niczego nie otwiera."""
+    print("\n-- eksport XLSX: PH dostaje raport, ale tylko własnych szkół --")
+    import urllib.parse
+    zaloguj(PH_A)
+    r = KL.get("/export.xlsx")
+    sprawdz("handlowiec pobiera eksport (do 30.08 dostawał 403)",
+            r.status_code == 200, "kod %s" % r.status_code)
+    t = _xlsx_teksty(r.data)
+    sprawdz("w pliku są jego szkoły", "Szkoła A (moja)" in t)
+    sprawdz("cudzych szkół w pliku nie ma", "Szkoła B (cudza)" not in t)
+
+    r = KL.get("/export.xlsx?handlowiec=" + urllib.parse.quote(PH_B))
+    t = _xlsx_teksty(r.data)
+    sprawdz("parametr handlowiec w URL nie otwiera cudzych leadów",
+            "Szkoła B (cudza)" not in t and "Szkoła A (moja)" in t)
+
+    zaloguj(KOOR)
+    r = KL.get("/export.xlsx?handlowiec=" + urllib.parse.quote(PH_B))
+    t = _xlsx_teksty(r.data)
+    sprawdz("koordynator eksportuje wg dowolnego filtra", "Szkoła B (cudza)" in t)
+
+    # Sprzeczność zakresu (pkt 17 z 30.08): konkretny handlowiec + zakładka
+    # „Do rozdania" dawały ZAWSZE 0 wierszy. Zakres ma ustąpić filtrowi osoby.
+    r = KL.get("/export.xlsx?handlowiec=%s&zakres=nieprzydzielone"
+               % urllib.parse.quote(PH_A))
+    t = _xlsx_teksty(r.data)
+    sprawdz("handlowiec + „nieprzydzielone” nie daje już pustki",
+            "Szkoła A (moja)" in t)
+    r = KL.get("/baza?handlowiec=%s&zakres=nieprzydzielone"
+               % urllib.parse.quote(PH_A))
+    sprawdz("ekran /baza z tym samym filtrem pokazuje szkoły",
+            "Szkoła A (moja)" in r.get_data(as_text=True))
+
+
+def test_oddanie(ids):
+    """Oddanie leada przez handlowca (pkt 12, 30.08): tylko własny, tylko
+    z powodem; u koordynatora czerwona plakietka, przydzielenie ją gasi."""
+    print("\n-- oddanie leada z powodem --")
+    conn = db.get_conn()
+    pid = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES ('Szkoła oddawana', 'test')").lastrowid
+    lid = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) "
+        "VALUES (?,?, '01. Próba kontaktu (Brak konkretów)')", (pid, PH_A)).lastrowid
+    conn.commit(); conn.close()
+
+    zaloguj(PH_B)
+    kod, _ = post("/api/lead/%d/oddaj" % lid, {"powod": "to nie moja szkoła"})
+    sprawdz("cudzej szkoły nie da się oddać", kod == 403, "kod %s" % kod)
+
+    zaloguj(PH_A)
+    kod, odp = post("/api/lead/%d/oddaj" % lid, {"powod": "   "})
+    sprawdz("oddanie bez powodu odrzucone", kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/lead/%d/oddaj" % lid, {"powod": "dostałem przez przypadek"})
+    sprawdz("oddanie z powodem przechodzi", kod == 200, "kod %s" % kod)
+
+    conn = db.get_conn()
+    l = dict(conn.execute("SELECT * FROM leady WHERE id=?", (lid,)).fetchone())
+    conn.close()
+    sprawdz("lead wrócił do puli (bez handlowca)", l["handlowiec"] is None)
+    sprawdz("powód i osoba zapisane na czerwoną plakietkę",
+            l["zwrot_powod"] == "dostałem przez przypadek" and l["zwrot_kto"] == PH_A
+            and bool(l["zwrot_zgloszony"]))
+
+    zaloguj(KOOR)
+    r = KL.get("/baza?zakres=nieprzydzielone")
+    html = r.get_data(as_text=True)
+    sprawdz("koordynator widzi zgłoszenie na /baza",
+            "Szkoła oddawana" in html and "oddana:" in html)
+
+    kod, _ = post("/api/przypisz", {"ids": [lid], "handlowiec": PH_B})
+    conn = db.get_conn()
+    l = dict(conn.execute("SELECT * FROM leady WHERE id=?", (lid,)).fetchone())
+    conn.close()
+    sprawdz("przydzielenie gasi plakietkę",
+            kod == 200 and l["zwrot_zgloszony"] is None and l["zwrot_powod"] is None)
+
+    zaloguj(PH_A)
+    kod, _ = post("/api/lead/%d/zwrot-rozpatrzony" % lid, {})
+    sprawdz("„rozpatrzone” może kliknąć tylko koordynator", kod == 403, "kod %s" % kod)
+
+
+def test_odwolanie_terminu_cyklu(ids):
+    """Odwołanie JEDNYCH zajęć cyklu (pkt 21, 30.08) idzie przez tę samą
+    kontrolę własności co reszta zapisów — nowy endpoint nie może być obejściem."""
+    print("\n-- odwołanie pojedynczego terminu cyklu: czyja szkoła --")
+    conn = db.get_conn()
+    cykle = {}
+    for klucz in ("a", "b"):
+        cykle[klucz] = conn.execute(
+            "INSERT INTO eventy (lead_id, typ, data, godz_od, co_ile_tygodni) "
+            "VALUES (?, 'CYKLICZNE', '2026-09-15', '12:00', 1)", (ids[klucz],)).lastrowid
+    conn.commit(); conn.close()
+
+    zaloguj(PH_A)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["b"],
+                  {"data": "2026-09-22", "powod": "próba na cudzej"})
+    sprawdz("cudzego terminu handlowiec nie odwoła", kod == 403, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["a"],
+                  {"data": "2026-09-22", "powod": "wywiadówka"})
+    sprawdz("swój termin odwołuje", kod == 200, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/odwolaj-termin" % cykle["a"], {"powod": "bez daty"})
+    sprawdz("bez daty terminu odmowa", kod == 400, "kod %s" % kod)
+
+    conn = db.get_conn()
+    w = conn.execute("SELECT odwolal FROM wyjatki_cyklu WHERE event_id=?",
+                     (cykle["a"],)).fetchone()
+    conn.close()
+    sprawdz("podpis bierze się z sesji, nie z żądania", w and w["odwolal"] == PH_A,
+            str(dict(w) if w else None))
+
+    # Przesuwanie terminów (pkt 18) idzie tą samą kontrolą — handlowiec MUSI
+    # móc na swojej szkole, bo brak tej możliwości był powodem zgłoszenia
+    # („PH wpisał cykle jako DT, bo nie mógł edytować dat").
+    print("\n-- przesuwanie terminów cyklu: czyja szkoła --")
+    kod, _ = post("/api/event/%d/termin" % cykle["b"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-16"})
+    sprawdz("cudzego terminu handlowiec nie przesunie", kod == 403, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % cykle["a"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-16"})
+    sprawdz("swój termin przesuwa", kod == 200, "kod %s" % kod)
+    zaloguj(KOOR)
+    kod, _ = post("/api/event/%d/termin" % cykle["b"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-17"})
+    sprawdz("koordynator przesuwa każdy", kod == 200, "kod %s" % kod)
+
+
 def main():
     print("=" * 62)
     print("UPRAWNIENIA — właściciel rekordu przy zapisie (P01, P02)")
@@ -355,6 +496,9 @@ def main():
     test_tworzenie_leada(ids)
     test_koordynator(ids)
     test_podglad_zostaje(ids)
+    test_eksport(ids)
+    test_oddanie(ids)
+    test_odwolanie_terminu_cyklu(ids)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n" + "=" * 62)

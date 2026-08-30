@@ -270,6 +270,28 @@
       .catch(function (e) { toast("Nie usunięto: " + e.message, true); });
   });
 
+  /* Oddanie leada przez handlowca (pkt 12, 30.08): „może usuwać, ale tylko
+     wpisując powód — i on się pojawia u koordynatora na czerwono".
+     Ten sam wzorzec `prompt` co przy odwołaniu spotkania — patrz niżej. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("#btn-oddaj-lead");
+    if (!btn) return;
+    var powod = prompt("Dlaczego oddajesz tę szkołę?\n\n" +
+                       "Zniknie z Twojej listy i wróci do puli koordynatora " +
+                       "z Twoim nazwiskiem i tym powodem. Notatki i historia zostają.");
+    if (powod === null) return;                 // Anuluj — nie robimy nic
+    if (!powod.trim()) {
+      toast("Bez powodu nie da się oddać — koordynator nie będzie wiedział, co poprawić.", true);
+      return;
+    }
+    api("POST", "/api/lead/" + btn.dataset.id + "/oddaj", { powod: powod.trim() })
+      .then(function () {
+        toast("Oddano — szkoła wróciła do koordynatora");
+        setTimeout(function () { location.href = "/leady"; }, 900);
+      })
+      .catch(function (e) { toast("Nie oddano: " + e.message, true); });
+  });
+
   /* ============================================================ SPOTKANIA (eventy)
      Dodanie DRUGIEGO DT temu samemu trenerowi w tym samym dniu MUSI się udać —
      to jest wprost naprawa zgłoszonego buga. Kolizja godzin to ostrzeżenie.
@@ -348,6 +370,75 @@
     if (!btn) return;
     if (!confirm("Cofnąć odwołanie? Spotkanie wróci do grafiku.")) return;
     api("POST", "/api/event/" + btn.dataset.id + "/odwolaj", { cofnij: true })
+      .then(function () { location.reload(); })
+      .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
+  });
+
+  /* „Odwołaj zajęcia" w karcie szkoły rozwija listę terminów tego cyklu —
+     ten sam ruch co „Kogo wysłać?". Bez listy trzeba by znać datę na pamięć. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-terminy-cyklu");
+    if (!btn) return;
+    var panel = document.getElementById("tc-" + btn.dataset.id);
+    if (!panel) return;
+    var otwarty = !panel.hidden;
+    document.querySelectorAll(".tc-panel").forEach(function (p) { p.hidden = true; });
+    panel.hidden = otwarty;
+    btn.classList.toggle("on", !otwarty);
+  });
+
+  /* Przesunięcie POJEDYNCZYCH zajęć cyklu (pkt 18, 30.08). Zapis od razu po
+     zmianie pola — tak samo jak każda inna edycja w karcie; bez przycisku
+     „zapisz", bo ten wzorzec jest w projekcie od v3 i ludzie go znają. */
+  document.addEventListener("change", function (ev) {
+    var el = ev.target.closest(".tc-data, .tc-godz");
+    if (!el) return;
+    var dane = { data: el.dataset.data };
+    if (el.classList.contains("tc-data")) {
+      if (!el.value) { toast("Data nie może być pusta", true); el.value = el.dataset.data; return; }
+      dane.data_nowa = el.value;
+    } else {
+      dane.godz_od = el.value;
+    }
+    api("POST", "/api/event/" + el.dataset.id + "/termin", dane)
+      .then(function () {
+        toast("Zmieniono termin — pozostałe zajęcia bez zmian");
+        setTimeout(function () { location.reload(); }, 700);
+      })
+      .catch(function (e) {
+        toast("Nie zmieniono: " + e.message, true);
+        if (el.classList.contains("tc-data")) el.value = el.dataset.data;
+      });
+  });
+
+  /* Odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08) — reszta pakietu zostaje.
+     Osobny przycisk i osobny endpoint niż odwołanie całego spotkania: kafel
+     cyklu to wystąpienie reguły, więc odwołanie „po id" zdjęłoby z grafiku
+     wszystkie terminy naraz. Dlatego w treści pytania jest KONKRETNA data. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-odwolaj-termin");
+    if (!btn) return;
+    ev.preventDefault();
+    var powod = prompt("Dlaczego odwołujemy zajęcia " + btn.dataset.data + "?\n\n" +
+                       "Odwołany zostanie TYLKO ten termin — reszta cyklu jedzie " +
+                       "dalej. Zapisze się z Twoim nazwiskiem i datą.");
+    if (powod === null) return;
+    if (!powod.trim()) {
+      toast("Bez powodu nie da się odwołać — za miesiąc nikt tego nie odtworzy.", true);
+      return;
+    }
+    api("POST", "/api/event/" + btn.dataset.id + "/odwolaj-termin",
+        { data: btn.dataset.data, powod: powod.trim() })
+      .then(function () { location.reload(); })
+      .catch(function (e) { toast("Nie odwołano: " + e.message, true); });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-przywroc-termin");
+    if (!btn) return;
+    if (!confirm("Przywrócić zajęcia " + btn.dataset.data + " do grafiku?")) return;
+    api("POST", "/api/event/" + btn.dataset.id + "/odwolaj-termin",
+        { data: btn.dataset.data, cofnij: true })
       .then(function () { location.reload(); })
       .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
   });

@@ -951,11 +951,10 @@
     }
     if ($("f5-status").value) payload.status_realizacji = $("f5-status").value;
     if ($("f5-notatka").value.trim()) {
-      // Podpis z sesji dokleja serwer? Nie — na razie robi to formularz,
-      // bo `uwagi` to zwykłe pole leada. Nazwisko bierzemy z `data-handlowiec`,
-      // czyli z tego, co serwer wpisał z SESJI, a nie z pola do wpisania.
-      payload.uwagi = "[" + DZIS + (HANDLOWIEC ? " · " + HANDLOWIEC : "") + "] " +
-                      $("f5-notatka").value.trim();
+      // Goła notatka. Stempel [data · kto] dokleja SERWER (od 30.08) — dzięki
+      // temu podpisane są notatki ze WSZYSTKICH wariantów, a nazwisko idzie
+      // z sesji. Gdyby formularz stemplował sam, v5 miałby podpis podwójny.
+      payload.uwagi = $("f5-notatka").value.trim();
     }
 
     var btn = $("f5-zapisz");
