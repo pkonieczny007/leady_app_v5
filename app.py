@@ -629,8 +629,10 @@ def lead_detail(lead_id):
         "lead_fields": LEAD_FIELDS, "julia_fields": JULIA_FIELDS,
         "event_fields": EVENT_FIELDS, "placowka_fields": PLACOWKA_FIELDS,
         # pkt 19 (30.08): karta pokazuje najbliższe WYSTĄPIENIA cykli, liczone
-        # tym samym kodem co kalendarz — koniec z „kalendarz się nie zaktualizował"
-        "wystapienia": cv.wystapienia_leada(conn, lead_id),
+        # tym samym kodem co kalendarz — koniec z „kalendarz się nie zaktualizował".
+        # Limit wyższy niż podgląd na dole karty, bo z tej samej listy korzysta
+        # rozwijane „Odwołaj zajęcia" przy KAŻDYM cyklu z osobna.
+        "wystapienia": cv.wystapienia_leada(conn, lead_id, ile=24),
         "today": dzis(),
     }
     conn.close()

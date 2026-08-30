@@ -374,6 +374,19 @@
       .catch(function (e) { toast("Nie cofnięto: " + e.message, true); });
   });
 
+  /* „Odwołaj zajęcia" w karcie szkoły rozwija listę terminów tego cyklu —
+     ten sam ruch co „Kogo wysłać?". Bez listy trzeba by znać datę na pamięć. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-terminy-cyklu");
+    if (!btn) return;
+    var panel = document.getElementById("tc-" + btn.dataset.id);
+    if (!panel) return;
+    var otwarty = !panel.hidden;
+    document.querySelectorAll(".tc-panel").forEach(function (p) { p.hidden = true; });
+    panel.hidden = otwarty;
+    btn.classList.toggle("on", !otwarty);
+  });
+
   /* Odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08) — reszta pakietu zostaje.
      Osobny przycisk i osobny endpoint niż odwołanie całego spotkania: kafel
      cyklu to wystąpienie reguły, więc odwołanie „po id" zdjęłoby z grafiku

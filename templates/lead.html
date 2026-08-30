@@ -92,12 +92,17 @@
         <button type="button" class="btn btn-secondary btn-sm btn-kandydaci" data-id="{{ e.id }}"
                 title="Pokaż, kto może pojechać na to spotkanie">
           {{ 'Zmień trenera' if e.trener else 'Kogo wysłać?' }}</button>
-        {# Przy cyklu przycisk mówi wprost, że bierze CAŁY pakiet — do 30.08
-           nazywał się „Odwołaj" i wyglądał jak odwołanie jednych zajęć, a zdejmował
-           z grafiku wszystkie wystąpienia. Pojedynczy termin odwołuje się
-           krzyżykiem na kaflu w kalendarzu. #}
+        {# Dwa odwołania obok siebie i to jest celowe: przy cyklu „jedne zajęcia"
+           i „cały pakiet" to zupełnie różne decyzje, a do 30.08 istniał tylko
+           ten drugi przycisk pod nazwą „Odwołaj" — czyli nazwa obiecywała jedno,
+           a robiła drugie. Teraz oba są nazwane wprost i stoją razem, żeby wybór
+           był widoczny w miejscu, w którym koordynatorka pracuje ze spotkaniem. #}
+        {% if e.typ in TYPY_CYKLICZNE %}
+        <button type="button" class="btn btn-secondary btn-sm btn-terminy-cyklu" data-id="{{ e.id }}"
+                title="Odwołaj pojedyncze zajęcia — reszta cyklu jedzie dalej">Odwołaj zajęcia</button>
+        {% endif %}
         <button type="button" class="btn btn-ghost btn-odwolaj-event" data-id="{{ e.id }}"
-                title="{{ 'Odwołuje CAŁY cykl — wszystkie terminy znikną z grafiku. Pojedyncze zajęcia odwołasz krzyżykiem w Kalendarzu DT.'
+                title="{{ 'Odwołuje CAŁY cykl — wszystkie terminy znikną z grafiku'
                           if e.typ in TYPY_CYKLICZNE
                           else 'Odwołaj — wpis zostaje z powodem, znika z grafiku' }}">{{
                   'Odwołaj cały cykl' if e.typ in TYPY_CYKLICZNE else 'Odwołaj' }}</button>
@@ -136,6 +141,36 @@
         </ol>
       </div>
       {% endif %}
+      {# Lista najbliższych terminów TEGO cyklu, rozwijana przyciskiem „Odwołaj
+         zajęcia" — ten sam wzorzec co panel „Kogo wysłać?": klik rozwija to,
+         czego akurat potrzeba, zamiast trzymać na ekranie wszystko naraz.
+         Terminy liczy ten sam kod co kalendarz, więc lista nie może się
+         rozjechać z grafikiem. #}
+      {% if e.typ in TYPY_CYKLICZNE %}
+      {% set moje = wystapienia | selectattr('id', 'equalto', e.id) | list %}
+      <div class="event-terminy tc-panel" id="tc-{{ e.id }}" hidden>
+        <span class="kv-l">Które zajęcia odwołujemy?</span>
+        {% if moje %}
+        <ol class="terminy-lista">
+          {% for w in moje %}
+          <li>
+            <span class="nums">{{ w.data|pl_data }}</span>
+            <span class="nums muted">{{ w.godz_od or '' }}{{ '–' ~ w.godz_do if w.godz_do }}</span>
+            {% if w.trener %}<span class="muted small">{{ w.trener|bez_prefiksu }}</span>{% endif %}
+            <button type="button" class="btn btn-ghost btn-sm btn-odwolaj-termin"
+                    data-id="{{ e.id }}" data-data="{{ w.data }}"
+                    title="Odwołaj te zajęcia — reszta cyklu zostaje">✕ odwołaj</button>
+          </li>
+          {% endfor %}
+        </ol>
+        <p class="legend">Odwołanie dotyczy tylko wybranej daty. Cały pakiet
+          zdejmuje przycisk „Odwołaj cały cykl".</p>
+        {% else %}
+        <p class="empty">Ten cykl nie ma już przyszłych terminów w grafiku.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
       {# Odwołane pojedyncze zajęcia z tego cyklu (30.08) — reszta pakietu jedzie
          dalej, więc bez tej listy jedyny ślad wisiałby w kalendarzu w trybie
          „odwołane", do którego trzeba wiedzieć, że się wchodzi. #}
@@ -177,9 +212,9 @@
      i odwołania już uwzględnione), więc karta i kalendarz mówią jednym głosem. #}
   {% if wystapienia %}
   <div class="card event-terminy">
-    <span class="kv-l">Najbliższe zajęcia cykliczne wg kalendarza ({{ wystapienia|length }})</span>
+    <span class="kv-l">Najbliższe zajęcia cykliczne wg kalendarza</span>
     <ol class="terminy-lista">
-      {% for w in wystapienia %}
+      {% for w in wystapienia[:10] %}
       <li>
         <span class="nums">{{ w.data|pl_data }}</span>
         <span class="nums muted">{{ w.godz_od or '' }}{{ '–' ~ w.godz_do if w.godz_do }}</span>
