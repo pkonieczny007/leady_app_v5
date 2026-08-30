@@ -720,12 +720,29 @@ szkół ani numerów.
 
 ---
 
-## 8e. Runda poprawek 30.08.2026 — gałąź `poprawki-2026-08-30`
+## 8e. Runda poprawek 30.08.2026 — ✅ WDROŻONA NA PRODUKCJI
+
+**Stan: `main` = `5ad3196`, tag `v5.2-poprawki-30-08` (punkt cofnięcia kodu),
+produkcja zaktualizowana 30.08 wieczorem.** Zrobione **18 z 21** punktów listy.
 
 Lista 21+2 punktów od Kasi: `docs/poprawki 30.08.2026/` (katalog w `.gitignore`
-— są tam JPG-i z nazwami szkół, repo jest publiczne). Stan, wdrożenie
-i odpowiedzi dla Kasi: **`STAN_SESJI_2026-08-30.md`** w tym katalogu.
-Testy: 11 plików, ~1090 sprawdzeń, komplet OK. Commity `a976d39` + `27d6cbd`.
+— są tam JPG-i i nazwiska, repo jest publiczne). W środku:
+**`PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md`** (punkt po punkcie, językiem klienta
+— to jest plik do wysłania) i **`STAN_SESJI_2026-08-30.md`** (kroki wdrożeniowe,
+stan kont, checklisty). Testy: 11 plików, **1120 sprawdzeń + 93 parsers**, komplet OK.
+
+⚠️ **Katalog produkcyjny na VPS stał na gałęzi `poprawki-2026-08`, nie na `main`**
+— ktoś przełączył go w poprzedniej rundzie, a `wdroz.sh` robi `git pull --ff-only`
+na BIEŻĄCEJ gałęzi, więc bez `git checkout main` pociągnąłby poprzednią rundę.
+Sprawdzać to przed każdym wdrożeniem: `git branch --show-current` w katalogu apki.
+
+⚠️ **Migracja przy kilku workerach gunicorna to wyścig.** Przy wdrożeniu demo
+wyszło `duplicate column name` — każdy worker startuje osobno, każdy widzi brak
+kolumny, każdy robi `ALTER TABLE`. Worker padał, kontener podnosił go po
+sekundzie, więc wdrożenie „działało", ale w logu zostawał wpis wyglądający jak
+awaria. `db.migruj()` łyka teraz `duplicate column` (commit `2090303`,
+test S6 odpala cztery równoległe migracje). **Każda przyszła zmiana schematu
+musi to zachować.**
 
 Zrobione: eksport XLSX dla PH (przybity do własnych szkół) · chip „H handlowiec"
 w kalendarzu · raport lejka per handlowiec na pulpicie · v5 jedynym widocznym
@@ -747,10 +764,17 @@ dopisywanie. Teraz serwer dopisuje (najświeższa na górze) i stempluje
 `[data · kto]` z sesji dla WSZYSTKICH wariantów; wizyta bez zajęć zostawia
 wpis w logu (wcześniej zero śladu — `zapisz_log` siedział w pętli po spotkaniach).
 
-Decyzje klienta z tej rundy: **nie robimy roli „biuro"** (konto koordynatorskie
-Małolepszej do usunięcia na prod, zostaje PH + ew. trener) · braki = dane
-ZAJĘĆ, nie kontaktowe · oddawanie leada z powodem zamiast twardego kasowania ·
+Decyzje klienta z tej rundy: **nie robimy roli „biuro"** · braki = dane ZAJĘĆ,
+nie kontaktowe · oddawanie leada z powodem zamiast twardego kasowania ·
 standalone PWA zostaje (zoom na iOS blokuje system, nie my).
+
+⏸️ **Konta Małolepskiej NIE ruszaliśmy przy wdrożeniu (decyzja 30.08).** Miały
+zostać zmienione, ale kontrola stanu pokazała **trzy konta**, w tym
+`03. Małolepsza (koordynator)` z logowaniem **27.08** — ktoś na nim pracuje.
+Najpierw potwierdzenie u Kasi, kto to był. Gdy będzie jasne: `konto.py wylacz`,
+**nie** `usun` — efekt dla klienta ten sam (brak wejścia do panelu), ale wpisy
+„kto zmienił" w historii zostają czytelne i decyzja jest odwracalna. To ta sama
+zasada, dla której odwołanie spotkania nie kasuje wpisu.
 
 **Cykle przestały być nietykalne (pkt 18 i 21).** Do 30.08 pojedynczych zajęć
 nie dało się ani odwołać, ani przesunąć — i to nie był brak przycisku, tylko
@@ -773,9 +797,29 @@ brakujące operacje dostały więc własne drogi:
 powpisywali jako obejście braku edycji dat cykli („jak zrobisz możliwość
 edycji, wykasujemy DT z tej placówki") — które to, wie ona.
 
-Zostało na kolejne rundy: **pkt 7** („inna placówka" dla PH — tylko typy
-pozaszkolne, blokada po typie w API) · dopisywanie placówki po nr RSPO ·
-**most Zuzi** (eksport do jej arkusza; `drukarz` już jest polem eventu).
+### Zostało po tej rundzie (stan na koniec 30.08)
+1. **Most Zuzi** — czeka na jedną decyzję zakresu: dane pchane automatycznie czy
+   pobierane na żądanie. Punkt startu: eksport XLSX istnieje (`exporter.py`),
+   `drukarz` jest już polem eventu, więc kolumny, o które prosiły, mamy skąd wziąć.
+2. **Pkt 7 — „inna placówka" dla PH** (biblioteka/dom kultury/seniorzy, ~pół dnia).
+   Odwraca częściowo zakaz z 24.08, więc musi być wąskie: dozwolone TYLKO typy
+   pozaszkolne, blokada po typie **w API, nie w UI**, wymagany adres, anty-duble
+   wobec bazy i lustra RSPO. Typu „biblioteka" nie ma w słowniku — dopisać do
+   KAŻDEGO profilu (grabie ze `statusy.py`).
+3. **Konto Małolepskiej** — jw., czeka na potwierdzenie.
+4. **Z Kasią:** skasować DT wpisane przez PH jako obejście braku edycji dat cykli
+   („jak zrobisz możliwość edycji, wykasujemy DT z tej placówki") — pkt 18 jest
+   wdrożony, więc obejście straciło powód; które to placówki, wie ona.
+5. **Dopisywanie placówki po nr RSPO** — odłożone świadomie (backend gotowy:
+   `dokladanie.zapisz` ustawia typ, adres, powiat, gminę i obszar).
+
+### Czego ta runda uczy o zgłoszeniach
+Trzy z najgłośniejszych punktów listy **nie były tym, czym wyglądały**:
+„baza koordynatora pusta" i „brakuje SP 1 Zabrze" to jeden błąd filtra (szkoła
+była w bazie), a „kalendarz się nie zaktualizował" to luka KARTY, nie kalendarza.
+Dwa najpoważniejsze znaleziska — nadpisywane notatki z wizyt i wyścig migracji —
+**nie były w ogóle zgłoszone**; wyszły przy sprawdzaniu, jak działa to, co
+klient opisał. Warto trzymać ten nawyk: sprawdzać mechanizm, nie tylko objaw.
 
 ---
 
@@ -789,5 +833,10 @@ modułów v2–v4; są punktem odniesienia dla decyzji, nie do zmieniania.
 (P01–P31 ze statusami), `STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi.
 `docs/poprawka 23.08.2026/` — `PROJEKT_BAZY_RSPO.md` (migracja M0–M9),
 `PLAN_FORMULARZA.md` (v5, E0–E8), `PLAN_BAZY_PH.md` (zakładki Kasi).
-**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8c wyżej → rejestr
-poprawek → właściwy plan.**
+`docs/poprawki 30.08.2026/` — ⚠️ **katalog NIE jest w repo** (`.gitignore`:
+JPG-i i nazwiska, repo publiczne). Żyje tylko lokalnie i zawiera
+`PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md` (do wysłania klientowi) oraz
+`STAN_SESJI_2026-08-30.md` (kroki wdrożeniowe, stan kont, checklisty).
+
+**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8e (ostatnia runda,
+stan produkcji) → 8d (baza RSPO) → 8c → właściwy plan.**
