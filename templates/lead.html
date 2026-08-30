@@ -25,7 +25,12 @@
             data-pin="{{ 1 if lead.pin_tydzien else 0 }}"
             title="przypnij na plan tygodnia">{{ '★' if lead.pin_tydzien else '☆' }}</button>
     <a class="btn btn-secondary btn-sm" href="{{ url_for('leady') }}">← Lista leadów</a>
+    {# Kasowanie leada jest koordynatorskie (`api_lead_delete` w TYLKO_KOORDYNATOR)
+       — handlowiec widział ten przycisk, klikał, potwierdzał „nie da się cofnąć"
+       i dostawał 403. Martwy przycisk uczy ludzi, że aplikacja kłamie. #}
+    {% if ja and ja.rola == 'koordynator' %}
     <button type="button" class="btn btn-danger btn-sm" id="btn-usun-lead" data-id="{{ lead.id }}">Usuń lead</button>
+    {% endif %}
   </div>
 </div>
 

@@ -341,6 +341,55 @@ def test_podglad_zostaje(ids):
     sprawdz("lista placówek dalej dostępna", r.status_code == 200, "kod %s" % r.status_code)
 
 
+def _xlsx_teksty(dane):
+    """Wszystkie komórki skoroszytu jako jeden tekst — do prostych asercji."""
+    from io import BytesIO
+    from openpyxl import load_workbook
+    wb = load_workbook(BytesIO(dane), read_only=True)
+    czesci = []
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            czesci += [str(c) for c in row if c is not None]
+    return " | ".join(czesci)
+
+
+def test_eksport(ids):
+    """Eksport dla PH (30.08): raport z filtrów TAK, ale przybity do własnych
+    szkół — nazwisko z sesji, nie z adresu, więc podmiana parametru w URL
+    niczego nie otwiera."""
+    print("\n-- eksport XLSX: PH dostaje raport, ale tylko własnych szkół --")
+    import urllib.parse
+    zaloguj(PH_A)
+    r = KL.get("/export.xlsx")
+    sprawdz("handlowiec pobiera eksport (do 30.08 dostawał 403)",
+            r.status_code == 200, "kod %s" % r.status_code)
+    t = _xlsx_teksty(r.data)
+    sprawdz("w pliku są jego szkoły", "Szkoła A (moja)" in t)
+    sprawdz("cudzych szkół w pliku nie ma", "Szkoła B (cudza)" not in t)
+
+    r = KL.get("/export.xlsx?handlowiec=" + urllib.parse.quote(PH_B))
+    t = _xlsx_teksty(r.data)
+    sprawdz("parametr handlowiec w URL nie otwiera cudzych leadów",
+            "Szkoła B (cudza)" not in t and "Szkoła A (moja)" in t)
+
+    zaloguj(KOOR)
+    r = KL.get("/export.xlsx?handlowiec=" + urllib.parse.quote(PH_B))
+    t = _xlsx_teksty(r.data)
+    sprawdz("koordynator eksportuje wg dowolnego filtra", "Szkoła B (cudza)" in t)
+
+    # Sprzeczność zakresu (pkt 17 z 30.08): konkretny handlowiec + zakładka
+    # „Do rozdania" dawały ZAWSZE 0 wierszy. Zakres ma ustąpić filtrowi osoby.
+    r = KL.get("/export.xlsx?handlowiec=%s&zakres=nieprzydzielone"
+               % urllib.parse.quote(PH_A))
+    t = _xlsx_teksty(r.data)
+    sprawdz("handlowiec + „nieprzydzielone” nie daje już pustki",
+            "Szkoła A (moja)" in t)
+    r = KL.get("/baza?handlowiec=%s&zakres=nieprzydzielone"
+               % urllib.parse.quote(PH_A))
+    sprawdz("ekran /baza z tym samym filtrem pokazuje szkoły",
+            "Szkoła A (moja)" in r.get_data(as_text=True))
+
+
 def main():
     print("=" * 62)
     print("UPRAWNIENIA — właściciel rekordu przy zapisie (P01, P02)")
@@ -355,6 +404,7 @@ def main():
     test_tworzenie_leada(ids)
     test_koordynator(ids)
     test_podglad_zostaje(ids)
+    test_eksport(ids)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n" + "=" * 62)

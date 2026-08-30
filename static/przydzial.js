@@ -102,7 +102,15 @@
     var html = '<div class="kd-head">' +
       "<b>Kogo wysłać?</b> <span class='muted small'>" + esc(naglowek) + "</span>" +
       '<span class="kd-head-right muted small">' + j.n_wolnych + " wolnych z " + j.n + "</span>" +
-      '<button type="button" class="btn btn-ghost btn-sm" id="kd-zamknij">✕</button></div>';
+      '<button type="button" class="btn btn-ghost btn-sm" id="kd-zamknij">✕</button></div>' +
+      // „Nie wiem jeszcze, kto pojedzie" to legalna odpowiedź (Kasia, 30.08):
+      // spotkanie bez prowadzącego ląduje w bursztynowym wierszu grafiku,
+      // skąd koordynatorka obsadza je później. Panel umiał dotąd tylko
+      // PRZYPISAĆ — zdjęcie prowadzącego wymagało grzebania w polu na karcie.
+      '<div class="kd-row"><span class="kd-nazwa muted">— bez prowadzącego —</span>' +
+      '<span class="kd-powod">zostaw nieobsadzone, obsadzisz później z grafiku</span>' +
+      '<button type="button" class="btn btn-sm btn-secondary" id="kd-zdejmij" ' +
+      'data-event="' + eventId + '">Zdejmij prowadzącego</button></div>';
 
     if (!j.grupy.length) {
       html += '<p class="empty">Brak trenerów w słowniku.</p>';
@@ -147,6 +155,18 @@
     if (btn) { otworzPanel(btn); return; }
 
     if (ev.target.id === "kd-zamknij") { zamknijPanel(); return; }
+
+    if (ev.target.id === "kd-zdejmij") {
+      ev.target.disabled = true;
+      api("PATCH", "/api/event/" + ev.target.dataset.event,
+          { field: "trener", value: "" })
+        .then(function () {
+          toast("Zdjęto prowadzącego — spotkanie czeka w wierszu „bez prowadzącego”");
+          setTimeout(function () { location.reload(); }, 700);
+        })
+        .catch(function (e) { ev.target.disabled = false; toast(e.message, true); });
+      return;
+    }
 
     var wybierz = ev.target.closest(".btn-kd-wybierz");
     if (wybierz) {

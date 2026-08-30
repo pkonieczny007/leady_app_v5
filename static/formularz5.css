@@ -89,8 +89,7 @@
 
 /* --- pasek zapisu --------------------------------------------------------- */
 
-.f5-akcje {
-  position: sticky; bottom: 0; z-index: 5;
-  padding: 10px 0; margin-top: 14px;
-  background: linear-gradient(to top, #fff 70%, rgba(255, 255, 255, 0));
-}
+/* Bez sticky: pływający „Zapisz" mylił handlowców — wyglądał, jakby formularz
+   miał się kończyć w tym miejscu (zgłoszenie Kasi 30.08). Przycisk stoi na
+   końcu formularza i tyle. */
+.f5-akcje { padding: 10px 0; margin-top: 14px; }

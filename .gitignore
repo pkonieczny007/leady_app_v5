@@ -33,3 +33,5 @@ docs/poprawka */*.xlsx
 # i telefonami placówek. Sam README zostaje w repo, bo opisuje procedurę.
 do_sprawdzenia_recznego/*
 !do_sprawdzenia_recznego/README.md
+poprawki 30.08.2026/
+

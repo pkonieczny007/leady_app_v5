@@ -120,6 +120,25 @@ def pusty_filtr():
             "osoby": "", "osoby_tryb": "", "zakres": "", "sort": "", "kier": ""}
 
 
+def domknij_zakres(f, zakres_domyslny=""):
+    """
+    Ostatni krok czytania filtra — wołają go i widok, i eksport, żeby oba
+    rozumiały zakres tak samo.
+
+    Konkretny handlowiec + zakres „nieprzydzielone" to sprzeczność w SQL
+    (`l.handlowiec = X AND l.handlowiec IS NULL`) — na /baza domyślna zakładka
+    „Do rozdania" dawała ZAWSZE 0 rekordów po wybraniu handlowca, stąd
+    zgłoszenie Kasi „moja baza koordynatora jest pusta" (30.08). Wybór osoby
+    znaczy „pokaż jej szkoły", więc zakres ustępuje i przechodzi na „wszystkie"
+    — jawnie, zakładka w UI też się przełącza.
+    """
+    if not f["zakres"] and zakres_domyslny:
+        f["zakres"] = zakres_domyslny
+    if f["handlowiec"] and f["zakres"] == "nieprzydzielone":
+        f["zakres"] = "wszystkie"
+    return f
+
+
 def czytaj_filtr(args):
     """Filtry z query stringa. Jedno miejsce, żeby widok i eksport rozumiały to samo."""
     f = pusty_filtr()
@@ -288,8 +307,11 @@ def lead_szczegoly(conn, lead_id):
         return None
     lead = dict(row)
     lead["po_terminie"] = czy_po_terminie(lead)
+    # Chronologicznie, nie po typie: koordynatorka czyta kartę jak kalendarz
+    # placówki („co jest najbliżej?"), a sort po typie ustawiał CYKLICZNE
+    # z grudnia przed CYKLICZNE-PRZEDSZKOLE z października (zgłoszenie 30.08).
     lead["eventy"] = [dict(r) for r in conn.execute(
-        "SELECT * FROM eventy WHERE lead_id=? ORDER BY typ, data, godz_od",
+        "SELECT * FROM eventy WHERE lead_id=? ORDER BY data, godz_od, typ",
         (lead_id,)).fetchall()]
     # Terminy pakietu (przedszkola). Bez tego karta szkoły pokazywałaby jedną
     # datę — pierwszą — a pozostałe cztery istniałyby wyłącznie w kalendarzu.

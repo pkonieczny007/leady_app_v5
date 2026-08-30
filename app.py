@@ -69,9 +69,12 @@ JAWNE = {"logowanie", "api_logowanie", "static"}
 # Ekrany i akcje wyłącznie dla koordynatora. Handlowiec ma formularz i swoje
 # szkoły — reszta to praca koordynatorki, a przypadkowe kliknięcie w „Import"
 # albo w słowniki potrafi narobić bałaganu w danych wszystkich naraz.
+# `export_xlsx` NIE jest na tej liście od 30.08 — Kasia chce raportów z filtrów
+# „dla PH i dla koordynowania". Handlowiec dostaje eksport, ale endpoint sam
+# przybija mu filtr do własnych szkół (nazwisko z sesji, nie z adresu).
 TYLKO_KOORDYNATOR = {
     "baza", "zbiorczy", "niewykorzystane", "slowniki_view", "import_view",
-    "export_xlsx", "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
+    "pulpit", "rejony", "obszary_view", "uzytkownicy_view",
     "api_przypisz", "api_odbierz", "api_przedluz", "api_slownik_add", "api_slownik_patch",
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
@@ -495,11 +498,18 @@ def index():
 NA_STRONE = int(os.environ.get("NA_STRONE", "150"))
 
 
+def _query_z_zakresem(f):
+    """Query string z jawnym zakresem (wartości zakresu to zawsze goły ASCII)."""
+    q = request.query_string.decode("utf-8")
+    if f["zakres"] and "zakres=" not in q:
+        q += ("&" if q else "") + "zakres=" + f["zakres"]
+    return q
+
+
 def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
     conn = get_conn()
     f = repo.czytaj_filtr(request.args)
-    if not f["zakres"] and zakres_domyslny:
-        f["zakres"] = zakres_domyslny
+    repo.domknij_zakres(f, zakres_domyslny)
 
     # FILTR PRZYPIĘTY, ALE ZMIENIALNY — wprost z ustaleń: „konkretny handlowiec
     # żeby domyślnie miał wyfiltrowane swoje dane, przyczepione, ale z możliwością
@@ -538,7 +548,10 @@ def _ekran_leadow(template, zakres_domyslny="", tytul="", kicker="", **extra):
         "today": dzis(), "poniedzialek": poniedzialek(),
         "tytul": tytul, "kicker": kicker,
         "zakres_domyslny": zakres_domyslny,
-        "query": request.query_string.decode("utf-8"),
+        # Zakres MUSI być w query jawnie, nawet gdy wszedł z domyślki. Eksport,
+        # stronicowanie i topbar czytają ten string — bez tego gołe /baza
+        # pokazywało 1223 rekordy, a „Pobierz XLSX" oddawał wszystkie 1617.
+        "query": _query_z_zakresem(f),
         "moj_filtr": moj_filtr,
     }
     ctx.update(extra)
@@ -2211,6 +2224,19 @@ def api_formularz():
         if e:
             return blad("%s: %s" % (k, e))
         if v:
+            if k == "uwagi":
+                # NOTATKA SIĘ DOPISUJE, NIE NADPISUJE. Zwykły UPDATE kasował
+                # notatkę poprzedniej wizyty — czyli dokładnie tę informację,
+                # której szuka koordynator i handlowiec przejmujący placówkę
+                # (zgłoszenie Kasi 30.08, pkt 10; UI v5 od początku obiecywał
+                # dopisywanie). Stempel [data · kto] dokleja SERWER dla
+                # wszystkich wariantów — nazwisko z sesji, nie z żądania.
+                # Najświeższy wpis na górze, bo listy pokazują początek tekstu.
+                stare = conn.execute("SELECT uwagi FROM leady WHERE id=?",
+                                     (lead_id,)).fetchone()["uwagi"]
+                v = "[%s · %s] %s" % (dzis(), handlowiec or "formularz", v)
+                if (stare or "").strip():
+                    v = v + "\n" + stare.strip()
             conn.execute("UPDATE leady SET %s=?, updated_at=datetime('now') WHERE id=?"
                          % k, (v, lead_id))
 
@@ -2305,6 +2331,15 @@ def api_formularz():
             conn.execute("UPDATE leady SET status_realizacji=?, dt=?, "
                          "updated_at=datetime('now') WHERE id=?",
                          ("03. DT umówione", "01. Tak", lead_id))
+
+    # Wizyta bez umówionych zajęć TEŻ jest pracą. `zapisz_log` siedzi w pętli po
+    # spotkaniach, więc zapis bez żadnego chipa (do czego v5 wprost zachęca) nie
+    # zostawiał w historii żadnego śladu — a właśnie z historii koordynator
+    # czyta, „który PH był w szkole" (pkt 10 z 30.08).
+    if not utworzone and (d.get("status_realizacji") or d.get("uwagi")):
+        zapisz_log(conn, lead_id=lead_id, kto=handlowiec or "formularz",
+                   co="formularz terenowy", pole="wizyta",
+                   po=(d.get("status_realizacji") or "").strip() or "notatka z wizyty")
 
     conn.commit()
 
@@ -2500,10 +2535,18 @@ def export_xlsx():
     """
     Eksport DOKŁADNIE tego, co widać po filtrach — wprost zgłoszone życzenie klienta.
     Filtry przychodzą tym samym query stringiem, którego użył widok.
+
+    Od 30.08 dostępny też dla handlowca („raporty wg filtrów… dla PH" — Kasia),
+    ale jego eksport jest PRZYBITY do własnych szkół: nazwisko idzie z sesji,
+    nie z adresu, więc podmiana parametru w URL niczego nie otwiera.
     """
     from exporter import build_workbook
     conn = get_conn()
     f = repo.czytaj_filtr(request.args)
+    ja = uz.zalogowany()
+    if ja and ja.get("rola") == "handlowiec":
+        f["handlowiec"] = ja["osoba"]
+    repo.domknij_zakres(f)
     rows = repo.filtruj_leady(conn, f)
     bio = build_workbook(conn, rows, f)
     conn.close()
