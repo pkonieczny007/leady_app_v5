@@ -390,6 +390,53 @@ def test_eksport(ids):
             "Szkoła A (moja)" in r.get_data(as_text=True))
 
 
+def test_oddanie(ids):
+    """Oddanie leada przez handlowca (pkt 12, 30.08): tylko własny, tylko
+    z powodem; u koordynatora czerwona plakietka, przydzielenie ją gasi."""
+    print("\n-- oddanie leada z powodem --")
+    conn = db.get_conn()
+    pid = conn.execute("INSERT INTO placowki (nazwa, zrodlo) VALUES ('Szkoła oddawana', 'test')").lastrowid
+    lid = conn.execute(
+        "INSERT INTO leady (placowka_id, handlowiec, status_realizacji) "
+        "VALUES (?,?, '01. Próba kontaktu (Brak konkretów)')", (pid, PH_A)).lastrowid
+    conn.commit(); conn.close()
+
+    zaloguj(PH_B)
+    kod, _ = post("/api/lead/%d/oddaj" % lid, {"powod": "to nie moja szkoła"})
+    sprawdz("cudzej szkoły nie da się oddać", kod == 403, "kod %s" % kod)
+
+    zaloguj(PH_A)
+    kod, odp = post("/api/lead/%d/oddaj" % lid, {"powod": "   "})
+    sprawdz("oddanie bez powodu odrzucone", kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/lead/%d/oddaj" % lid, {"powod": "dostałem przez przypadek"})
+    sprawdz("oddanie z powodem przechodzi", kod == 200, "kod %s" % kod)
+
+    conn = db.get_conn()
+    l = dict(conn.execute("SELECT * FROM leady WHERE id=?", (lid,)).fetchone())
+    conn.close()
+    sprawdz("lead wrócił do puli (bez handlowca)", l["handlowiec"] is None)
+    sprawdz("powód i osoba zapisane na czerwoną plakietkę",
+            l["zwrot_powod"] == "dostałem przez przypadek" and l["zwrot_kto"] == PH_A
+            and bool(l["zwrot_zgloszony"]))
+
+    zaloguj(KOOR)
+    r = KL.get("/baza?zakres=nieprzydzielone")
+    html = r.get_data(as_text=True)
+    sprawdz("koordynator widzi zgłoszenie na /baza",
+            "Szkoła oddawana" in html and "oddana:" in html)
+
+    kod, _ = post("/api/przypisz", {"ids": [lid], "handlowiec": PH_B})
+    conn = db.get_conn()
+    l = dict(conn.execute("SELECT * FROM leady WHERE id=?", (lid,)).fetchone())
+    conn.close()
+    sprawdz("przydzielenie gasi plakietkę",
+            kod == 200 and l["zwrot_zgloszony"] is None and l["zwrot_powod"] is None)
+
+    zaloguj(PH_A)
+    kod, _ = post("/api/lead/%d/zwrot-rozpatrzony" % lid, {})
+    sprawdz("„rozpatrzone” może kliknąć tylko koordynator", kod == 403, "kod %s" % kod)
+
+
 def main():
     print("=" * 62)
     print("UPRAWNIENIA — właściciel rekordu przy zapisie (P01, P02)")
@@ -405,6 +452,7 @@ def main():
     test_koordynator(ids)
     test_podglad_zostaje(ids)
     test_eksport(ids)
+    test_oddanie(ids)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n" + "=" * 62)

@@ -181,6 +181,11 @@
   <td>
     <a class="strong" href="{{ url_for('lead_detail', lead_id=r.id) }}">{{ r.placowka|krotka(46) }}</a>
     {%- if r.n_cykl %} <span class="tag tag-accent" title="zajęcia cykliczne">cykl ×{{ r.n_cykl }}</span>{% endif -%}
+    {#- Czerwona flaga braków (pkt 13, 30.08): spotkanie bez trenera/godziny/
+        terminu albo status „DT umówione" bez żadnego spotkania. Definicja
+        w repo.SQL_BRAKI_ZAJEC — flaga, filtr i sortowanie liczą tym samym. -#}
+    {%- if r.braki_zajec %} <span class="tag tag-braki"
+        title="Czegoś tu brakuje: trenera, godziny albo terminu zajęć — otwórz kartę i uzupełnij">braki</span>{% endif -%}
   </td>
 
 {%- elif k == 'typ' -%}
@@ -487,6 +492,12 @@
 
   <input type="search" class="input input-auto" name="q" value="{{ f.q }}" style="min-width:250px"
          placeholder="szukaj: placówka / miejscowość / kontakt…">
+  {# „szkoły z brakami" (pkt 13, 30.08) — zajęcia bez trenera, godziny lub
+     terminu; definicja w repo.SQL_BRAKI_ZAJEC #}
+  <label class="filtr-braki small" title="Spotkania bez trenera, godziny albo terminu — do uzupełnienia">
+    <input type="checkbox" name="braki" value="1"{{ ' checked' if f.braki }}
+           onchange="this.form.submit()"> z brakami
+  </label>
   <button type="submit" class="btn btn-secondary btn-sm">Filtruj</button>
   {# „Wyczyść" celowo NIE kasuje chipów z kłódką — po to jest blokada #}
   <a class="btn btn-secondary btn-sm"

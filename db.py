@@ -152,6 +152,13 @@ EVENT_KEYS = [f[1] for f in EVENT_FIELDS]
 # gorsze niż jego brak: wygląda na decyzję, o której nikt nic nie wie.
 EVENT_KOLUMNY_TECHNICZNE = ["odwolane", "powod_odwolania", "odwolal"]
 
+# Oddanie leada przez handlowca (30.08, pkt 12 Kasi: „może usuwać, ale tylko
+# wpisując powód — i on się pojawia u koordynatora na czerwono"). Ten sam
+# wzorzec co odwołanie spotkania: kolumny są w tabeli, ale POZA LEAD_FIELDS,
+# bo oddanie idzie własnym endpointem, który zapisuje powód, osobę i chwilę
+# jednym ruchem — zwykłe pole karty dałoby oddanie bez powodu.
+LEAD_KOLUMNY_TECHNICZNE = ["zwrot_zgloszony", "zwrot_powod", "zwrot_kto"]
+
 # Geografia placówki z rejestru RSPO — ten sam wzorzec co wyżej: kolumny są
 # w tabeli, ale ŚWIADOMIE poza PLACOWKA_FIELDS, więc karta placówki ich nie
 # pokazuje i nie da się ich wpisać z ręki.
@@ -429,7 +436,7 @@ def migruj(conn):
     baza z wcześniejszego uruchomienia zostałaby bez nowych pól.
     """
     tabele = {"placowki": PLACOWKA_KEYS + PLACOWKA_KOLUMNY_GEOGRAFIA,
-              "leady": LEAD_KEYS,
+              "leady": LEAD_KEYS + LEAD_KOLUMNY_TECHNICZNE,
               "eventy": EVENT_KEYS + EVENT_KOLUMNY_TECHNICZNE}
     for tabela, klucze in tabele.items():
         istniejace = {r[1] for r in conn.execute("PRAGMA table_info(%s)" % tabela)}

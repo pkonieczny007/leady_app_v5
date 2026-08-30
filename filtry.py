@@ -36,7 +36,14 @@ ZAKRESY = {
 
 # zestawy zakresów per ekran — to jedyne, czym ekrany się różnią
 ZAKRESY_LEADY = ("o", "h", "t")          # listy leadów: pytanie brzmi „czyj to lead"
-ZAKRESY_GRAFIK = ("w", "n")              # kalendarz i dostępność: „wszystko" albo „nazwisko"
+ZAKRESY_GRAFIK = ("w", "n")              # dostępność: „wszystko" albo „nazwisko"
+# Kalendarz dostał „h" 30.08 (pkt 3 Kasi: „filtr w kalendarzu po PH — nie ma
+# takiej możliwości"). To OSOBNY zakres, nie powrót handlowca do „nazwiska" —
+# poprawka z Olszewską (patrz POLA_NA_MIEJSCU) zostaje w mocy: „n" dalej pyta
+# „kto tam będzie", a „H" jawnie pyta „czyja to szkoła". Dostępność „h" NIE
+# dostaje: jej wiersze to trenerzy, chip bez czego szukać dawałby pustą siatkę
+# — `parsuj` sprowadzi tam takie chipy do „wszystko" zamiast gubić wpis.
+ZAKRESY_KALENDARZ = ("w", "n", "h")
 
 MAX_CHIPOW = 12                          # granica zdrowego rozsądku, nie techniczna
 
@@ -164,13 +171,19 @@ def _sklej(rekord, pola):
 def pola_eventu(e):
     """
     `pobierz_pole` dla jednego spotkania — z pamięcią, bo chipów bywa kilka.
-    Wołane tylko z zakresami grafiku: „n" (kto tam będzie) i „w" (wszystko).
+    Zakresy grafiku: „n" (kto tam będzie), „h" (czyja to szkoła), „w" (wszystko).
     """
     pamiec = {}
 
     def pobierz(zakres):
         if zakres not in pamiec:
-            pamiec[zakres] = _sklej(e, POLA_OSOBY if zakres == "n" else POLA_WSZYSTKO)
+            if zakres == "n":
+                pola = POLA_OSOBY
+            elif zakres == "h":
+                pola = ("handlowiec",)
+            else:
+                pola = POLA_WSZYSTKO
+            pamiec[zakres] = _sklej(e, pola)
         return pamiec[zakres]
     return pobierz
 

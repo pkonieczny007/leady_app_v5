@@ -851,6 +851,54 @@ def main():
             any(x["id"] == lid for x in repo.filtruj_leady(conn, f)))
     conn.close()
 
+    # ------------------------------------------- S18 — szkoły z brakami (30.08)
+    # Definicja Kasi: brak ustalonych zajęć, brak trenera, brak godziny, brak
+    # terminu. Flaga, filtr i sortowanie liczą JEDNYM wyrażeniem
+    # (repo.SQL_BRAKI_ZAJEC) — te sprawdzenia pilnują, żeby się nie rozjechały.
+    print("\nS18 — szkoły z brakami")
+    conn = db.get_conn()
+    l_brak = nowa_szkola("SP Z BRAKAMI")
+    conn.execute("UPDATE leady SET status_realizacji='03. DT umówione', "
+                 "handlowiec='04. Chytry' WHERE id=?", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("status „DT umówione” bez żadnego spotkania = braki",
+            any(x["id"] == l_brak for x in r))
+    conn.execute("INSERT INTO eventy (lead_id, typ, data, godz_od) "
+                 "VALUES (?, 'DT', '2026-10-01', '09:00')", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("spotkanie bez trenera to nadal braki",
+            any(x["id"] == l_brak for x in r))
+    conn.execute("UPDATE eventy SET trener='02. Bitner' WHERE lead_id=?", (l_brak,))
+    conn.commit()
+    r = leady(zakres="wszystkie", braki="1")
+    sprawdz("komplet danych gasi flagę braków",
+            not any(x["id"] == l_brak for x in r))
+    r = leady(zakres="wszystkie")
+    wiersz = next(x for x in r if x["id"] == l_brak)
+    sprawdz("kolumna braki_zajec dostępna dla listy", wiersz["braki_zajec"] == 0)
+    conn.close()
+
+    # ------------------------------------- S19 — raport Wojtka (pkt 4, 30.08)
+    # „ile szkół ma przydzielony PH, w ilu zrobił kontakt, w ilu DT, ilu nie
+    # ruszył, w ilu mu się nie udało" — cztery warstwy mają sumować się do
+    # liczby leadów, inaczej raport gubi rekordy-widma.
+    print("\nS19 — pulpit: warstwy lejka per handlowiec")
+    conn = db.get_conn()
+    per, _ = repo.per_handlowiec(conn)
+    conn.close()
+    sprawdz("raport zna wszystkie warstwy lejka",
+            bool(per) and all(k in per[0] for k in
+                              ("nieruszone", "kontakt", "dt_lacznie", "odpadle")))
+    sprawdz("warstwy sumują się do liczby leadów",
+            all(r["nieruszone"] + r["kontakt"] + r["dt_lacznie"] + r["odpadle"]
+                == r["leadow"] for r in per),
+            str([(r["handlowiec"], r["leadow"]) for r in per]))
+    html = KL.get("/pulpit").get_data(as_text=True)
+    sprawdz("pulpit pokazuje nowe kolumny",
+            "Nie ruszył" in html and "Nie udało się" in html)
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

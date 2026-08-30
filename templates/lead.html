@@ -30,6 +30,11 @@
        i dostawał 403. Martwy przycisk uczy ludzi, że aplikacja kłamie. #}
     {% if ja and ja.rola == 'koordynator' %}
     <button type="button" class="btn btn-danger btn-sm" id="btn-usun-lead" data-id="{{ lead.id }}">Usuń lead</button>
+    {% elif ja and ja.rola == 'handlowiec' and lead.handlowiec == ja.osoba %}
+    {# Handlowiec zamiast kasowania ODDAJE szkołę z powodem (pkt 12, 30.08) —
+       u koordynatora świeci na czerwono, notatki i historia zostają. #}
+    <button type="button" class="btn btn-danger btn-sm" id="btn-oddaj-lead" data-id="{{ lead.id }}"
+            title="Szkoła wróci do koordynatora z Twoim powodem — notatki zostają">Oddaj lead</button>
     {% endif %}
   </div>
 </div>
@@ -136,6 +141,30 @@
   {% else %}
   <p class="empty">Brak spotkań. Dodaj pierwsze DT poniżej — status leada przejdzie
     wtedy na „03. DT umówione".</p>
+  {% endif %}
+
+  {# Pkt 19 (30.08): „w kalendarzu jest cykl 11.12, a w karcie w datach nie ma
+     takiego wydarzenia — nie zaktualizował się kalendarz?". Kalendarz liczył
+     dobrze — karta pokazywała tylko REGUŁĘ (datę pierwszych zajęć). Ta lista
+     to rozwinięcie reguły policzone TYM SAMYM kodem co grafik (wyjątki
+     i odwołania już uwzględnione), więc karta i kalendarz mówią jednym głosem. #}
+  {% if wystapienia %}
+  <div class="card event-terminy">
+    <span class="kv-l">Najbliższe zajęcia cykliczne wg kalendarza ({{ wystapienia|length }})</span>
+    <ol class="terminy-lista">
+      {% for w in wystapienia %}
+      <li>
+        <span class="nums">{{ w.data|pl_data }}</span>
+        <span class="nums muted">{{ w.godz_od or '' }}{{ '–' ~ w.godz_do if w.godz_do }}</span>
+        {% if w.trener %}<span class="nowrap">{{ dot(kolory.get(w.trener)) }}{{ w.trener|bez_prefiksu }}</span>
+        {% else %}<span class="tag tag-accent-2">bez obsady</span>{% endif %}
+        {% if w._cykl_nr %}<span class="muted small nums">cykl #{{ w._cykl_nr }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="legend">Terminy wyliczone z reguły cyklu (albo z listy pakietu) — dokładnie
+      te, które widać w Kalendarzu DT. Zmiana daty pierwszych zajęć przesuwa całość.</p>
+  </div>
   {% endif %}
 
   {# Jeden lead = wiele spotkań. Drugie i trzecie DT tego samego trenera w tym samym

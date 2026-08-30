@@ -79,7 +79,7 @@ TYLKO_KOORDYNATOR = {
     "api_slownik_del", "api_alias_add", "api_alias_del", "api_demo",
     "api_zwrot", "api_zwrot_podglad", "api_rejon_set", "api_rejon_podpowiedz",
     "api_lead_delete", "api_uzytkownik", "api_uzytkownik_pin",
-    "api_dostepnosc_demo",
+    "api_dostepnosc_demo", "api_lead_zwrot_rozpatrzony",
     # ZAKŁADANIE PLACÓWEK PRZESZŁO DO KOORDYNATORA (Kasia, 24.08): „usuń tę
     # możliwość, bo to powoduje, że PH wpisują coś z ręki sami i będą się
     # dublować rzeczy, a wpisują nazwy jak popadnie". Do 20.08 endpoint był
@@ -573,10 +573,18 @@ def baza():
                  WHERE lead_id IS NOT NULL GROUP BY lead_id) ost
              ON ost.lead_id = l1.lead_id AND ost.mid = l1.id
            WHERE l1.co = 'auto-zwrot po terminie'""")}
+    # Leady oddane przez handlowca z powodem (pkt 12, 30.08) — czerwona
+    # plakietka, w przeciwieństwie do bursztynowej automatu. Gaśnie przy
+    # przydzieleniu albo po kliknięciu „rozpatrzone".
+    oddane = {r["id"]: {"kto": r["zwrot_kto"], "powod": r["zwrot_powod"],
+                        "kiedy": (r["zwrot_zgloszony"] or "")[:10]}
+              for r in conn.execute(
+                  "SELECT id, zwrot_kto, zwrot_powod, zwrot_zgloszony "
+                  "FROM leady WHERE zwrot_zgloszony IS NOT NULL")}
     conn.close()
     return _ekran_leadow("baza.html", zakres_domyslny="nieprzydzielone",
                          tytul="Baza placówek", kicker="Koordynator · rozdawanie leadów",
-                         zwroty=zwroty)
+                         zwroty=zwroty, oddane=oddane)
 
 
 @app.route("/leady")
@@ -620,27 +628,31 @@ def lead_detail(lead_id):
         "kolory": trener_colors(conn),
         "lead_fields": LEAD_FIELDS, "julia_fields": JULIA_FIELDS,
         "event_fields": EVENT_FIELDS, "placowka_fields": PLACOWKA_FIELDS,
+        # pkt 19 (30.08): karta pokazuje najbliższe WYSTĄPIENIA cykli, liczone
+        # tym samym kodem co kalendarz — koniec z „kalendarz się nie zaktualizował"
+        "wystapienia": cv.wystapienia_leada(conn, lead_id),
         "today": dzis(),
     }
     conn.close()
     return render_template("lead.html", **ctx)
 
 
-def _chipy_grafiku(args):
+def _chipy_grafiku(args, dozwolone=fl.ZAKRESY_GRAFIK):
     """
-    Filtr na chipach dla kalendarza i dostępności: zakresy „wszystko" i „nazwisko".
+    Filtr na chipach dla kalendarza i dostępności: zakresy „wszystko" i „nazwisko"
+    (kalendarz od 30.08 dokłada „H handlowiec" — patrz filtry.ZAKRESY_KALENDARZ).
 
     Stary parametr `trener=` (jedna wartość z listy rozwijanej) przepuszczamy
     jako chip „nazwisko". Lista rozwijana zniknęła — działała tylko w widoku
     Agenda, a w Macierzy i Startach udawała filtr, nie robiąc nic — ale stare
     zakładki i linki mają dalej działać, tyle że teraz we wszystkich widokach.
     """
-    ch = fl.czytaj(args, fl.ZAKRESY_GRAFIK)
+    ch = fl.czytaj(args, dozwolone)
     stary = (args.get("trener") or "").strip()
     if stary and not ch["lista"]:
         ch = fl.czytaj({"osoby": "n:" + stary,
                         "osoby_tryb": args.get("osoby_tryb") or ""},
-                       fl.ZAKRESY_GRAFIK)
+                       dozwolone)
 
     # TRENER: własne nazwisko wchodzi jako chip PRZYPIĘTY (kłódka), tak samo jak
     # handlowiec dostaje domyślnie swoje szkoły. Trener otwiera grafik po to,
@@ -654,7 +666,7 @@ def _chipy_grafiku(args):
     u = uz.zalogowany()
     ch["moj_filtr"] = False
     if u and u["rola"] == "trener" and "osoby" not in args:
-        ch = fl.czytaj({"osoby": "#n:" + u["osoba"]}, fl.ZAKRESY_GRAFIK)
+        ch = fl.czytaj({"osoby": "#n:" + u["osoba"]}, dozwolone)
         ch["moj_filtr"] = True
     return ch
 
@@ -730,7 +742,7 @@ def kalendarz():
     # z grafikiem wyglądałyby jak zajęcia, które się odbędą.
     odwolane = request.args.get("odwolane") == "1"
     typ, typy = _typy_kalendarza(request.args)
-    ch = _chipy_grafiku(request.args)
+    ch = _chipy_grafiku(request.args, fl.ZAKRESY_KALENDARZ)
 
     if widok == "agenda":
         cal = cv.build_agenda(conn, month, weekend=True, typy=typy,
@@ -758,6 +770,8 @@ def kalendarz():
         "filtry_typu": [(k, e) for k, e, _ in FILTRY_TYPU],
         "ch": ch, "slowniki": wszystkie_slowniki(conn),
         "obciazenie": cv.obciazenie_trenerow(conn, month),
+        # pkt 16 (30.08): zbiorczo przez wszystkie miesiące, wg daty
+        "calosc": cv.liczniki_calosci(conn),
         "today": dzis(), "dzien": dzien,
         "data_min": DATA_MIN, "data_max": DATA_MAX,
     }
@@ -990,8 +1004,11 @@ def api_przypisz():
         # nie cofamy statusu, jeśli lead już był dalej w procesie
         if st and not st.startswith("00.") and not st.startswith("04."):
             nowy_status = st
+        # Przydzielenie gasi też czerwoną plakietkę „oddana z powodem" —
+        # przypisanie nowemu handlowcowi JEST rozpatrzeniem zgłoszenia.
         conn.execute("UPDATE leady SET handlowiec=?, deadline=COALESCE(?, deadline), "
-                     "status_realizacji=?, updated_at=datetime('now') WHERE id=?",
+                     "status_realizacji=?, zwrot_zgloszony=NULL, zwrot_powod=NULL, "
+                     "zwrot_kto=NULL, updated_at=datetime('now') WHERE id=?",
                      (handlowiec or None, deadline, nowy_status, lead_id))
         zapisz_log(conn, lead_id=lead_id, co="przypisanie", pole="handlowiec",
                    przed=stary["handlowiec"], po=handlowiec)
@@ -1073,6 +1090,58 @@ def api_odbierz():
     conn.commit()
     conn.close()
     return jsonify(ok=True, n=n)
+
+
+@app.route("/api/lead/<int:lead_id>/oddaj", methods=["POST"])
+def api_lead_oddaj(lead_id):
+    """
+    Handlowiec oddaje lead, którego nie powinien był dostać (pkt 12 z 30.08).
+
+    Kasia: „może usuwać, ale tylko wpisując powód — i on się pojawia
+    u koordynatora na czerwono". Z perspektywy handlowca szkoła znika z listy;
+    naprawdę wraca do puli z czerwoną plakietką i powodem, a koordynator
+    decyduje, co dalej. Twarde kasowanie ZOSTAJE koordynatorskie — oddanie
+    zabiera wyłącznie przypisanie, notatki i historia zostają przy placówce
+    (ta sama zasada co przy auto-zwrocie).
+    """
+    d = request.get_json(force=True)
+    powod = (d.get("powod") or "").strip()
+    if not powod:
+        return jsonify(ok=False, error="Podaj powód oddania — bez niego "
+                       "koordynator nie wie, co poprawić w rozdzielaniu"), 400
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_leada(conn, lead_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    stary = conn.execute("SELECT handlowiec FROM leady WHERE id=?",
+                         (lead_id,)).fetchone()
+    if not stary:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego leada"), 404
+    u = uz.zalogowany() or {}
+    kto = u.get("osoba") or "?"
+    conn.execute(
+        "UPDATE leady SET handlowiec=NULL, deadline=NULL, pin_tydzien=NULL, "
+        "zwrot_zgloszony=datetime('now'), zwrot_powod=?, zwrot_kto=?, "
+        "updated_at=datetime('now') WHERE id=?",
+        (powod, kto, lead_id))
+    zapisz_log(conn, lead_id=lead_id, kto=kto, co="oddanie leada z powodem",
+               pole="handlowiec", przed=stary["handlowiec"], po=powod)
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
+
+
+@app.route("/api/lead/<int:lead_id>/zwrot-rozpatrzony", methods=["POST"])
+def api_lead_zwrot_rozpatrzony(lead_id):
+    """Koordynator gasi plakietkę oddania bez przydzielania — np. gdy szkoła
+    ma po prostu poczekać w puli. Przydzielenie gasi ją samo (api_przypisz)."""
+    conn = get_conn()
+    conn.execute("UPDATE leady SET zwrot_zgloszony=NULL, zwrot_powod=NULL, "
+                 "zwrot_kto=NULL, updated_at=datetime('now') WHERE id=?", (lead_id,))
+    zapisz_log(conn, lead_id=lead_id, co="zgłoszenie oddania rozpatrzone")
+    conn.commit()
+    conn.close()
+    return jsonify(ok=True)
 
 
 @app.route("/api/pin", methods=["POST"])

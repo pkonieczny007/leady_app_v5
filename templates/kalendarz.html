@@ -4,10 +4,13 @@
 {% block wrap_class %}wrap{% endblock %}
 
 {# Podpowiedzi do filtra: trenerzy (najczęstsze pytanie „gdzie jest X")
-   i miejscowości (drugie najczęstsze „co się dzieje w Y"). Podpowiedź niczego
+   i miejscowości (drugie najczęstsze „co się dzieje w Y"). Od 30.08 też
+   handlowcy z własnym zakresem „H" (pkt 3 Kasi) — wybranie nazwiska z listy
+   daje chip „czyja to szkoła", nie „kto tam jedzie". Podpowiedź niczego
    nie ogranicza — wpisać można dowolny fragment. #}
 {% set podpowiedzi = [] %}
 {% for v in slowniki.get('trener', []) %}{% set _ = podpowiedzi.append((v, 'prowadzący', 'n')) %}{% endfor %}
+{% for v in slowniki.get('handlowiec', []) %}{% set _ = podpowiedzi.append((v, 'handlowiec', 'h')) %}{% endfor %}
 {% for v in slowniki.get('miasto', []) %}{% set _ = podpowiedzi.append((v, 'miejscowość', 'w')) %}{% endfor %}
 
 {#
@@ -101,7 +104,13 @@
        do dokończenia — w danych klienta 45 z 61 wystąpień września nie ma
        godziny, więc czerwony alarm na to byłby szumem, który się ignoruje. #}
     <span class="muted small nums">
-      {{ cal.n_events }} spotkań ·
+      {# pkt 16 (30.08, Kasia): miesiąc rozbity wg daty + suma zbiorcza przez
+         wszystkie miesiące. „Zrealizowane" = data już minęła — tak klient
+         chciał to liczyć („to będzie wynikało z daty"). #}
+      {{ cal.n_events }} spotkań
+      ({{ cal.n_zrealizowane }} zrealizowanych · {{ cal.n_umowione }} umówionych)
+      {% if calosc %} · <span title="Zbiorczo, wszystkie miesiące — wg daty">łącznie:
+        {{ calosc.zrealizowane }} zrealizowanych · {{ calosc.umowione }} umówionych</span>{% endif %} ·
       <b class="alert">{{ cal.n_kolizji }} w kolizji</b>
       {# Licznik jest KLIKALNY (P24). Od 10.08 mówił, ile zajęć nie ma kto
          poprowadzić, ale nie dało się do nich dojść inaczej niż przewijając

@@ -270,6 +270,28 @@
       .catch(function (e) { toast("Nie usunięto: " + e.message, true); });
   });
 
+  /* Oddanie leada przez handlowca (pkt 12, 30.08): „może usuwać, ale tylko
+     wpisując powód — i on się pojawia u koordynatora na czerwono".
+     Ten sam wzorzec `prompt` co przy odwołaniu spotkania — patrz niżej. */
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("#btn-oddaj-lead");
+    if (!btn) return;
+    var powod = prompt("Dlaczego oddajesz tę szkołę?\n\n" +
+                       "Zniknie z Twojej listy i wróci do puli koordynatora " +
+                       "z Twoim nazwiskiem i tym powodem. Notatki i historia zostają.");
+    if (powod === null) return;                 // Anuluj — nie robimy nic
+    if (!powod.trim()) {
+      toast("Bez powodu nie da się oddać — koordynator nie będzie wiedział, co poprawić.", true);
+      return;
+    }
+    api("POST", "/api/lead/" + btn.dataset.id + "/oddaj", { powod: powod.trim() })
+      .then(function () {
+        toast("Oddano — szkoła wróciła do koordynatora");
+        setTimeout(function () { location.href = "/leady"; }, 900);
+      })
+      .catch(function (e) { toast("Nie oddano: " + e.message, true); });
+  });
+
   /* ============================================================ SPOTKANIA (eventy)
      Dodanie DRUGIEGO DT temu samemu trenerowi w tym samym dniu MUSI się udać —
      to jest wprost naprawa zgłoszonego buga. Kolizja godzin to ostrzeżenie.

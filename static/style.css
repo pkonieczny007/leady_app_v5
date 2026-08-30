@@ -559,6 +559,20 @@ input.lead-cell[type=date],input.lead-cell[type=time]{max-width:150px}
 tr.wrocila>td{background:var(--warn-l)}
 .tag-zwrot{background:var(--warn);color:#fff;font-weight:600;margin-left:6px}
 
+/* Lead oddany przez handlowca Z POWODEM (pkt 12, 30.08) — „pojawia się
+   u koordynatora na czerwono". Czerwień, nie bursztyn: bursztyn to automat
+   po terminie, a tu człowiek świadomie mówi „to nie moje / to pomyłka". */
+tr.oddana>td{background:var(--bad-l, #fee2e2)}
+.tag-oddana{background:var(--bad, #dc2626);color:#fff;font-weight:600;margin-left:6px;cursor:pointer}
+
+/* Flaga „braki" na liście (pkt 13, 30.08): spotkanie bez trenera, godziny lub
+   terminu. Czerwona obwódka zamiast pełnej czerwieni — to przypomnienie
+   o niedokończonej robocie, nie alarm. */
+.tag-braki{background:#fff;color:var(--bad, #dc2626);border:1px solid var(--bad, #dc2626);
+  font-weight:600;margin-left:6px}
+.filtr-braki{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+  color:var(--muted);cursor:pointer}
+
 /* Tydzień trafiony „skokiem do daty" w kalendarzu — obwódka zamiast tła,
    żeby nie przekłamywać kolorów kafli (kolor kafla niesie trenera). */
 .tydzien-wybrany{outline:2px solid var(--accent);outline-offset:2px}

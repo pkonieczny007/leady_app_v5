@@ -378,6 +378,62 @@ def available_months(conn):
     return sorted(set(mies))
 
 
+def _podzial_po_dacie(evs, dzis=None):
+    """(zrealizowane, umówione) wg daty — wspólne dla trzech widoków."""
+    prog = dzis or dt.date.today().isoformat()
+    zreal = sum(1 for e in evs if (e.get("data") or "") < prog)
+    return zreal, len(evs) - zreal
+
+
+def liczniki_calosci(conn, dzis=None):
+    """
+    Zbiorczo przez WSZYSTKIE miesiące z danymi: ile spotkań już się odbyło,
+    a ile dopiero przed nami. Pkt 16 z 30.08 (Kasia): „pokazuje miesięcznie
+    i to jest fajne, ale potrzebuję obok też zbiorczo ile jest umówionych
+    i ile zrealizowanych — to będzie wynikało z daty".
+
+    Liczymy TYM SAMYM kodem co widoki (events_for_month rozwija cykle na
+    wystąpienia i pomija odwołane) — osobne zapytanie SQL liczyłoby reguły
+    cykli jako 1 zamiast liczby zajęć i wyniki nie zgadzałyby się z ekranem.
+    """
+    prog = dzis or dt.date.today().isoformat()
+    zreal = przyszle = 0
+    for m in available_months(conn):
+        for e in events_for_month(conn, m):
+            if (e.get("data") or "") < prog:
+                zreal += 1
+            else:
+                przyszle += 1
+    return {"zrealizowane": zreal, "umowione": przyszle}
+
+
+def wystapienia_leada(conn, lead_id, od=None, ile=10):
+    """
+    Najbliższe wystąpienia zajęć CYKLICZNYCH jednej placówki — do karty leada.
+
+    Pkt 19 z 30.08: klientka zobaczyła cykl 11.12 w kalendarzu, otworzyła kartę
+    placówki, nie znalazła tej daty i uznała, że „kalendarz się nie
+    zaktualizował". Kalendarz liczył dobrze — to karta pokazywała wyłącznie
+    REGUŁĘ (datę pierwszych zajęć), nie jej rozwinięcie. Liczymy tym samym
+    kodem co grafik (events_for_month: reguła/lista terminów, wyjątki,
+    odwołania) — osobna pętla w karcie prędzej czy później skłamałaby inaczej
+    niż kalendarz i wracamy do punktu wyjścia.
+    """
+    prog = od or dt.date.today().isoformat()
+    out = []
+    for m in available_months(conn):
+        if m < prog[:7]:
+            continue
+        for e in events_for_month(conn, m):
+            if (e["lead_id"] == lead_id and e["typ"] in TYPY_POWTARZALNE
+                    and (e.get("data") or "") >= prog):
+                out.append(e)
+        if len(out) >= ile:
+            break
+    out.sort(key=lambda e: (e["data"], e.get("godz_od") or ""))
+    return out[:ile]
+
+
 # Wiersz macierzy dla zajęć, którym nikt jeszcze nie został przypisany.
 # Bez niego takie zajęcia NIE MAJĄ GDZIE SIĘ POKAZAĆ — wiersze to trenerzy —
 # więc znikają z widoku domyślnego, a licznik u góry i tak je liczy. Na danych
@@ -511,11 +567,13 @@ def build_matrix(conn, month, weekend=False, tylko_zajete=False, typy=None,
         tygodnie.append({"dni": dni, "wiersze": wiersze, "label": label,
                          "ma": n_ev > 0, "n": n_ev})
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"tygodnie": tygodnie, "trenerzy": trenerzy, "kolory": kolory,
             "n_events": len(evs), "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": n_bez_trenera,
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 
@@ -551,11 +609,13 @@ def build_agenda(conn, month, weekend=True, typy=None, chipy=(), tryb="lub",
                     "mies": MIESIACE_D[d.month], "weekend": d.weekday() >= 5,
                     "dzis": d == dt.date.today(), "eventy": lista, "n": len(lista)})
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"dni": dni, "kolory": kolory, "n_events": sum(d["n"] for d in dni),
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 
@@ -608,11 +668,13 @@ def build_starty(conn, month, weekend=False, chipy=(), tryb="lub", bez_obsady=Fa
                                             ostatni.day, ostatni.month),
         })
 
+    zreal, umow = _podzial_po_dacie(evs)
     return {"tygodnie": tygodnie, "kolory": kolory, "n_events": len(evs),
             "n_kolizji": _ile_kolizji(evs, kolizje),
             "n_bez_trenera": sum(1 for e in evs if not e.get("trener")),
             "n_bez_godziny": sum(1 for e in evs if not e.get("godz_od")),
             "n_do_uzupelnienia": sum(1 for e in evs if e.get("braki")),
+            "n_zrealizowane": zreal, "n_umowione": umow,
             "month": month, "month_label": month_label(month)}
 
 
