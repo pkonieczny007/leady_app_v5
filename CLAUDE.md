@@ -720,6 +720,47 @@ szkół ani numerów.
 
 ---
 
+## 8e. Runda poprawek 30.08.2026 — gałąź `poprawki-2026-08-30`
+
+Lista 21+2 punktów od Kasi: `docs/poprawki 30.08.2026/` (katalog w `.gitignore`
+— są tam JPG-i z nazwami szkół, repo jest publiczne). Stan, wdrożenie
+i odpowiedzi dla Kasi: **`STAN_SESJI_2026-08-30.md`** w tym katalogu.
+Testy: 11 plików, ~1090 sprawdzeń, komplet OK. Commity `a976d39` + `27d6cbd`.
+
+Zrobione: eksport XLSX dla PH (przybity do własnych szkół) · chip „H handlowiec"
+w kalendarzu · raport lejka per handlowiec na pulpicie · v5 jedynym widocznym
+formularzem (v1–v4 pod `<details>`) · „Zapisz" bez sticky · notatki DOPISYWANE
+ze stemplem serwera (bug utraty danych!) · „Oddaj lead" z powodem + czerwona
+plakietka u koordynatora · flaga/filtr „szkoły z brakami" · sortowanie listy PH
+wg lejka · liczniki umówione/zrealizowane · wystąpienia cyklu w karcie ·
+„Zdejmij prowadzącego" w panelu przydziału.
+
+**Sedno zgłoszenia „moja baza koordynatora jest pusta" (pkt 17):** domyślna
+zakładka `/baza` „Do rozdania" + filtr handlowca dawały sprzeczny SQL
+(`handlowiec=X AND handlowiec IS NULL`) → zawsze 0 rekordów. Naprawione
+w `repo.domknij_zakres()` — zakres ustępuje filtrowi osoby. Ten sam bug
+tłumaczy „dodać SP 1 Zabrze" — szkoła BYŁA w bazie (id 1313).
+
+**Drugi znaleziony bug utraty danych (pkt 10):** `/api/formularz` NADPISYWAŁ
+`uwagi` — druga wizyta kasowała notatkę pierwszej, choć UI v5 obiecywał
+dopisywanie. Teraz serwer dopisuje (najświeższa na górze) i stempluje
+`[data · kto]` z sesji dla WSZYSTKICH wariantów; wizyta bez zajęć zostawia
+wpis w logu (wcześniej zero śladu — `zapisz_log` siedział w pętli po spotkaniach).
+
+Decyzje klienta z tej rundy: **nie robimy roli „biuro"** (konto koordynatorskie
+Małolepszej do usunięcia na prod, zostaje PH + ew. trener) · braki = dane
+ZAJĘĆ, nie kontaktowe · oddawanie leada z powodem zamiast twardego kasowania ·
+standalone PWA zostaje (zoom na iOS blokuje system, nie my).
+
+Zostało na kolejne rundy: **pkt 18+21** (edycja dat cykli + odwoływanie
+pojedynczych wystąpień — `wyjatki_cyklu` ma model, nie ma UI; UWAGA: „Odwołaj"
+przy cyklu w karcie kasuje z grafiku CAŁY pakiet) · **pkt 7** („inna placówka"
+dla PH — tylko typy pozaszkolne, blokada po typie w API) · dopisywanie placówki
+po nr RSPO · **most Zuzi** (eksport do jej arkusza; `drukarz` już jest polem
+eventu).
+
+---
+
 ## 9. Dokumentacja w `docs/`
 
 `11_PLAN_v5.md` to żywy plan v5 ze stanem etapów — aktualizować przy każdym
