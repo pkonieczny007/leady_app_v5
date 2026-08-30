@@ -1024,6 +1024,17 @@ tr.flash td{animation:flash .9s ease-out}
   font-weight:700;color:var(--muted-2);font-size:11px;
 }
 .terminy-lista li.minelo{opacity:.5}
+
+/* Edycja pojedynczych terminów cyklu (pkt 18, 30.08). Chipy z polami są szersze
+   niż zwykłe „pigułki" z datami, więc wiersze idą jeden pod drugim — przy
+   40 terminach zawijanie w rzędy dawało ścianę, w której nie dało się trafić
+   w ten właściwy. */
+.tc-lista{flex-direction:column;flex-wrap:nowrap;gap:4px}
+.tc-lista li{border-radius:8px;flex-wrap:wrap}
+.tc-wiersz{align-items:center}
+.input-sm{padding:2px 6px;font-size:12.5px;height:auto;width:auto;min-width:0}
+.tc-data{max-width:150px}
+.tc-godz{max-width:95px}
 .ok{color:var(--ok)}
 .notice{
   background:var(--amber-l);border:1px solid var(--amber);color:#8a5a08;

@@ -427,6 +427,46 @@ def liczniki_calosci(conn, dzis=None):
     return {"zrealizowane": zreal, "umowione": przyszle}
 
 
+def materializuj_terminy(conn, event_id, horyzont=None):
+    """
+    Zamienia cykl-REGUŁĘ na listę konkretnych dat w `terminy_cyklu`.
+
+    Potrzebne do edycji pojedynczego terminu (pkt 18 z 30.08: „edytuj daty
+    cykli — są zmiany w trakcie roku… przez to PH wpisał cykle jako DT, bo nie
+    mógł edytować dat"). Dopóki cykl jest regułą, jedyną datą w bazie jest data
+    PIERWSZYCH zajęć, więc przesunięcie jednych zajęć nie ma czego zmienić —
+    zmiana `data` przesuwa wszystkie wystąpienia naraz.
+
+    Po materializacji nic nie zmienia się na ekranie: kalendarz od początku daje
+    liście terminów pierwszeństwo przed regułą i rozwija ją identycznie. Zmienia
+    się to, że każdy termin ma teraz własny wiersz, który da się poprawić.
+
+    Nie robi nic, gdy lista już istnieje (drugie wywołanie jest bezpieczne)
+    i gdy event nie jest cykliczny albo nie ma daty startu.
+    """
+    e = conn.execute("SELECT typ, data, godz_od, godz_do, co_ile_tygodni "
+                     "FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e or e["typ"] not in TYPY_POWTARZALNE or not e["data"]:
+        return 0
+    if conn.execute("SELECT 1 FROM terminy_cyklu WHERE event_id=? LIMIT 1",
+                    (event_id,)).fetchone():
+        return 0
+    try:
+        d0 = dt.date.fromisoformat(str(e["data"])[:10])
+    except (ValueError, TypeError):
+        return 0
+    co_ile = max(1, int(e["co_ile_tygodni"] or 1))
+    ile = (horyzont or CYKL_HORYZONT_TYGODNI) // co_ile + 1
+    n = 0
+    for krok in range(ile):
+        d = d0 + dt.timedelta(days=7 * co_ile * krok)
+        conn.execute("INSERT OR IGNORE INTO terminy_cyklu "
+                     "(event_id, nr, data, godz_od, godz_do) VALUES (?,?,?,?,?)",
+                     (event_id, krok + 1, d.isoformat(), e["godz_od"], e["godz_do"]))
+        n += 1
+    return n
+
+
 def wystapienia_leada(conn, lead_id, od=None, ile=10):
     """
     Najbliższe wystąpienia zajęć CYKLICZNYCH jednej placówki — do karty leada.

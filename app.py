@@ -634,6 +634,9 @@ def lead_detail(lead_id):
         # rozwijane „Odwołaj zajęcia" przy KAŻDYM cyklu z osobna.
         "wystapienia": cv.wystapienia_leada(conn, lead_id, ile=24),
         "today": dzis(),
+        # widełki lat dla pól daty przy terminach cyklu — ten sam bezpiecznik
+        # co w kalendarzu (rok „0002" z literówki)
+        "data_min": DATA_MIN, "data_max": DATA_MAX,
     }
     conn.close()
     return render_template("lead.html", **ctx)
@@ -1437,6 +1440,97 @@ def api_event_odwolaj_termin(event_id):
                co="odwołanie terminu zajęć", pole=e["typ"], przed=data, po=powod)
     conn.commit(); conn.close()
     return jsonify(ok=True, odwolane=True)
+
+
+@app.route("/api/event/<int:event_id>/termin", methods=["POST"])
+def api_event_termin(event_id):
+    """
+    Przesunięcie JEDNYCH zajęć cyklu na inną datę/godzinę (pkt 18, 30.08).
+
+    Kasia: „edytuj daty cykli — jest to potrzebne, bo są zmiany w trakcie roku
+    i PH nie może sam tego zmienić… przez to PH wpisał cykle jako DT, bo nie
+    mógł edytować dat cykli". Ostatnie zdanie jest tu najważniejsze: brak edycji
+    nie sprawił, że zmiany przestały się dziać — sprawił, że zaczęły omijać
+    aplikację i lądować w bazie jako coś, czym nie są.
+
+    Dlaczego to nie jest zwykły UPDATE: dopóki cykl jest REGUŁĄ, jedyną datą
+    w bazie jest data pierwszych zajęć, więc jej zmiana przesuwa cały pakiet.
+    Przy pierwszej edycji rozwijamy więc regułę na listę konkretnych dat
+    (`materializuj_terminy`) i dopiero w niej poprawiamy jeden wiersz. Dla
+    ekranów to niewidoczne — kalendarz od początku woli listę od reguły.
+
+    Kto: koordynator zawsze, handlowiec na SWOJEJ szkole — ta sama reguła co
+    przy każdym innym zapisie. Zamknięcie tego przed handlowcem odtworzyłoby
+    dokładnie ten problem, który Kasia zgłasza.
+    """
+    d = request.get_json(force=True)
+    stara = (d.get("data") or "").strip()
+    nowa = (d.get("data_nowa") or "").strip()
+    godz_od = (d.get("godz_od") or "").strip()
+    godz_do = (d.get("godz_do") or "").strip()
+    if not stara:
+        return jsonify(ok=False, error="Nie wiadomo, który termin zmieniamy"), 400
+    if not nowa and not (godz_od or godz_do):
+        return jsonify(ok=False, error="Podaj nową datę albo godzinę"), 400
+    # Ten sam bezpiecznik na rok co w kalendarzu (rok „0002" z literówki potrafił
+    # wywieźć ekran do naszej ery, a lista miesięcy zna tylko te z danymi).
+    if nowa and not _sensowna_data(nowa):
+        return jsonify(ok=False, error="Data musi być z zakresu %d–%d"
+                       % (ROK_MIN, ROK_MAX)), 400
+
+    conn = get_conn()
+    odmowa = _wolno_pisac_do_eventu(conn, event_id)
+    if odmowa:
+        conn.close(); return jsonify(ok=False, error=odmowa[0]), odmowa[1]
+    e = conn.execute("SELECT lead_id, typ FROM eventy WHERE id=?", (event_id,)).fetchone()
+    if not e:
+        conn.close(); return jsonify(ok=False, error="Nie ma takiego wpisu"), 404
+    if e["typ"] not in TYPY_CYKLICZNE:
+        conn.close()
+        return jsonify(ok=False, error="To nie są zajęcia cykliczne — datę zwykłego "
+                                       "spotkania zmienia się wprost w jego polu"), 400
+
+    cv.materializuj_terminy(conn, event_id)
+    row = conn.execute("SELECT id FROM terminy_cyklu WHERE event_id=? AND data=?",
+                       (event_id, stara)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify(ok=False, error="Tego terminu nie ma w tym cyklu"), 404
+    if nowa and nowa != stara and conn.execute(
+            "SELECT 1 FROM terminy_cyklu WHERE event_id=? AND data=?",
+            (event_id, nowa)).fetchone():
+        conn.close()
+        return jsonify(ok=False, error="Ten cykl ma już zajęcia w tym dniu"), 400
+
+    pola, param = [], []
+    if nowa:
+        pola.append("data=?"); param.append(nowa)
+    if godz_od:
+        pola.append("godz_od=?"); param.append(godz_od)
+    if godz_do:
+        pola.append("godz_do=?"); param.append(godz_do)
+    param.append(row["id"])
+    conn.execute("UPDATE terminy_cyklu SET %s WHERE id=?" % ", ".join(pola), param)
+
+    # Wyjątek (odwołanie, zastępstwo) wisi na DACIE, więc przy przesunięciu
+    # musi pojechać razem z terminem — inaczej zastępstwo zostałoby przy dniu,
+    # w którym już nic nie ma, a nowy termin wyglądałby na nietknięty.
+    if nowa and nowa != stara:
+        conn.execute("UPDATE OR REPLACE wyjatki_cyklu SET data=? "
+                     "WHERE event_id=? AND data=?", (nowa, event_id, stara))
+        # Data pierwszych zajęć jest kolumną eventu i niesie ją pół aplikacji
+        # (sortowania, statystyki, `WHERE e.data`). Gdy przesuwamy właśnie ją,
+        # kolumna musi za tym nadążyć, inaczej cykl „zniknąłby" z miesiąca.
+        pierwszy = conn.execute("SELECT MIN(data) m FROM terminy_cyklu WHERE event_id=?",
+                                (event_id,)).fetchone()["m"]
+        conn.execute("UPDATE eventy SET data=?, updated_at=datetime('now') WHERE id=?",
+                     (pierwszy, event_id))
+
+    zapisz_log(conn, lead_id=e["lead_id"], event_id=event_id, co="zmiana terminu zajęć",
+               pole=e["typ"], przed=stara,
+               po=(nowa or stara) + ((" " + godz_od) if godz_od else ""))
+    conn.commit(); conn.close()
+    return jsonify(ok=True, data=nowa or stara)
 
 
 @app.route("/api/event/<int:event_id>", methods=["DELETE"])

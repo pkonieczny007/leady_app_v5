@@ -466,6 +466,21 @@ def test_odwolanie_terminu_cyklu(ids):
     sprawdz("podpis bierze się z sesji, nie z żądania", w and w["odwolal"] == PH_A,
             str(dict(w) if w else None))
 
+    # Przesuwanie terminów (pkt 18) idzie tą samą kontrolą — handlowiec MUSI
+    # móc na swojej szkole, bo brak tej możliwości był powodem zgłoszenia
+    # („PH wpisał cykle jako DT, bo nie mógł edytować dat").
+    print("\n-- przesuwanie terminów cyklu: czyja szkoła --")
+    kod, _ = post("/api/event/%d/termin" % cykle["b"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-16"})
+    sprawdz("cudzego terminu handlowiec nie przesunie", kod == 403, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % cykle["a"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-16"})
+    sprawdz("swój termin przesuwa", kod == 200, "kod %s" % kod)
+    zaloguj(KOOR)
+    kod, _ = post("/api/event/%d/termin" % cykle["b"],
+                  {"data": "2026-09-15", "data_nowa": "2026-09-17"})
+    sprawdz("koordynator przesuwa każdy", kod == 200, "kod %s" % kod)
+
 
 def main():
     print("=" * 62)

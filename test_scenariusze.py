@@ -968,6 +968,83 @@ def main():
                   {"data": start.isoformat(), "powod": "x"})
     sprawdz("DT odsyłany do zwykłego odwołania spotkania", kod == 400, "kod %s" % kod)
 
+    # ------------------- S21 — przesuwanie pojedynczych zajęć cyklu (pkt 18, 30.08)
+    # „Są zmiany w trakcie roku, a PH nie może sam tego zmienić — przez to
+    # wpisał cykle jako DT". Zmiana ma dotyczyć JEDNYCH zajęć: reszta pakietu
+    # zostaje. Dopóki cykl jest regułą, jedyną datą w bazie jest data pierwszych
+    # zajęć, więc przy pierwszej edycji reguła rozwija się na listę dat.
+    print("\nS21 — edycja dat pojedynczych zajęć cyklu")
+    conn = db.get_conn()
+    l_ed = nowa_szkola("SP EDYCJA CYKLU")
+    st = dt.date.today() + dt.timedelta(days=7)
+    while st.weekday() >= 5:
+        st += dt.timedelta(days=1)
+    e_ed = conn.execute(
+        "INSERT INTO eventy (lead_id, typ, data, godz_od, co_ile_tygodni) "
+        "VALUES (?, 'CYKLICZNE', ?, '12:00', 1)", (l_ed, st.isoformat())).lastrowid
+    conn.commit(); conn.close()
+    mies_ed = st.strftime("%Y-%m")
+
+    def daty_cyklu():
+        c2 = db.get_conn()
+        d = sorted(e["data"] for e in cv.events_for_month(c2, mies_ed)
+                   if e["lead_id"] == l_ed)
+        c2.close()
+        return d
+
+    przed_dat = daty_cyklu()
+    drugi_t = (st + dt.timedelta(days=7)).isoformat()
+    nowy_t = (st + dt.timedelta(days=8)).isoformat()
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": drugi_t, "data_nowa": nowy_t})
+    po_dat = daty_cyklu()
+    sprawdz("przesunięcie jednych zajęć przechodzi", kod == 200, "kod %s" % kod)
+    sprawdz("przesunął się DOKŁADNIE jeden termin, reszta cyklu stoi",
+            len(po_dat) == len(przed_dat) and nowy_t in po_dat and drugi_t not in po_dat
+            and przed_dat[0] == po_dat[0], "%s → %s" % (przed_dat, po_dat))
+
+    conn = db.get_conn()
+    ile_t = conn.execute("SELECT COUNT(*) c FROM terminy_cyklu WHERE event_id=?",
+                         (e_ed,)).fetchone()["c"]
+    conn.close()
+    sprawdz("reguła rozwinęła się na listę dat (materializacja)", ile_t > 1, str(ile_t))
+
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": nowy_t, "godz_od": "15:30"})
+    conn = db.get_conn()
+    g = conn.execute("SELECT godz_od FROM terminy_cyklu WHERE event_id=? AND data=?",
+                     (e_ed, nowy_t)).fetchone()["godz_od"]
+    inne = conn.execute("SELECT godz_od FROM terminy_cyklu WHERE event_id=? AND data=?",
+                        (e_ed, przed_dat[0])).fetchone()["godz_od"]
+    conn.close()
+    sprawdz("godzinę też da się zmienić na jednych zajęciach",
+            kod == 200 and g == "15:30" and inne == "12:00", "%s / %s" % (g, inne))
+
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": nowy_t, "data_nowa": przed_dat[0]})
+    sprawdz("dwóch zajęć tego samego cyklu w jednym dniu nie zrobimy", kod == 400,
+            "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": nowy_t, "data_nowa": "0002-01-01"})
+    sprawdz("rok z literówki odrzucony (ten sam bezpiecznik co w kalendarzu)",
+            kod == 400, "kod %s" % kod)
+    kod, _ = post("/api/event/%d/termin" % e_ed, {"data": "2099-01-01",
+                                                  "data_nowa": nowy_t})
+    sprawdz("termin spoza cyklu odrzucony", kod == 404, "kod %s" % kod)
+
+    # Przesunięcie PIERWSZYCH zajęć musi pociągnąć kolumnę `data` eventu —
+    # niesie ją pół aplikacji (sortowania, statystyki, WHERE e.data).
+    pierwszy_nowy = (dt.date.fromisoformat(przed_dat[0])
+                     + dt.timedelta(days=1)).isoformat()
+    kod, _ = post("/api/event/%d/termin" % e_ed,
+                  {"data": przed_dat[0], "data_nowa": pierwszy_nowy})
+    conn = db.get_conn()
+    kol = conn.execute("SELECT data FROM eventy WHERE id=?", (e_ed,)).fetchone()["data"]
+    conn.close()
+    sprawdz("przesunięcie pierwszych zajęć aktualizuje datę spotkania",
+            kod == 200 and kol == pierwszy_nowy, "%s" % kol)
+    html = KL.get("/lead/%d" % l_ed).get_data(as_text=True)
+    sprawdz("karta ma pola do zmiany daty i godziny terminu",
+            "tc-data" in html and "tc-godz" in html)
+
     # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]

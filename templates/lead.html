@@ -99,7 +99,7 @@
            był widoczny w miejscu, w którym koordynatorka pracuje ze spotkaniem. #}
         {% if e.typ in TYPY_CYKLICZNE %}
         <button type="button" class="btn btn-secondary btn-sm btn-terminy-cyklu" data-id="{{ e.id }}"
-                title="Odwołaj pojedyncze zajęcia — reszta cyklu jedzie dalej">Odwołaj zajęcia</button>
+                title="Przesuń albo odwołaj pojedyncze zajęcia — reszta cyklu jedzie dalej">Terminy zajęć</button>
         {% endif %}
         <button type="button" class="btn btn-ghost btn-odwolaj-event" data-id="{{ e.id }}"
                 title="{{ 'Odwołuje CAŁY cykl — wszystkie terminy znikną z grafiku'
@@ -128,16 +128,25 @@
       {# Pakiet konkretnych terminów — przedszkola umawiają N spotkań zamiast
          reguły „co wtorek". Data w nagłówku karty to PIERWSZE zajęcia; bez tej
          listy reszta pakietu byłaby widoczna wyłącznie w kalendarzu. #}
+      {# Lista bywa długa: cykl „co wtorek" po pierwszej edycji terminu rozwija
+         się na konkretne daty (patrz materializuj_terminy) i potrafi mieć ich
+         czterdzieści. Pokazujemy nadchodzące, resztę zliczamy — karta ma
+         odpowiadać na „kiedy najbliższe zajęcia", a nie być wydrukiem roku. #}
       {% if e.terminy %}
+      {% set przyszle = e.terminy | rejectattr('data', 'lt', today) | list %}
       <div class="event-terminy">
-        <span class="kv-l">Terminy pakietu ({{ e.terminy|length }})</span>
+        <span class="kv-l">Terminy pakietu ({{ e.terminy|length }}{% if przyszle|length < e.terminy|length %}, w tym {{ przyszle|length }} przed nami{% endif %})</span>
         <ol class="terminy-lista">
-          {% for t in e.terminy %}
+          {% set widoczne = (przyszle or e.terminy) %}
+          {% for t in widoczne[:16] %}
           <li{{ ' class=minelo'|safe if t.data < today else '' }}>
             <span class="nums">{{ t.data|pl_data }}</span>
             <span class="nums muted">{{ t.godz_od or '' }}{{ '–' ~ t.godz_do if t.godz_do }}</span>
           </li>
           {% endfor %}
+          {% if widoczne|length > 16 %}
+          <li class="muted">…i {{ widoczne|length - 16 }} dalszych</li>
+          {% endif %}
         </ol>
       </div>
       {% endif %}
@@ -149,13 +158,22 @@
       {% if e.typ in TYPY_CYKLICZNE %}
       {% set moje = wystapienia | selectattr('id', 'equalto', e.id) | list %}
       <div class="event-terminy tc-panel" id="tc-{{ e.id }}" hidden>
-        <span class="kv-l">Które zajęcia odwołujemy?</span>
+        <span class="kv-l">Najbliższe terminy — przesuń albo odwołaj pojedyncze zajęcia</span>
         {% if moje %}
-        <ol class="terminy-lista">
+        <ol class="terminy-lista tc-lista">
           {% for w in moje %}
-          <li>
-            <span class="nums">{{ w.data|pl_data }}</span>
-            <span class="nums muted">{{ w.godz_od or '' }}{{ '–' ~ w.godz_do if w.godz_do }}</span>
+          <li class="tc-wiersz">
+            {# Data i godzina są POLAMI, nie tekstem (pkt 18, 30.08): „są zmiany
+               w trakcie roku, a PH nie może sam tego zmienić — przez to wpisał
+               cykle jako DT". Zmiana dotyczy TYCH zajęć; reszta pakietu zostaje
+               tam, gdzie była. #}
+            <input type="date" class="input input-sm tc-data" value="{{ w.data }}"
+                   min="{{ data_min }}" max="{{ data_max }}"
+                   data-id="{{ e.id }}" data-data="{{ w.data }}"
+                   title="Przesuń TE zajęcia na inny dzień">
+            <input type="time" class="input input-sm tc-godz" value="{{ w.godz_od or '' }}"
+                   data-id="{{ e.id }}" data-data="{{ w.data }}" data-pole="godz_od"
+                   title="Godzina rozpoczęcia tych zajęć">
             {% if w.trener %}<span class="muted small">{{ w.trener|bez_prefiksu }}</span>{% endif %}
             <button type="button" class="btn btn-ghost btn-sm btn-odwolaj-termin"
                     data-id="{{ e.id }}" data-data="{{ w.data }}"
@@ -163,8 +181,9 @@
           </li>
           {% endfor %}
         </ol>
-        <p class="legend">Odwołanie dotyczy tylko wybranej daty. Cały pakiet
-          zdejmuje przycisk „Odwołaj cały cykl".</p>
+        <p class="legend">Zmiana dotyczy WYBRANYCH zajęć — pozostałe terminy zostają
+          bez zmian. Żeby przesunąć cały cykl, zmień „Datę" w polach spotkania wyżej;
+          cały pakiet zdejmuje „Odwołaj cały cykl".</p>
         {% else %}
         <p class="empty">Ten cykl nie ma już przyszłych terminów w grafiku.</p>
         {% endif %}

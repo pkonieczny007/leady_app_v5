@@ -387,6 +387,30 @@
     btn.classList.toggle("on", !otwarty);
   });
 
+  /* Przesunięcie POJEDYNCZYCH zajęć cyklu (pkt 18, 30.08). Zapis od razu po
+     zmianie pola — tak samo jak każda inna edycja w karcie; bez przycisku
+     „zapisz", bo ten wzorzec jest w projekcie od v3 i ludzie go znają. */
+  document.addEventListener("change", function (ev) {
+    var el = ev.target.closest(".tc-data, .tc-godz");
+    if (!el) return;
+    var dane = { data: el.dataset.data };
+    if (el.classList.contains("tc-data")) {
+      if (!el.value) { toast("Data nie może być pusta", true); el.value = el.dataset.data; return; }
+      dane.data_nowa = el.value;
+    } else {
+      dane.godz_od = el.value;
+    }
+    api("POST", "/api/event/" + el.dataset.id + "/termin", dane)
+      .then(function () {
+        toast("Zmieniono termin — pozostałe zajęcia bez zmian");
+        setTimeout(function () { location.reload(); }, 700);
+      })
+      .catch(function (e) {
+        toast("Nie zmieniono: " + e.message, true);
+        if (el.classList.contains("tc-data")) el.value = el.dataset.data;
+      });
+  });
+
   /* Odwołanie JEDNYCH zajęć z cyklu (pkt 21, 30.08) — reszta pakietu zostaje.
      Osobny przycisk i osobny endpoint niż odwołanie całego spotkania: kafel
      cyklu to wystąpienie reguły, więc odwołanie „po id" zdjęłoby z grafiku
