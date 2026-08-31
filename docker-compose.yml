@@ -26,11 +26,22 @@ services:
       - "127.0.0.1:5301:5000"
     volumes:
       - leady_v5_data:/data
+      # Most do aplikacji partnerskiej. To JEDYNY bind mount w tym pliku i jest
+      # nim z konieczności: wolumen dockera leży w /var/lib/docker/volumes
+      # z prawami root:root drwx--x---, więc ani `ubuntu`, ani konto partnera
+      # tam nie zajrzy — a cały sens mostu polega na tym, żeby ktoś z zewnątrz
+      # te pliki przeczytał.
+      #
+      # Ścieżka BEZWZGLĘDNA, nie `./most`. Katalog aplikacji na VPS jest klonem
+      # gita, w którym leży pakiet `most/` z kodem — `./most` przykryłby go
+      # katalogiem danych i `git pull` przestałby mieć co aktualizować.
+      - /srv/most/prod:/data/most
     env_file:
       - .env
     environment:
       - DATA_DIR=/data
       - PROFIL=prod
+      - MOST_DIR=/data/most
       # ile dni po terminie lead wraca do puli nieprzydzielonych
       # Decyzja 08.08: zwrot pierwszego dnia po terminie (bez karencji),
       # a 2 dni to ostrzeżenie PRZED terminem.
@@ -49,11 +60,17 @@ services:
       # przy wspólnym wolumenie demo i produkcja pisałyby do JEDNEGO pliku,
       # a kolorowy pasek u góry ekranu kłamałby, że to różne bazy.
       - leady_v5_demo_data:/data
+      # OSOBNY katalog mostu, z tego samego powodu co osobny wolumen wyżej.
+      # Wspólny znaczyłby, że grafik z bazy testowej trafia do partnera jako
+      # produkcyjny — a plik nazywa się tak samo, więc nikt by tego nie zauważył.
+      # Dla pewności `profil` jedzie też WEWNĄTRZ każdego wystawianego pliku.
+      - /srv/most/demo:/data/most
     env_file:
       - .env
     environment:
       - DATA_DIR=/data
       - PROFIL=test
+      - MOST_DIR=/data/most
       - KARENCJA_DNI=0
       - OSTRZEZENIE_DNI=2
 
