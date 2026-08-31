@@ -823,6 +823,77 @@ klient opisał. Warto trzymać ten nawyk: sprawdzać mechanizm, nie tylko objaw.
 
 ---
 
+## 8f. Most do Akademii Silesia3D — 31.08.2026
+
+Pakiet `most/` wystawia grafik naszych zajęć do katalogu na serwerze, skąd czyta go
+aplikacja partnerska (`akademia.silesia3d.site` — React SPA + Supabase, stoi na TYM
+SAMYM VPS, konto `zuzia`). Opis formatu i obsługi: `most/README.md`.
+Projekt dla ich strony + wzorcowy importer: `docs/poprawki/2026-08-31/dla_akademii/`
+(poza repozytorium — niesie namiary na ich bazę).
+
+⚠️ **Ich aplikacja NIE MA czym przeczytać pliku.** To było założenie zlecenia i jest
+nieprawdziwe: w całym buildzie nie ma ani jednego `fetch()` po dane z własnego origin,
+nie ma tabeli „przychodzące", importu ani ekranu do wgrywania. Podłożenie katalogu
+samo z siebie nie uruchamia niczego — ktoś po ich stronie musi napisać import.
+Dlatego robimy **plik + specyfikację**, a nie zapis do ich bazy (do której zresztą
+nie mamy konta ani potwierdzenia polityk RLS).
+
+**Cel po ich stronie: `recurring_classes`** dla cykli i `one_off_activities` dla DT.
+„Lead dla lidera liderów" z prośby Kasi to rola `head_leader` — u nich nie istnieje
+żaden inny byt, który by tak działał. Zalecamy im **osobną tabelę-skrzynkę**, a nie
+wpychanie wprost do grafiku: `trainer_id` jest u nich wymagany, a to jest dokładnie
+to pole, które ma przypisać Weronika.
+
+### Decyzje, których nie widać z kodu
+
+**Nazwy pól w wystawianym pliku są ICH, nie nasze** (`school`, `weekday`, `start_time`).
+Import ma być przepisaniem pola w pole; gdybyśmy wysłali `placowka`/`godz_od`, po
+drugiej stronie powstałby tłumacz do utrzymywania w nieskończoność.
+
+**Wysyłamy policzone daty, nie regułę** — i liczy je `calendar_view`, ten sam kod, co
+nasz kalendarz. Dwa niezależne liczenia rozjeżdżają się na pierwszym odwołanym
+terminie, a wychodzi to przy awanturze o nieodbyte zajęcia.
+
+**`ends_on` tylko dla pakietu z uzgodnioną listą dat.** Cykl z reguły nie ma końca,
+a ostatnia policzona data to `CYKL_HORYZONT_TYGODNI` — miejsce, w którym przestaliśmy
+liczyć. Stąd pola `occurrences_agreed` i `occurrences_horizon_weeks`.
+
+**Dane kontaktowe NIE wychodzą** — telefon, mail, osoba kontaktowa, notatki. Most
+przekracza granicę zespołu PH, a pytanie z 20.08 („czy w pliku mają być telefony do
+szkół") nie doczekało się odpowiedzi; brak odpowiedzi znaczy „nie". Notatek nie
+wysyłamy w całości, bo to wolny tekst, a w wolnym tekście lądują nazwiska i numery.
+Pilnuje tego test szukający po **wartościach**, nie po nazwach pól.
+
+**Znacznik „coś się zmieniło" stawia `db.zapisz_log()`** — jedyne miejsce, przez które
+przechodzi każdy zapis eventu i leada. Endpointów piszących po kalendarzu jest osiem
+i dziewiąty powstanie bez przypomnienia. Stała `db.MOST_BRUDNY` mieszka w `db.py`, żeby
+`db` nie musiało importować `most` (byłby cykl).
+
+**Dwa zegary:** zmiana → zapis po 20 s (dławik chroni przed przepisywaniem pliku kilka
+razy w trakcie jednego zapisu formularza), cisza → zapis co godzinę (bicie serca —
+bez niego zamarły znacznik wygląda jak „nic się nie zmieniło").
+
+**Katalog wymiany to `/srv/most/{prod,demo}`, ścieżka BEZWZGLĘDNA w compose.** Katalog
+aplikacji na VPS jest klonem gita, w którym leży pakiet `most/` — `./most` przykryłby
+kod katalogiem danych. Osobno na profil z tego samego powodu, co osobne wolumeny.
+To **jedyny bind mount** w `docker-compose.yml` i jest nim z konieczności: wolumen
+dockera ma prawa `root:root drwx--x---`, więc partner by tam nie zajrzał.
+
+**Most jest dodatkiem i łapie własne wyjątki.** Handlowiec ma zapisać wizytę także
+wtedy, gdy katalog wymiany zniknął. Wyłącznik: `MOST=0` w środowisku.
+
+### Co z tego wyszło o danych — do rozmowy z Kasią
+- **43 z 66 rekordów nie ma godziny rozpoczęcia**, a u partnera `start_time` jest
+  wymagany. To nie błąd: termin ustala się wcześniej niż godzinę i nasza aplikacja
+  świadomie tego nie blokuje. Każdy rekord jedzie z listą `missing`.
+- **Na profilu `test` są tylko 2 cykle** (64 DT). Skoro most ma wozić „cykle wpisane
+  przez PH", to dziś jest prawie pusto — warto to powiedzieć, zanim ktoś uzna, że
+  most nie działa.
+- ⚠️ Lokalny `data/prod` to STARA kopia sprzed migracji `odwolane` — `calendar_view`
+  się na niej wywraca. Produkcja na VPS jest zmigrowana; lokalnej kopii nie ruszamy.
+
+---
+
 ## 9. Dokumentacja w `docs/`
 
 `11_PLAN_v5.md` to żywy plan v5 ze stanem etapów — aktualizować przy każdym

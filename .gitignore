@@ -35,3 +35,7 @@ docs/poprawki/
 do_sprawdzenia_recznego/*
 !do_sprawdzenia_recznego/README.md
 
+# Pliki wystawiane przez most, gdyby ktoś uruchomił go bez MOST_DIR — dane
+# placówek i grafików, do repozytorium nie mają po co trafiać.
+most_dane/
+

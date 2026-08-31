@@ -29,6 +29,7 @@ import calendar_view as cv
 import dostepnosc_view as dv
 import filtry as fl
 import geografia
+import most
 import obszary
 import przydzial as pz
 import repo
@@ -2887,6 +2888,15 @@ def _automat_zwrotu():
     conn = get_conn()
     try:
         zwrot.przeglad(conn)
+        # Most do aplikacji partnerskiej jedzie tym samym hakiem i z tego samego
+        # powodu — a przy okazji trafia dokładnie tam, gdzie trzeba: handlowiec,
+        # który właśnie zapisał zajęcia, ZAWSZE otwiera zaraz potem ekran, bo
+        # udany zapis kończy się przeładowaniem strony.
+        #
+        # `przeglad` sam łapie wyjątki i sam pilnuje zegara — tutaj zostaje
+        # jedno tanie zapytanie o znacznik. Most jest dodatkiem i nie ma prawa
+        # zatrzymać zapisu wizyty, choćby katalog wymiany zniknął z serwera.
+        most.przeglad(conn)
     finally:
         conn.close()
 

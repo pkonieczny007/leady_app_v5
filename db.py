@@ -530,6 +530,14 @@ def alias_map(conn, rodzaj=None):
 
 # ------------------------------------------------------------------ meta
 
+# Znacznik „w bazie coś się ruszyło, most ma przepisać pliki". Nazwa stałej
+# mieszka TUTAJ, a nie w pakiecie `most`, żeby `db` nie musiało go importować:
+# most czyta `db`, więc import w drugą stronę byłby cyklem. Jedna stała
+# w miejscu, które znają obie strony, kosztuje mniej niż leniwy import
+# w środku funkcji wołanej przy każdym zapisie.
+MOST_BRUDNY = "most_brudny"
+
+
 def meta_get(conn, klucz, domyslnie=None):
     r = conn.execute("SELECT wartosc FROM meta WHERE klucz=?", (klucz,)).fetchone()
     return r["wartosc"] if r else domyslnie
@@ -566,3 +574,9 @@ def zapisz_log(conn, *, lead_id=None, event_id=None, kto=None, co="", pole=None,
     if lead_id:
         conn.execute("UPDATE leady SET ostatnia_aktywnosc=datetime('now'), "
                      "updated_at=datetime('now') WHERE id=?", (lead_id,))
+    # Most do aplikacji partnerskiej ma przepisać grafik po każdej zmianie.
+    # Znacznik stawiamy TUTAJ, bo `zapisz_log` to jedyne miejsce, przez które
+    # przechodzi każdy zapis eventu i leada — endpointów piszących po kalendarzu
+    # jest osiem, a dziewiąty powstanie bez przypomnienia. Bez `commit()`:
+    # siedzimy w transakcji wywołującego i mamy się wycofać razem z nią.
+    meta_set(conn, MOST_BRUDNY, "1")
