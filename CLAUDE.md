@@ -470,7 +470,7 @@ własnego wśród 50). Dopóki go nie dostanie, będzie zgłaszać to samo, a hi
 zmian zapisuje konto zamiast człowieka.
 
 ### Baza na RSPO — projekt i pierwsze dwa etapy
-`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md` (etapy M0–M9). Zrobione **M1 i M2
+`docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md` (etapy M0–M9). Zrobione **M1 i M2
 na profilu `test`**, oba addytywne i odwracalne `DROP TABLE`:
 - `rejestr_rspo.py` — lustro rejestru (`rspo_rejestr` + dziennik zmian), 6 116
   placówek śląskich, wgranie 1,2 s
@@ -556,7 +556,7 @@ Poprawka z 10.08 objęła nawigację i tabele, ale nie ten blok, nie `.seg`
 
 ## 8d. 24.08.2026 — baza przeszła na rejestr RSPO
 
-Stan, liczby i plan: **`docs/poprawka 24.08.2026/STAN_SESJI_2026-08-24.md`**.
+Stan, liczby i plan: **`docs/poprawki/2026-08-24/STAN_SESJI_2026-08-24.md`**.
 Skrót tego, co zmienia sposób myślenia o projekcie:
 
 **Baza `test` ma 1618 placówek i pokrywa rejestr co do wiersza** (0 braków wobec
@@ -725,7 +725,7 @@ szkół ani numerów.
 **Stan: `main` = `5ad3196`, tag `v5.2-poprawki-30-08` (punkt cofnięcia kodu),
 produkcja zaktualizowana 30.08 wieczorem.** Zrobione **18 z 21** punktów listy.
 
-Lista 21+2 punktów od Kasi: `docs/poprawki 30.08.2026/` (katalog w `.gitignore`
+Lista 21+2 punktów od Kasi: `docs/poprawki/2026-08-30/` (katalog w `.gitignore`
 — są tam JPG-i i nazwiska, repo jest publiczne). W środku:
 **`PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md`** (punkt po punkcie, językiem klienta
 — to jest plik do wysłania) i **`STAN_SESJI_2026-08-30.md`** (kroki wdrożeniowe,
@@ -829,13 +829,34 @@ klient opisał. Warto trzymać ten nawyk: sprawdzać mechanizm, nie tylko objaw.
 domknięciu etapu. Starsze pliki (`01`–`10`) to analiza plików klienta i projekty
 modułów v2–v4; są punktem odniesienia dla decyzji, nie do zmieniania.
 
-`docs/poprawka 20.08.2026/` — runda poprawek: `REJESTR_POPRAWEK_2026-08.md`
-(P01–P31 ze statusami), `STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi.
-`docs/poprawka 23.08.2026/` — `PROJEKT_BAZY_RSPO.md` (migracja M0–M9),
-`PLAN_FORMULARZA.md` (v5, E0–E8), `PLAN_BAZY_PH.md` (zakładki Kasi).
-`docs/poprawki 30.08.2026/` — ⚠️ **katalog NIE jest w repo** (`.gitignore`:
-JPG-i i nazwiska, repo publiczne). Żyje tylko lokalnie i zawiera
-`PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md` (do wysłania klientowi) oraz
+### ⚠️ `docs/poprawki/` — cały katalog jest POZA repozytorium (31.08)
+
+Cztery katalogi rund (`poprawka 20.08`, `23.08`, `24.08`, `poprawki 30.08`)
+zeszły się w jeden `docs/poprawki/` z podkatalogami po datach w formacie ISO
+(`2026-08-20` … `2026-08-30`) i **cały ten katalog jest w `.gitignore`**.
+
+Powód nie jest porządkowy. Poprzednio każda runda miała własną regułę wpuszczającą
+notatki i blokującą arkusze klienta — czyli przy każdym nowym pliku trzeba było
+trafić wzorcem. Nie trafiliśmy: `git add <katalog>` dwa razy zgarnął arkusz
+z nazwiskami i stawkami (raz złapany przed `push`), a `dopasowanie_prod_2026-08-23.xlsx`
+naprawdę wjechał do PUBLICZNEGO repo i **siedzi w historii, której git nie
+zapomina** — usunięcie z indeksu tego nie cofa. Reguła na cały katalog wymaga
+zera trafnych wzorców.
+
+Skutek do zapamiętania: **materiał rund żyje tylko lokalnie i na dysku firmowym.**
+To, co ma być publiczne, wędruje świadomie do `docs/` albo do GitHub Issues —
+nie trafia tam samo przez commit. Ścieżki w komentarzach kodu (`PROJEKT_BAZY_RSPO.md`
+w `rejestr_rspo.py`, `dopasowanie.py`, `geografia.py`, `dokladanie.py`,
+`narzedzia/migracja_rspo.py`, `templates/obszary.html`) wskazują więc pliki,
+których **nie ma w klonie z GitHuba** — to celowe, ale nie zdziw się przy
+świeżym `git clone` ani czytając to na VPS.
+
+Zawartość (lokalnie): `2026-08-20` — `REJESTR_POPRAWEK_2026-08.md` (P01–P31),
+`STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi · `2026-08-23` —
+`PROJEKT_BAZY_RSPO.md` (M0–M9), `PLAN_FORMULARZA.md` (v5, E0–E8),
+`PLAN_BAZY_PH.md` · `2026-08-24` — `STAN_SESJI_2026-08-24.md`,
+`WDROZENIE_NA_DEMO.md`, `WDROZENIE_NA_PRODUKCJE.md` · `2026-08-30` —
+`PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md` (do wysłania klientowi),
 `STAN_SESJI_2026-08-30.md` (kroki wdrożeniowe, stan kont, checklisty).
 
 **Czytać w tej kolejności przy wznowieniu pracy: sekcja 8e (ostatnia runda,

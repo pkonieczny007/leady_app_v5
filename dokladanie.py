@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Dołożenie brakujących placówek z lustra rejestru do bazy roboczej — etap M7
-projektu `docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md`.
+projektu `docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md`.
 
 CO TO ROZWIĄZUJE
 Baza handlowców ma 545 rekordów: 539 szkół podstawowych i 6 pozycji „Inna".

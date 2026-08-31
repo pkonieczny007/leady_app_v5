@@ -3,7 +3,7 @@
 Lustro rejestru RSPO — tabele `rspo_rejestr`, `rspo_importy`, `rspo_zmiany`.
 
 Kod przejęty z aplikacji pomocniczej `rspo_app` (etap M1 projektu
-`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md`), gdzie przeszedł próbę na
+`docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md`), gdzie przeszedł próbę na
 realnych plikach. Tu zmieniają się tylko nazwy tabel i połączenie z bazą.
 
 DLACZEGO LUSTRO TO OSOBNA TABELA, A NIE KOLUMNY W `placowki`

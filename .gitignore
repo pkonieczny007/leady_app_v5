@@ -19,19 +19,19 @@ dostepy/
 # Wzor bez wartosci zostaje w .env.example
 .env
 
-# Pliki robocze klienta w katalogach poprawek — kopie jego arkuszy z danymi
-# osobowymi i stawkami trenerów. Repozytorium jest PUBLICZNE, a git nie
-# zapomina historii: raz wypchnięty plik zostaje tam także po skasowaniu.
-# Notatki tekstowe i projekty zostają w repo, arkusze klienta nie.
-docs/poprawka */**/Kopia *.xlsx
-docs/poprawka */**/PH *.xlsx
-# Pliki decyzyjne migracji niosą nazwy i adresy placówek klienta, a repo jest
-# publiczne. Dwa razy w tej rundzie `git add <katalog>` zgarnął arkusz klienta —
-# reguła jest szersza niż konkretna nazwa właśnie dlatego.
-docs/poprawka */*.xlsx
+# CAŁA robocza dokumentacja rund poprawek — jeden katalog, poza gitem.
+# Wcześniej każda runda miała własny katalog i własną regułę na arkusze
+# klienta; mimo to `git add <katalog>` dwa razy zgarnął jego plik z nazwiskami
+# i stawkami, a raz taki arkusz naprawdę wjechał do PUBLICZNEGO repozytorium
+# (dopasowanie_prod_2026-08-23.xlsx — siedzi w historii, której git nie
+# zapomina). Reguła „wpuszczamy notatki, blokujemy arkusze" wymaga trafnego
+# wzorca przy każdym nowym pliku; ta wymaga zera. Materiał rund żyje lokalnie
+# i na dysku firmowym, a to, co ma być publiczne, idzie do docs/ albo do
+# GitHub Issues — świadomą decyzją, nie przez przeoczenie.
+docs/poprawki/
+
 # Katalog roboczy do decyzji człowieka — arkusze z nazwami, adresami
 # i telefonami placówek. Sam README zostaje w repo, bo opisuje procedurę.
 do_sprawdzenia_recznego/*
 !do_sprawdzenia_recznego/README.md
-poprawki 30.08.2026/
 

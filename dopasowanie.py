@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Nadanie numerów RSPO placówkom, które ich nie mają — etap M3 projektu
-`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md`.
+`docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md`.
 
 PO CO NUMER, SKORO POWIAT JUŻ DZIAŁA
 Powiat dało się wywieść z nazwy miejscowości (etap M5) i to wystarczyło do

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Geografia placówek — powiat i gmina z rejestru RSPO (etap M5 projektu
-`docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md`).
+`docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md`).
 
 PO CO POWIAT, SKORO JEST MIEJSCOWOŚĆ
 Bo klient prowadzi sprzedaż powiatami, a nasza lista miejscowości powstała

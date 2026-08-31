@@ -2,7 +2,7 @@
 """
 Migracja bazy na rejestr RSPO — narzędzie etapów M0–M7.
 
-Projekt i uzasadnienia: `docs/poprawka 23.08.2026/PROJEKT_BAZY_RSPO.md`.
+Projekt i uzasadnienia: `docs/poprawki/2026-08-23/PROJEKT_BAZY_RSPO.md`.
 Zasada rytmu: każdy etap najpierw na profilu `test`, na `prod` dopiero po
 obejrzeniu wyniku; etap wymagający decyzji człowieka kończy się PLIKIEM do
 zatwierdzenia, nie automatem.
