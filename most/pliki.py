@@ -43,6 +43,36 @@ PLIK_DANE = "zajecia.json"
 PLIK_XLSX = "zajecia.xlsx"
 PLIK_STAN = "stan.json"
 PLIK_ZMIANY = "zmiany.jsonl"
+PLIK_OPIS = "CZYTAJ_TO.txt"
+
+# Katalog wymiany leży obok aplikacji, czyli tam, gdzie ludzie realnie zaglądają
+# — i dlatego musi się sam tłumaczyć. Człowiek, który tu trafi bez kontekstu,
+# ma w pierwszej linijce wiedzieć, czyje to dane, co z nimi zrobić i czego tu
+# NIE MA. Bez tego katalog z czterema plikami .json wygląda jak śmieci po
+# jakimś skrypcie i prędzej czy później ktoś go „posprząta".
+OPIS = """\
+MOST — grafik zajęć z aplikacji handlowców (leady_app_v5)
+
+Te pliki wystawia aplikacja SILESIA 3D dla aplikacji partnerskiej.
+Odświeżają się SAME: ~20 sekund po tym, jak handlowiec cokolwiek zapisze,
+a przy ciszy i tak raz na godzinę.
+
+  zajecia.json   ← PLIK GŁÓWNY: wszystkie cykle i dni technologiczne
+  zajecia.xlsx      to samo do otwarcia dwuklikiem (Info / Cykle / DT / Wystąpienia)
+  zmiany.jsonl      co się zmieniło od poprzedniej migawki, 1 linia = 1 zdarzenie
+  stan.json         kiedy powstało i ile czego — jeśli data przestaje rosnąć,
+                    most stanął
+  .skroty.json      nasze, wewnętrzne (do liczenia różnic) — nie czytać
+
+CZEGO TU NIE MA I NIE BĘDZIE: telefonów, maili, osób kontaktowych ani notatek
+handlowców. Most przekracza granicę zespołu, więc dane kontaktowe zostają
+po naszej stronie.
+
+NIE EDYTOWAĆ I NIE KASOWAĆ — pliki są przepisywane w całości przy każdej
+zmianie, więc każda poprawka z ręki zniknie w ciągu minuty.
+
+Opis formatu pole po polu: most/README.md w repozytorium aplikacji.
+"""
 
 # Ile miesięcznych dzienników zostawiamy. Dziennik jest pomocniczy — pełną
 # prawdę niesie `zajecia.json` — więc trzymanie go w nieskończoność tylko

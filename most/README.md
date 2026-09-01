@@ -32,8 +32,20 @@ lawinę na powitanie. Ten sam warunek łapie odtworzenie katalogu po awarii: sko
 nie mamy poprzednich skrótów, to nie WIEMY, co się zmieniło, i jedna uczciwa linia
 mówi o tym więcej niż setka zmyślonych. `stan.json` niesie `pierwsza_migawka`.
 
-Katalog: `MOST_DIR` (w kontenerze `/data/most`, mapowane na `/srv/most/<profil>`).
-Poza kontenerem `most_dane/` w repozytorium.
+Piąty plik, `CZYTAJ_TO.txt`, tłumaczy zawartość katalogu komuś, kto trafi tam bez
+kontekstu. Katalog leży obok aplikacji, czyli tam, gdzie ludzie realnie zaglądają
+— a cztery pliki `.json` bez wyjaśnienia wyglądają jak śmieci po jakimś skrypcie
+i prędzej czy później ktoś je „posprząta".
+
+**Katalog:** `MOST_DIR` (w kontenerze `/data/most`, mapowane na
+`/home/ubuntu/apps/most/<profil>`). Poza kontenerem `most_dane/` w repozytorium.
+
+⚠️ **Katalog wymiany leży OBOK katalogu aplikacji, nie w nim** — `apps/most/` jest
+rodzeństwem `apps/ph.silesia3d.site/`. Wewnątrz nie może, bo katalog aplikacji na
+VPS jest klonem gita, w którym leży pakiet `most/` z kodem; bind mount pod tą samą
+nazwą przykryłby kod katalogiem danych. Wybór `apps/` zamiast `/srv` jest z kolei
+decyzją o LUDZIACH, nie o technice: obie strony pracują w `apps/`, a rzecz, do
+której trzeba skakać po systemie plików, przestaje być sprawdzana.
 
 ## Kiedy się odświeża
 
@@ -170,9 +182,12 @@ Wyłącznik awaryjny: `MOST=0` w środowisku i restart — bez cofania wdrożeni
 ## Wdrożenie na serwer
 
 ```bash
-sudo mkdir -p /srv/most/prod /srv/most/demo
-sudo chown ubuntu:ubuntu /srv/most/prod /srv/most/demo
-sudo chmod 755 /srv /srv/most /srv/most/prod /srv/most/demo   # odbiorca musi móc czytać
+mkdir -p /home/ubuntu/apps/most/prod /home/ubuntu/apps/most/demo
+# Odbiorca musi móc WEJŚĆ do katalogów po drodze, nie tylko odczytać plik —
+# bez prawa `x` na katalogu nadrzędnym dostanie „Permission denied" mimo
+# poprawnych praw do samego pliku.
+chmod o+x /home/ubuntu /home/ubuntu/apps
+chmod 755 /home/ubuntu/apps/most /home/ubuntu/apps/most/prod /home/ubuntu/apps/most/demo
 ```
 
 Potem `./wdroz.sh demo`, sprawdzenie ekranów z ręki, dopiero `./wdroz.sh prod`.

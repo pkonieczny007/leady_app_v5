@@ -873,11 +873,31 @@ i dziewiąty powstanie bez przypomnienia. Stała `db.MOST_BRUDNY` mieszka w `db.
 razy w trakcie jednego zapisu formularza), cisza → zapis co godzinę (bicie serca —
 bez niego zamarły znacznik wygląda jak „nic się nie zmieniło").
 
-**Katalog wymiany to `/srv/most/{prod,demo}`, ścieżka BEZWZGLĘDNA w compose.** Katalog
-aplikacji na VPS jest klonem gita, w którym leży pakiet `most/` — `./most` przykryłby
-kod katalogiem danych. Osobno na profil z tego samego powodu, co osobne wolumeny.
+**Katalog wymiany to `/home/ubuntu/apps/most/{prod,demo}`, ścieżka BEZWZGLĘDNA
+w compose.** Katalog aplikacji na VPS jest klonem gita, w którym leży pakiet `most/`
+— `./most` przykryłby kod katalogiem danych; `apps/most` jest jego **rodzeństwem**,
+więc kolizji nie ma. Osobno na profil z tego samego powodu, co osobne wolumeny.
 To **jedyny bind mount** w `docker-compose.yml` i jest nim z konieczności: wolumen
 dockera ma prawa `root:root drwx--x---`, więc partner by tam nie zajrzał.
+
+⚠️ **Było `/srv/most`, przeniesione 01.09 — z powodu ludzkiego, nie technicznego.**
+Obie strony pracują w `/home/ubuntu/apps` (my z konta `ubuntu`, partnerka przez skrót
+do tego katalogu), a rzecz, do której trzeba skakać po systemie plików, przestaje być
+sprawdzana. Kosztem jest `chmod o+x /home/ubuntu` — każde konto na serwerze może
+wtedy PRZEJŚĆ przez ten katalog (wylistować już nie). Świadomy wybór; powrót to jedna
+linia w compose.
+
+**Pliki dostają prawa JAWNIE** (`most/pliki.py`, `nadaj_prawa`, przed `os.replace`).
+`tempfile.mkstemp()` tworzy plik z prawami 600 i robi to celowo, a `os.replace()`
+przenosi go bez zmiany praw — bez tego `zajecia.json` wychodził `-rw------- root`,
+czyli nieczytelny dla partnera. Wyszło dopiero na serwerze, bo testy sprawdzały
+zawartość, a nie jedyną własność, od której zależy działanie całej funkcji. Serwerem
+się tego nie obejdzie: `chmod` przeżyje do następnego przepisania, czyli ~20 sekund.
+
+**Pierwszy przebieg daje JEDNĄ linię `pierwsza_migawka`,** a nie tyle wpisów „dodane",
+ile jest rekordów (na produkcji byłyby 124). Odbiorca musi odróżnić „wystawiliśmy
+most" od „handlowcy wpisali dziś 124 spotkania". Ten sam warunek łapie odtworzenie
+katalogu po awarii: nie mamy skrótów, więc nie WIEMY, co się zmieniło.
 
 **Most jest dodatkiem i łapie własne wyjątki.** Handlowiec ma zapisać wizytę także
 wtedy, gdy katalog wymiany zniknął. Wyłącznik: `MOST=0` w środowisku.

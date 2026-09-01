@@ -32,10 +32,18 @@ services:
       # tam nie zajrzy — a cały sens mostu polega na tym, żeby ktoś z zewnątrz
       # te pliki przeczytał.
       #
-      # Ścieżka BEZWZGLĘDNA, nie `./most`. Katalog aplikacji na VPS jest klonem
+      # KATALOG OBOK APLIKACJI, nie w niej i nie w /srv (przeniesione 01.09).
+      # Powód jest ludzki, nie techniczny: obie osoby, które do tego zaglądają,
+      # pracują w `/home/ubuntu/apps` — my z konta `ubuntu`, partnerka przez
+      # skrót do tego samego katalogu. Ścieżka poza ich zasięgiem wzroku znaczy
+      # skakanie po systemie plików przy każdym sprawdzeniu, a rzecz, do której
+      # trudno zajrzeć, przestaje być sprawdzana.
+      #
+      # Ścieżka BEZWZGLĘDNA i OBOK, nie `./most`. Katalog aplikacji jest klonem
       # gita, w którym leży pakiet `most/` z kodem — `./most` przykryłby go
       # katalogiem danych i `git pull` przestałby mieć co aktualizować.
-      - /srv/most/prod:/data/most
+      # `apps/most` jest rodzeństwem `apps/ph.silesia3d.site`, więc kolizji nie ma.
+      - /home/ubuntu/apps/most/prod:/data/most
     env_file:
       - .env
     environment:
@@ -64,7 +72,7 @@ services:
       # Wspólny znaczyłby, że grafik z bazy testowej trafia do partnera jako
       # produkcyjny — a plik nazywa się tak samo, więc nikt by tego nie zauważył.
       # Dla pewności `profil` jedzie też WEWNĄTRZ każdego wystawianego pliku.
-      - /srv/most/demo:/data/most
+      - /home/ubuntu/apps/most/demo:/data/most
     env_file:
       - .env
     environment:

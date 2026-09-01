@@ -112,6 +112,10 @@ def zapisz(conn, teraz=None):
     # go odpytuje, ma dostać zero linii, a nie „nie ma takiego pliku" — to dwie
     # różne wiadomości i tylko jedna z nich jest prawdziwa.
     pliki.utworz_dziennik()
+    # Katalog leży obok aplikacji, czyli tam, gdzie ludzie zaglądają — więc musi
+    # sam mówić, czym jest. Cztery pliki .json bez wyjaśnienia wyglądają jak
+    # śmieci po jakimś skrypcie i prędzej czy później ktoś je „posprząta".
+    pliki.zapisz_atomowo(pliki.PLIK_OPIS, pliki.OPIS)
 
     # PIERWSZY PRZEBIEG NIE JEST ZMIANĄ W GRAFIKU i nie wolno mu tak wyglądać.
     #

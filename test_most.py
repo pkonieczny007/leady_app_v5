@@ -283,6 +283,16 @@ def m6_pliki(conn, ids):
     sprawdz("powstał zajecia.json", os.path.exists(pliki.sciezka(pliki.PLIK_DANE)))
     sprawdz("powstał zajecia.xlsx", os.path.exists(pliki.sciezka(pliki.PLIK_XLSX)))
     sprawdz("powstał stan.json", os.path.exists(pliki.sciezka(pliki.PLIK_STAN)))
+    # Katalog leży obok aplikacji, czyli tam, gdzie ludzie realnie zaglądają —
+    # więc musi sam mówić, czym jest. Cztery pliki .json bez wyjaśnienia
+    # wyglądają jak śmieci po jakimś skrypcie i ktoś je w końcu „posprząta".
+    opis = pliki.sciezka(pliki.PLIK_OPIS)
+    sprawdz("katalog tłumaczy się sam", os.path.exists(opis))
+    tresc = open(opis, encoding="utf-8").read()
+    sprawdz("opis wskazuje plik główny i ostrzega przed edycją",
+            pliki.PLIK_DANE in tresc and "NIE EDYTOWA" in tresc)
+    sprawdz("i mówi wprost, czego w katalogu NIE MA",
+            "telefon" in tresc.lower() and "notatek" in tresc.lower())
     sprawdz("nie został żaden plik tymczasowy",
             not [n for n in os.listdir(katalog) if n.startswith(".tmp_")],
             str([n for n in os.listdir(katalog) if n.startswith(".tmp_")]))
