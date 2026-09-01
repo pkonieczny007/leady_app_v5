@@ -1078,6 +1078,44 @@ def main():
             poz_blok > 0 and poz_blok < poz_data < poz_akcje)
 
     # -----------------------------------------------------------------
+    # S23 — DT kontra cykliczne widać w kalendarzu (pkt 1 Kasi, 31.08)
+    #
+    # „Musimy jakoś kolorem zaznaczyć DT i cykliczne, żeby mi się to wyróżniało,
+    # bo mi się to miesza". Kolor kafla jest ZAJĘTY — niesie trenera — więc typ
+    # dostaje własny nośnik (obwódka) i nazwę wersalikami. Test pilnuje obu,
+    # bo sama obwódka przy dwunastu kolorach trenerów nadal wymaga pamiętania,
+    # co znaczy który.
+    print("\nS23 — kalendarz odróżnia DT od cyklicznych")
+    sprawdz("filtr skraca długi typ, żeby nie zawijał kafla",
+            A.f_skrot_typu("CYKLICZNE-PRZEDSZKOLE") == "CYKL. PRZEDSZKOLE")
+    sprawdz("DT zostaje DT", A.f_skrot_typu("DT") == "DT")
+    # Słownik `typ_eventu` to DANE — klient dopisuje własne pozycje. Mapa
+    # z pominięciem nieznanych zostawiłaby je bez podpisu, czyli w stanie,
+    # na który to jest lekarstwo.
+    sprawdz("nieznany typ też dostaje podpis, wersalikami",
+            A.f_skrot_typu("festyn") == "FESTYN")
+    sprawdz("pusty typ nie robi pustego znacznika", A.f_skrot_typu(None) == "")
+
+    for widok, etykieta in (("", "macierz"), ("&widok=agenda", "agenda")):
+        h = KL.get("/kalendarz?m=2027-03" + widok).get_data(as_text=True)
+        sprawdz("%s: DT ma własną klasę i podpis" % etykieta,
+                "ev-dt" in h and "ev-typ" in h and ">DT<" in h)
+        sprawdz("%s: cykliczne mają własną klasę" % etykieta, "ev-cykl" in h)
+        sprawdz("%s: wariant przedszkolny podpisany osobno" % etykieta,
+                "CYKL. PRZEDSZKOLE" in h)
+
+    css = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "static", "style.css"), encoding="utf-8").read()
+    sprawdz("DT ma ostrą ramkę, o którą prosiła Kasia",
+            ".ev-dt{" in css and "box-shadow:inset" in css)
+    # Osobny odcień niż `--warn`: kolizja ma czerwone TŁO, DT samą obwódkę.
+    # Gdyby alarm i typ mówiły tym samym czerwonym, kolizja przestałaby się
+    # rzucać w oczy — a to jest błąd, nie właściwość wpisu.
+    sprawdz("i nie jest to ta sama czerwień co kolizja",
+            "--dt-ramka:#c0264a" in css and "var(--warn)" not in css.split(".ev-dt{")[1][:120])
+    sprawdz("znacznik typu ma własny styl", ".ev-typ{" in css)
+
+    # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]
     print("\n" + "=" * 62)

@@ -107,6 +107,20 @@ DOZWOLONE_TRENER = {"index", "logowanie", "api_logowanie", "wyloguj",
                     "dostepnosc", "kalendarz"} | EDYCJA_DOSTEPNOSCI
 
 
+# Metody, które niczego nie zapisują. `wyloguj` i `api_logowanie` są w JAWNE,
+# więc rola tylko do odczytu wejdzie i wyjdzie normalnie.
+METODY_BEZ_ZAPISU = {"GET", "HEAD", "OPTIONS"}
+
+# Kto widzi ekrany koordynatora. BIURO widzi je wszystkie — o to prosiła Kasia
+# („widok jak koordynator") — a zapisy odcina mu wcześniej kontrola metody.
+ROLE_PELNY_WIDOK = frozenset({"koordynator"}) | uz.ROLE_TYLKO_ODCZYT
+
+# …poza importem. Samo wejście na ten ekran nic nie zapisuje, ale PO TO się na
+# niego wchodzi — pokazywanie go roli bez prawa zapisu kończyłoby się odmową
+# dopiero po wybraniu pliku, czyli po zmarnowanej robocie.
+TYLKO_KOORDYNATOR_TAKZE_PODGLAD = {"import_view"}
+
+
 def _wolno_edytowac_dostepnosc(trener):
     """Czy zalogowany może ruszyć wiersz tego trenera."""
     u = uz.zalogowany()
@@ -147,6 +161,12 @@ def _wolno_pisac_do_leada(conn, lead_id):
     u = uz.zalogowany()
     if not u:
         return ("Sesja wygasła — zaloguj się ponownie", 401)
+    # Drugi poziom blokady dla ról tylko do odczytu. Pierwszy (kontrola metody
+    # w `before_request`) już je odciął, więc tutaj nic nie powinno dojść —
+    # i właśnie dlatego to jest warte napisania. Ta sama lekcja co przy K01
+    # z 20.08: blokada na jednym poziomie znaczy blokada do pierwszej pomyłki.
+    if u["rola"] in uz.ROLE_TYLKO_ODCZYT:
+        return ("Konto BIURO ma podgląd bez prawa zapisu", 403)
     if u["rola"] != "handlowiec":
         return None                    # koordynator; trener tu nie dojdzie
     row = conn.execute("SELECT handlowiec FROM leady WHERE id=?", (lead_id,)).fetchone()
@@ -191,7 +211,27 @@ def _kontrola_dostepu():
         if request.path.startswith("/api/"):
             return jsonify(ok=False, error="Sesja wygasła — zaloguj się ponownie"), 401
         return redirect(url_for("logowanie", dalej=request.full_path))
-    if request.endpoint in TYLKO_KOORDYNATOR and u["rola"] != "koordynator":
+    # ROLA TYLKO DO ODCZYTU (BIURO) — sprawdzamy METODĘ HTTP, nie listę
+    # endpointów. Lista wymagałaby dopisania każdego nowego zapisu, a pierwszy
+    # pominięty byłby dziurą, o której nikt by nie wiedział — tak samo jak przy
+    # „Usuń lead", który przez trzy tygodnie renderował się handlowcowi.
+    # Metoda pokrywa też endpointy, które dopiero powstaną.
+    #
+    # Musi być PRZED bramką koordynatora, bo biuro ma widzieć jego ekrany —
+    # inaczej dostałoby „ten ekran prowadzi koordynator" zamiast prawdziwego
+    # powodu odmowy przy próbie zapisu.
+    if u["rola"] in uz.ROLE_TYLKO_ODCZYT \
+            and request.method not in METODY_BEZ_ZAPISU \
+            and request.endpoint not in JAWNE:
+        if request.path.startswith("/api/"):
+            return jsonify(ok=False,
+                           error="Konto BIURO ma podgląd bez prawa zapisu"), 403
+        flash("Konto BIURO ma podgląd bez prawa zapisu.", "err")
+        return redirect(_po_zalogowaniu(u["rola"]))
+    wolno_ogladac = (u["rola"] == "koordynator"
+                     or (u["rola"] in ROLE_PELNY_WIDOK
+                         and request.endpoint not in TYLKO_KOORDYNATOR_TAKZE_PODGLAD))
+    if request.endpoint in TYLKO_KOORDYNATOR and not wolno_ogladac:
         if request.path.startswith("/api/"):
             return jsonify(ok=False, error="Brak uprawnień"), 403
         flash("Ten ekran prowadzi koordynator.", "err")
@@ -2856,6 +2896,25 @@ def f_pl_data(v):
 def f_krotka(v, n=42):
     s = "" if v is None else str(v)
     return s if len(s) <= n else s[:n - 1] + "…"
+
+
+@app.template_filter("skrot_typu")
+def f_skrot_typu(v):
+    """
+    Typ spotkania WERSALIKAMI na kafelku — pkt 1 Kasi z 31.08 („żeby mi się to
+    nie mieszało"). Skracamy tylko warianty cykliczne, bo pełna nazwa
+    „CYKLICZNE-PRZEDSZKOLE" zawija kafel w macierzy na trzy linie.
+
+    Nieznane typy przepuszczamy bez zmian poza wielkością liter: słownik
+    `typ_eventu` to DANE i klient dopisuje do niego własne pozycje. Mapa
+    z pominięciem nieznanych zostawiłaby je na kafelku bez podpisu — czyli
+    dokładnie w stanie, na który to jest lekarstwo.
+    """
+    s = ("" if v is None else str(v)).strip()
+    if not s:
+        return ""
+    return {"CYKLICZNE": "CYKLICZNE",
+            "CYKLICZNE-PRZEDSZKOLE": "CYKL. PRZEDSZKOLE"}.get(s.upper(), s.upper())
 
 
 @app.template_filter("bez_prefiksu")

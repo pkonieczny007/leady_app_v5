@@ -120,7 +120,11 @@
       <a href="{{ url_for('kalendarz') }}"      class="{{ 'on' if nav_active == 'kalendarz' }}">Kalendarz DT</a>
       <a href="{{ url_for('dostepnosc') }}"     class="{{ 'on' if nav_active == 'dostepnosc' }}">Dostępność</a>
       {% endif %}
-      {% if ja and ja.rola == 'koordynator' %}
+      {# BIURO widzi te same ekrany co koordynator (Kasia, 31.08: „widok jak
+         koordynator, ale tylko do odczytu"). Zapisów nie odcina to menu, tylko
+         kontrola metody HTTP w `before_request` — ukrycie przycisku nigdy
+         niczego nie zamknęło, o czym ten projekt przekonał się przy K01. #}
+      {% if ja and ja.rola in ('koordynator', 'biuro') %}
       <a href="{{ url_for('pulpit') }}"         class="{{ 'on' if nav_active == 'pulpit' }}">Pulpit</a>
       <a href="{{ url_for('baza') }}"           class="{{ 'on' if nav_active == 'baza' }}">Baza</a>
       <a href="{{ url_for('zbiorczy') }}"       class="{{ 'on' if nav_active == 'zbiorczy' }}">Zbiorczy</a>
@@ -133,13 +137,23 @@
     </nav>
 
     <div class="topbar-right">
-      {% if ja and ja.rola == 'koordynator' %}
+      {% if ja and ja.rola in ('koordynator', 'biuro') %}
       <a class="btn btn-secondary btn-sm" href="{{ url_for('export_xlsx') }}{{ '?' ~ _q if _q else '' }}"
          title="Eksport tego, co widać po filtrach">↓ Pobierz XLSX</a>
+      {% endif %}
+      {# Import zostaje SAMEMU koordynatorowi. To jedyny ekran, na którym samo
+         wejście nic nie robi, ale po to się na niego wchodzi — a przycisk
+         w menu roli, która nie ma prawa zapisu, kończyłby się odmową dopiero
+         po wybraniu pliku. #}
+      {% if ja and ja.rola == 'koordynator' %}
       <a class="btn btn-primary btn-sm{{ ' on' if nav_active == 'import_view' }}"
          href="{{ url_for('import_view') }}">↑ Import</a>
       {% endif %}
       {% if ja %}
+      {# Rola tylko do odczytu ma to WIDZIEĆ. Inaczej człowiek klika, dostaje
+         odmowę i zgłasza błąd — a to nie błąd, tylko jego uprawnienia. #}
+      {% if ja.rola == 'biuro' %}<span class="tag tag-neutral" title="Konto BIURO:
+pełny podgląd, bez prawa zapisu">tylko podgląd</span>{% endif %}
       <span class="kto-zalogowany" title="Zalogowano jako {{ ja.osoba }} ({{ ja.rola }})">
         {{ ja.osoba|bez_prefiksu }}
       </span>

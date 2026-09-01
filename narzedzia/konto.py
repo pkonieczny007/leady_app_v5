@@ -155,7 +155,10 @@ def main():
 
     p = sub.add_parser("ustaw", help="załóż konto albo zmień PIN/rolę istniejącego")
     p.add_argument("--osoba", required=True)
-    p.add_argument("--rola", choices=["koordynator", "handlowiec"])
+    # Lista z `uzytkownicy.ROLE`, a nie wpisana tu z ręki — od 31.08 doszło
+    # „biuro" i wpisana kopia znaczyłaby, że konta tej roli nie da się założyć
+    # jedynym narzędziem, które działa, gdy nie da się zalogować.
+    p.add_argument("--rola", choices=list(uz.ROLE))
     p.add_argument("--pin", help="4 cyfry albo słowo 'losowy'")
 
     p = sub.add_parser("wylacz", help="wyłącz konto (nie kasuje danych)")

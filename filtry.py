@@ -32,6 +32,7 @@ ZAKRESY = {
     "t": ("T", "prowadzący", "trener, drugi prowadzący, zastępstwo, drukarz"),
     "w": ("∗", "wszystko", "dowolne pole wpisu: szkoła, miasto, osoba, sala, uwagi…"),
     "n": ("N", "nazwisko", "tylko osoba: prowadzący, zastępstwo, drukarz, handlowiec"),
+    "m": ("M", "miasto", "tylko miejscowość placówki"),
 }
 
 # zestawy zakresów per ekran — to jedyne, czym ekrany się różnią
@@ -43,7 +44,13 @@ ZAKRESY_GRAFIK = ("w", "n")              # dostępność: „wszystko" albo „n
 # „kto tam będzie", a „H" jawnie pyta „czyja to szkoła". Dostępność „h" NIE
 # dostaje: jej wiersze to trenerzy, chip bez czego szukać dawałby pustą siatkę
 # — `parsuj` sprowadzi tam takie chipy do „wszystko" zamiast gubić wpis.
-ZAKRESY_KALENDARZ = ("w", "n", "h")
+# „m" doszło 31.08 (pkt 4 Kasi: „tu przydałoby się jeszcze miasto do filtrów").
+# Miasto DAŁO SIĘ już filtrować zakresem „wszystko" — ale razem ze szkołą, salą
+# i uwagami, więc „Zabrze" trafiało też w szkołę z Zabrza w nazwie i w notatkę
+# „dojazd przez Zabrze". Osobny zakres to ta sama zasada, dla której powstał
+# „H handlowiec": wpisanie czegoś w pole „wszystko" nie jest tym samym, co
+# zapytanie o konkretną rzecz.
+ZAKRESY_KALENDARZ = ("w", "n", "h", "m")
 
 MAX_CHIPOW = 12                          # granica zdrowego rozsądku, nie techniczna
 
@@ -171,7 +178,8 @@ def _sklej(rekord, pola):
 def pola_eventu(e):
     """
     `pobierz_pole` dla jednego spotkania — z pamięcią, bo chipów bywa kilka.
-    Zakresy grafiku: „n" (kto tam będzie), „h" (czyja to szkoła), „w" (wszystko).
+    Zakresy grafiku: „n" (kto tam będzie), „h" (czyja to szkoła),
+    „m" (w jakim mieście), „w" (wszystko).
     """
     pamiec = {}
 
@@ -181,6 +189,12 @@ def pola_eventu(e):
                 pola = POLA_OSOBY
             elif zakres == "h":
                 pola = ("handlowiec",)
+            elif zakres == "m":
+                # SAMA miejscowość — bez nazwy placówki i bez adresu. Gdyby
+                # wchodził tu adres, „Zabrze" trafiałoby w każdą szkołę przy
+                # ulicy Zabrzańskiej, a wtedy zakres nie różniłby się od
+                # „wszystko" i nie miałby po co istnieć.
+                pola = ("miejscowosc",)
             else:
                 pola = POLA_WSZYSTKO
             pamiec[zakres] = _sklej(e, pola)

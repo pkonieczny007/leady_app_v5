@@ -29,6 +29,11 @@ TRZY ROLE, bo tyle wynika z ich pracy:
   trener       najwęższa rola: swoja dostępność (podgląd i edycja) oraz
                kalendarz. Nie widzi leadów ani danych kontaktowych szkół,
                bo do swojej pracy ich nie potrzebuje
+  biuro        widok koordynatora BEZ PRAWA ZAPISU (prośba Kasi z 31.08:
+               „dodatkowa rola Biuro — widok jak koordynator, ale tylko do
+               odczytu"). Czwarta rola, choć 30.08 zapadła decyzja „nie robimy
+               roli biuro" — Kasia świadomie ją odwróciła, bo osoba w biurze
+               ma odpowiadać na pytania o grafik, nie zmieniać ustaleń
 
 Trener edytuje WYŁĄCZNIE własny wiersz. To nie jest kwestia zaufania, tylko
 tego, że w ich zeszłorocznym pliku każdy mógł nadpisać każdemu deklarację
@@ -41,7 +46,12 @@ import secrets
 
 from flask import session
 
-ROLE = ("koordynator", "handlowiec", "trener")
+ROLE = ("koordynator", "handlowiec", "trener", "biuro")
+
+# Role, które WIDZĄ wszystko i nie zapisują NIC. Zbiór, nie pojedyncza nazwa —
+# gdyby kiedyś doszła druga taka rola (księgowość, audyt), wystarczy ją tu
+# dopisać, zamiast szukać po kodzie warunków `rola == "biuro"`.
+ROLE_TYLKO_ODCZYT = frozenset({"biuro"})
 
 # Iteracje PBKDF2. 200k to sensowny kompromis dla czterocyfrowego PIN-u:
 # przy takiej przestrzeni (10 000 kombinacji) i tak jedyną realną obroną jest

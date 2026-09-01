@@ -459,6 +459,58 @@ def main():
     sprawdz("legenda nazywa oba języki pola",
             "sq-filtr" in html and "sq-fill" in html)
 
+    # Blok NA KOŃCU celowo: dokłada placówkę i spotkanie, a wcześniejsze
+    # sprawdzenia liczą wystąpienia. Wstawiony w środku psuł test etykiet roli
+    # („trafienie przez prowadzącego” dostawało trzy wpisy zamiast dwóch) —
+    # czyli test przechodził albo padał zależnie od kolejności, a to już raz
+    # kosztowało nas fałszywie zielone R4 w test_obszary.
+    print("\nO8 — chip „M miasto” na kalendarzu (pkt 4 Kasi, 31.08)")
+    ch = fl.parsuj("m:Cokolwiek", fl.ZAKRESY_KALENDARZ)
+    sprawdz("kalendarz zna zakres „m”", ch and ch[0]["zakres"] == "m", str(ch))
+    sprawdz("zakres ma etykietę i opis w słowniku zakresów",
+            fl.ZAKRESY["m"][1] == "miasto" and "miejscowość" in fl.ZAKRESY["m"][2])
+    sprawdz("dostępność „m” nie dostaje — chip spada do „wszystko”, wpis zostaje",
+            fl.parsuj("m:Iks", fl.ZAKRESY_GRAFIK)[0]["zakres"] == "w")
+
+    conn = db.get_conn()
+    M2 = next((m for m in db.slownik_values(conn, "miasto") if m != M1), None)
+    conn.close()
+    if not M2:
+        sprawdz("słownik miast ma co najmniej dwie pozycje", False,
+                "bez drugiego miasta filtr po mieście nie ma czego rozróżnić")
+    else:
+        # Placówka w DRUGIM mieście — bez niej filtr po mieście nic nie dowodzi,
+        # bo wszystkie dotychczasowe rekordy siedzą w tym samym.
+        kod, d = post("/api/lead", {"nazwa": "SP Epsilon", "miejscowosc": M2,
+                                    "typ": None, "handlowiec": H2})
+        sprawdz("dane testowe: placówka w drugim mieście", kod == 200 and d.get("ok"))
+        post("/api/event", {"lead_id": d["id"], "typ": "DT", "data": DATA,
+                            "godz_od": "09:00", "godz_do": "11:00", "trener": T1})
+
+        def kal_m(osoby):
+            conn = db.get_conn()
+            c = fl.parsuj(osoby, fl.ZAKRESY_KALENDARZ)
+            wyn = tuple(b(conn, MIES, chipy=c)["n_events"]
+                        for b in (cv.build_matrix, cv.build_agenda, cv.build_starty))
+            conn.close()
+            return wyn
+
+        frag_m2 = A.f_bez_prefiksu(M2)
+        sprawdz("chip „M” zawęża do jednego miasta",
+                kal_m("m:" + frag_m2) == (1, 1, 1), str(kal_m("m:" + frag_m2)))
+        sprawdz("i zostawia resztę w mieście sąsiednim",
+                kal_m("m:" + A.f_bez_prefiksu(M1))[1] >= 4,
+                str(kal_m("m:" + A.f_bez_prefiksu(M1))))
+        # SEDNO osobnego zakresu: „wszystko” trafia też w NAZWĘ szkoły i w uwagi,
+        # więc szukanie tam miasta oddaje rekordy, których w tym mieście nie ma.
+        # Dlatego to nie jest to samo pytanie i dlatego „M” musi istnieć osobno.
+        sprawdz("chip „M” NIE trafia w nazwę placówki",
+                kal_m("m:Epsilon") == (0, 0, 0), str(kal_m("m:Epsilon")))
+        sprawdz("…a „wszystko” trafia — stąd potrzeba osobnego zakresu",
+                kal_m("w:Epsilon")[1] >= 1, str(kal_m("w:Epsilon")))
+        sprawdz("ekran kalendarza przyjmuje chip „M”",
+                KL.get("/kalendarz?m=%s&osoby=m%%3A%s" % (MIES, frag_m2)).status_code == 200)
+
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n== %d/%d sprawdzeń OK ==" % (ok, len(WYNIKI)))
     return 0 if ok == len(WYNIKI) else 1

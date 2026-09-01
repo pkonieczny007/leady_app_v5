@@ -42,7 +42,8 @@ KL = A.app.test_client()
 PH_A = "90. Test-Handlowiec-A"
 PH_B = "91. Test-Handlowiec-B"
 KOOR = "99. Test-Koordynator"
-PIN = {PH_A: "1111", PH_B: "2222", KOOR: "3333"}
+BIURO = "98. Test-Biuro"
+PIN = {PH_A: "1111", PH_B: "2222", KOOR: "3333", BIURO: "4444"}
 
 WYNIKI = []
 
@@ -90,7 +91,8 @@ def przygotuj():
         conn.execute("INSERT INTO slowniki (rodzaj, wartosc, aktywny) VALUES ('handlowiec', ?, 1)",
                      (osoba,))
     conn.commit()
-    for osoba, rola in ((PH_A, "handlowiec"), (PH_B, "handlowiec"), (KOOR, "koordynator")):
+    for osoba, rola in ((PH_A, "handlowiec"), (PH_B, "handlowiec"),
+                        (KOOR, "koordynator"), (BIURO, "biuro")):
         if not uz.znajdz(conn, osoba):
             uz.utworz(conn, osoba, rola, PIN[osoba])
 
@@ -315,6 +317,72 @@ def test_tworzenie_leada(ids):
     sprawdz("koordynator zakłada placówkę bez zmian", kod == 200, "kod %s" % kod)
 
 
+def test_biuro(ids):
+    """
+    Rola BIURO (Kasia, 31.08): „widok jak koordynator, ale tylko do odczytu".
+
+    Blokada stoi na METODZIE HTTP, nie na liście endpointów. Lista wymagałaby
+    dopisywania każdego nowego zapisu, a pierwszy pominięty byłby dziurą, o
+    której nikt by nie wiedział — dokładnie jak „Usuń lead", który przez trzy
+    tygodnie renderował się handlowcowi i kończył odmową dopiero po kliknięciu.
+
+    Dlatego test NIE wylicza endpointów po jednym „na wszelki wypadek", tylko
+    sprawdza REGUŁĘ: podgląd wszędzie tak, każda metoda inna niż GET nie.
+    """
+    print("\n-- BIURO: widzi wszystko, nie zapisuje nic --")
+    zaloguj(BIURO)
+
+    for sciezka in ("/pulpit", "/baza", "/leady", "/kalendarz", "/zbiorczy",
+                    "/niewykorzystane", "/tydzien", "/slowniki", "/uzytkownicy"):
+        sprawdz("BIURO widzi %s" % sciezka,
+                KL.get(sciezka).status_code == 200,
+                "kod %s" % KL.get(sciezka).status_code)
+    sprawdz("BIURO widzi kartę cudzej szkoły",
+            KL.get("/lead/%d" % ids["b"]).status_code == 200)
+    # Eksport to GET i jest świadomie poza TYLKO_KOORDYNATOR — biuro ma
+    # odpowiadać na pytania o grafik, więc plik do odpowiedzi też mu się należy.
+    sprawdz("BIURO pobiera eksport XLSX", KL.get("/export.xlsx").status_code == 200)
+
+    kod, _ = patch("/api/lead/%d" % ids["b"], {"field": "uwagi", "value": "z biura"})
+    sprawdz("BIURO nie zapisze notatki", kod == 403, "kod %s" % kod)
+    kod, _ = patch("/api/lead/%d" % ids["b"], {"field": "handlowiec", "value": PH_A})
+    sprawdz("BIURO nie przypisze szkoły", kod == 403, "kod %s" % kod)
+    r = KL.post("/api/event", data=json.dumps({"lead_id": ids["b"], "typ": "DT",
+                                               "data": "2026-11-05"}),
+                content_type="application/json")
+    sprawdz("BIURO nie doda spotkania", r.status_code == 403, "kod %s" % r.status_code)
+    kod, _ = usun("/api/lead/%d" % ids["b"])
+    sprawdz("BIURO nie skasuje leada", kod == 403, "kod %s" % kod)
+    r = KL.post("/api/przypisz", data=json.dumps({"ids": [ids["b"]],
+                                                  "handlowiec": PH_A}),
+                content_type="application/json")
+    sprawdz("BIURO nie użyje przydziału", r.status_code == 403, "kod %s" % r.status_code)
+
+    # Import zostaje SAMEMU koordynatorowi — nawet do podglądu. Samo wejście nic
+    # nie zapisuje, ale PO TO się na ten ekran wchodzi; pokazany roli bez prawa
+    # zapisu kończyłby się odmową dopiero po wybraniu pliku.
+    sprawdz("BIURO nie wchodzi nawet na ekran importu",
+            KL.get("/import").status_code in (302, 403),
+            "kod %s" % KL.get("/import").status_code)
+
+    # Sedno: reguła ma trzymać także tam, gdzie nikt nie wymienił endpointu.
+    # `api_zwrot_podglad` to POST, który NICZEGO nie zmienia — a mimo to ma być
+    # zamknięty, bo blokada idzie po metodzie, nie po tym, co endpoint robi.
+    r = KL.post("/api/zwrot/podglad", data="{}", content_type="application/json")
+    sprawdz("reguła obejmuje też zapisy, których nikt nie wymienił",
+            r.status_code == 403, "kod %s" % r.status_code)
+
+    # Konto BIURO ma WIDZIEĆ swoje ograniczenie. Inaczej człowiek klika,
+    # dostaje odmowę i zgłasza błąd — a to nie błąd, tylko jego uprawnienia.
+    html = KL.get("/pulpit").get_data(as_text=True)
+    sprawdz("pasek u góry mówi wprost „tylko podgląd”", "tylko podgląd" in html)
+
+    sprawdz("rola jest w słowniku ról (da się ją nadać na ekranie Konta)",
+            "biuro" in uz.ROLE)
+    sprawdz("i jest oznaczona jako tylko do odczytu",
+            "biuro" in uz.ROLE_TYLKO_ODCZYT)
+
+
 def test_koordynator(ids):
     print("\n-- koordynator: bez zmian, wolno mu wszystko --")
     zaloguj(KOOR)
@@ -499,6 +567,7 @@ def main():
     test_eksport(ids)
     test_oddanie(ids)
     test_odwolanie_terminu_cyklu(ids)
+    test_biuro(ids)
 
     ok = sum(1 for _, w, _ in WYNIKI if w)
     print("\n" + "=" * 62)

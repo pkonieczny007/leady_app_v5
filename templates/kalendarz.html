@@ -19,14 +19,28 @@
   samym dniu było niewidoczne. Tu komórka to lista rekordów, więc widać wszystkie.
 #}
 
+{# Pkt 1 Kasi (31.08): „musimy jakoś kolorem zaznaczyć DT i cykliczne, żeby mi
+   się to wyróżniało w kalendarzu, bo mi się to miesza (…) może jakaś ramka
+   czerwona ostra na DT (…) cokolwiek, żeby to było widać".
+
+   DWIE RZECZY, BO KOLOR SAM NIE WYSTARCZY. Kolor kafla NIE JEST wolny — niesie
+   trenera (`--ev-color` ze słownika) i to jest jego jedyne znaczenie od czerwca.
+   Drugi kolor na tym samym elemencie znaczyłby dwie rzeczy naraz i pierwszy
+   przestałby działać. Dlatego typ dostaje:
+     • WŁASNY NOŚNIK — obwódkę, nie wypełnienie (`.ev-dt` / `.ev-cykl`),
+     • NAZWĘ WERSALIKAMI — druga połowa prośby Kasi i jedyna rzecz, która
+       rozstrzyga bez zgadywania, jakiego koloru się właśnie patrzy. #}
 {% macro kafel(e, kolor) %}
-<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}{{ ' ev-braki' if e.braki and not e.odwolanie }}{{ ' ev-odwolany' if e.odwolanie }}"
+<div class="ev{{ ' kolizja' if e.kolizja }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}{{ ' ev-dt' if e.typ == 'DT' }}{{ ' ev-braki' if e.braki and not e.odwolanie }}{{ ' ev-odwolany' if e.odwolanie }}"
      style="--ev-color:{{ kolor or '#9b9797' }}"
      title="{{ e.placowka }} · {{ e.miejscowosc|bez_prefiksu }}{{ ' · ' ~ e.adres if e.adres }}
 {{ e.typ }}{{ ' ' ~ e.godz_od if e.godz_od }}{{ '–' ~ e.godz_do if e.godz_do }}
 {{ 'sala ' ~ e.numer_sali if e.numer_sali }}{{ ' · klas: ' ~ e.ilosc_klas if e.ilosc_klas }}{{ ' · dzieci: ' ~ e.ilosc_dzieci if e.ilosc_dzieci }}
 {{ 'handlowiec: ' ~ e.handlowiec if e.handlowiec }}">
-  <span class="ev-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
+  <span class="ev-naglowek">
+    <span class="ev-typ">{{ e.typ|skrot_typu }}</span>
+    <span class="ev-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
+  </span>
   <a class="ev-szkola" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka|krotka(30) }}</a>
   <span class="ev-meta">{{ e.miejscowosc|bez_prefiksu }}{% if e.numer_sali %} · s. {{ e.numer_sali }}{% endif %}</span>
   {% if e.ilosc_klas or e.ilosc_dzieci %}
@@ -340,8 +354,12 @@ Reszta cyklu jest bez zmian.">te zajęcia odwołane{{ ' · ' ~ e.odwolanie_termi
       </div>
       <div class="agenda-list">
         {% for e in d.eventy %}
-        <div class="agenda-row{{ ' kolizja' if e.kolizja }}">
+        <div class="agenda-row{{ ' kolizja' if e.kolizja }}{{ ' ev-dt' if e.typ == 'DT' }}{{ ' ev-cykl' if e.typ in TYPY_CYKLICZNE }}">
           {{ dot(e.kolor) }}
+          {# Ten sam znacznik typu co na kafelku (pkt 1, 31.08). Agenda jest
+             widokiem, w którym Kasia przegląda dzień po dniu — czyli tym,
+             w którym „miesza mi się DT z cyklicznymi" boli najbardziej. #}
+          <span class="ev-typ">{{ e.typ|skrot_typu }}</span>
           <span class="agenda-godz">{{ e.godz_od or '—' }}{{ '–' ~ e.godz_do if e.godz_do }}</span>
           <a class="strong" href="{{ url_for('lead_detail', lead_id=e.lead_id) }}">{{ e.placowka }}</a>
           <span class="muted small">· {{ e.miejscowosc|bez_prefiksu }}{% if e.numer_sali %} · sala {{ e.numer_sali }}{% endif %}
