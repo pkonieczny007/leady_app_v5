@@ -37,7 +37,7 @@ UŻYCIE
     python -m most --stan        # z linii poleceń
 """
 import datetime as dt
-import os
+import os  # noqa: F401 — sciezka() do wykrycia pierwszego przebiegu
 
 from db import meta_get, meta_set, MOST_BRUDNY
 
@@ -113,9 +113,29 @@ def zapisz(conn, teraz=None):
     # różne wiadomości i tylko jedna z nich jest prawdziwa.
     pliki.utworz_dziennik()
 
+    # PIERWSZY PRZEBIEG NIE JEST ZMIANĄ W GRAFIKU i nie wolno mu tak wyglądać.
+    #
+    # Bez tego rozróżnienia pierwsza migawka wypisuje do dziennika tyle wpisów
+    # „dodane", ile jest rekordów — na produkcji 124 — a odbiorca nie ma jak
+    # odróżnić „wystawiliśmy most" od „handlowcy wpisali dziś 124 spotkania".
+    # Gdyby po jego stronie cokolwiek reagowało na dziennik (powiadomienie,
+    # zadanie dla lidera), dostałby lawinę na powitanie. Wyszło przy wdrożeniu
+    # na produkcję 01.09, z obserwacji na serwerze — nie z testów.
+    #
+    # Ten sam warunek łapie odtworzenie katalogu wymiany po awarii: skoro nie
+    # mamy poprzednich skrótów, to NIE WIEMY, co się zmieniło, i jedna uczciwa
+    # linia mówi o tym więcej niż setka zmyślonych.
+    pierwszy_przebieg = not os.path.exists(pliki.sciezka(PLIK_SKROTY))
     stare = pliki.czytaj_json(PLIK_SKROTY, {})
     nowe = dane.skroty(migawka)
-    zmiany = dane.roznice(stare, nowe, migawka, teraz=teraz)
+    if pierwszy_przebieg:
+        zmiany = [{"kiedy": teraz.isoformat(timespec="seconds"),
+                   "co": "pierwsza_migawka",
+                   "ile": len(nowe),
+                   "uwaga": "Pierwsze wystawienie tego katalogu. To NIE są zmiany "
+                            "w grafiku — pełna zawartość jest w zajecia.json."}]
+    else:
+        zmiany = dane.roznice(stare, nowe, migawka, teraz=teraz)
     for wpis in zmiany:
         pliki.dopisz_zmiane(wpis)
     pliki.zapisz_json(PLIK_SKROTY, nowe)
@@ -128,6 +148,7 @@ def zapisz(conn, teraz=None):
         "katalog": pliki.KATALOG,
         "liczby": migawka["liczby"],
         "zmian_w_tym_przebiegu": len(zmiany),
+        "pierwsza_migawka": pierwszy_przebieg,
         "pliki": {"dane": pliki.PLIK_DANE, "arkusz": pliki.PLIK_XLSX,
                   "dziennik": pliki.PLIK_ZMIANY},
     }

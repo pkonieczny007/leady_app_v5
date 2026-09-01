@@ -23,6 +23,15 @@ wyłącznie strona wpisująca — po ich stronie albo po naszej.
 | `zmiany.jsonl` | dla maszyny | co się zmieniło od poprzedniej migawki, 1 linia JSON na zdarzenie |
 | `stan.json` | dla obu | kiedy powstało, ile czego, czy most żyje |
 
+⚠️ **Pierwszy przebieg NIE jest zmianą w grafiku** i nie wolno mu tak wyglądać.
+Wystawienie mostu w nowym katalogu daje **jedną** linię `pierwsza_migawka` z liczbą
+rekordów, a nie tyle wpisów `dodane`, ile jest spotkań (na produkcji byłyby 124).
+Odbiorca musi umieć odróżnić „wystawiliśmy most" od „handlowcy wpisali dziś
+124 spotkania" — gdyby po jego stronie cokolwiek reagowało na dziennik, dostałby
+lawinę na powitanie. Ten sam warunek łapie odtworzenie katalogu po awarii: skoro
+nie mamy poprzednich skrótów, to nie WIEMY, co się zmieniło, i jedna uczciwa linia
+mówi o tym więcej niż setka zmyślonych. `stan.json` niesie `pierwsza_migawka`.
+
 Katalog: `MOST_DIR` (w kontenerze `/data/most`, mapowane na `/srv/most/<profil>`).
 Poza kontenerem `most_dane/` w repozytorium.
 

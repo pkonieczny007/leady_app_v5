@@ -369,6 +369,32 @@ def m6b_prawa(conn, ids):
 
 def m7_zmiany(conn, ids):
     print("\nM7 — dziennik zmian i dławik")
+
+    # Pierwszy przebieg NIE jest zmianą w grafiku. Bez tego rozróżnienia
+    # wystawienie mostu wypisuje tyle wpisów „dodane", ile jest rekordów
+    # (na produkcji 124) — a odbiorca nie ma jak odróżnić „wystawiliśmy most"
+    # od „handlowcy wpisali dziś 124 spotkania". Wyszło na serwerze, nie tutaj.
+    czysty = tempfile.mkdtemp()
+    stary_katalog = pliki.KATALOG
+    try:
+        pliki.KATALOG = czysty
+        stan = most.zapisz(conn, teraz=dt.datetime(2026, 8, 1, 8, 0))
+        wpisy = [json.loads(w) for w
+                 in open(pliki.sciezka(pliki.PLIK_ZMIANY), encoding="utf-8") if w.strip()]
+        sprawdz("pierwszy przebieg daje JEDEN wpis, nie tyle, ile rekordów",
+                len(wpisy) == 1, "%d wpisów przy %d rekordach"
+                % (len(wpisy), stan["liczby"]["cykle"] + stan["liczby"]["dt"]))
+        sprawdz("i mówi wprost, że to nie są zmiany w grafiku",
+                wpisy and wpisy[0]["co"] == "pierwsza_migawka"
+                and wpisy[0]["ile"] > 1, str(wpisy[0])[:90] if wpisy else "")
+        sprawdz("stan.json też to odnotowuje", stan["pierwsza_migawka"] is True)
+        # Drugi przebieg w tym samym katalogu to już zwykła różnica.
+        stan2 = most.zapisz(conn, teraz=dt.datetime(2026, 8, 1, 10, 0))
+        sprawdz("drugi przebieg nie jest już pierwszą migawką",
+                stan2["pierwsza_migawka"] is False)
+    finally:
+        pliki.KATALOG = stary_katalog
+
     most.zapisz(conn)
     dziennik = pliki.sciezka(pliki.PLIK_ZMIANY)
     przed = os.path.getsize(dziennik) if os.path.exists(dziennik) else 0
