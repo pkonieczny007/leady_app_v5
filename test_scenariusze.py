@@ -1046,6 +1046,38 @@ def main():
             "tc-data" in html and "tc-godz" in html)
 
     # -----------------------------------------------------------------
+    # S22 — dodawanie spotkań w karcie: DWA przyciski, nie jeden (Kasia, 31.08)
+    #
+    # Do 31.08 „+ Dodaj spotkanie" zapisywał i przeładowywał stronę, a nazwa
+    # mówiła tylko o dokładaniu. Ludzie wypełniali pola i szukali „Zapisz",
+    # którego nie było — więc wpis nigdy nie powstawał. To nie był błąd zapisu,
+    # tylko przycisku, który znaczył co innego, niż mówił.
+    #
+    # Test pilnuje UMOWY MIĘDZY SZABLONEM A JS-em: obsługa w `app.js` szuka
+    # tych identyfikatorów po nazwie. Gdyby ktoś cofnął szablon, przyciski
+    # przestałyby cokolwiek robić PO CICHU — bez błędu w konsoli i bez
+    # widocznej różnicy do momentu, aż ktoś spróbuje zapisać.
+    print("\nS22 — karta placówki: dokładanie spotkań i osobny „Zapisz”")
+    html = KL.get("/lead/%d" % l_ed).get_data(as_text=True)
+    sprawdz("jest przycisk dokładający blok pól", 'id="btn-dodaj-event"' in html)
+    sprawdz("jest OSOBNY przycisk zapisu", 'id="btn-zapisz-eventy"' in html)
+    sprawdz("jest pojemnik na bloki spotkań", 'id="event-bloki"' in html)
+    # Wzór musi być osobny, nie klonowany z pierwszego bloku — klon niósłby to,
+    # co użytkownik już wpisał, a „dodaj kolejne" ma dać pusty formularz.
+    sprawdz("jest wzór pustego bloku", 'id="event-wzor"' in html)
+    sprawdz("wzór ma przycisk usuwania bloku", "btn-usun-blok" in html)
+    sprawdz("na starcie jeden blok widoczny plus wzór",
+            html.count('class="event-blok"') == 2,
+            "%d bloków w HTML" % html.count('class="event-blok"'))
+    # Pola spotkania muszą być W BLOKU, inaczej JS zbierze je jako jedno
+    # spotkanie niezależnie od tego, ile bloków dołożono.
+    poz_blok = html.find('id="event-bloki"')
+    poz_data = html.find('name="data"', poz_blok)
+    poz_akcje = html.find("dodaj-event-akcje")
+    sprawdz("pola spotkania leżą wewnątrz bloku, przed przyciskami",
+            poz_blok > 0 and poz_blok < poz_data < poz_akcje)
+
+    # -----------------------------------------------------------------
     ok = sum(1 for _, w, _ in WYNIKI if w)
     zle = [n for n, w, _ in WYNIKI if not w]
     print("\n" + "=" * 62)

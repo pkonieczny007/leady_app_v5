@@ -959,6 +959,27 @@ tr.flash td{animation:flash .9s ease-out}
   display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;
   margin-top:var(--space-3);
 }
+/* Kilka spotkań naraz (31.08). Bloki muszą być rozdzielone WIDOCZNIE — przy
+   dwudziestu polach na blok dwa zestawy jeden pod drugim zlewają się w jeden
+   długi formularz i człowiek wpisuje godzinę drugiego spotkania w pierwsze. */
+.event-blok + .event-blok{
+  margin-top:var(--space-4);
+  padding-top:var(--space-3);
+  border-top:1px dashed var(--line);
+}
+.event-blok-naglowek{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+  margin-bottom:var(--space-2);
+}
+.event-blok-tytul{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);
+}
+/* Pierwszego bloku nie da się usunąć i nie ma go jak pomylić z dołożonym —
+   jego nagłówek jest tylko podpisem, więc nie zabiera miejsca na pusty pasek. */
+#event-bloki > .event-blok:first-child .event-blok-naglowek{margin-bottom:var(--space-1)}
+.btn-usun-blok{color:var(--muted)}
+.btn-usun-blok:hover{color:var(--danger,#b3261e)}
 
 /* ------------------------------------------------------------------ import */
 

@@ -249,21 +249,69 @@
   {% endif %}
 
   {# Jeden lead = wiele spotkań. Drugie i trzecie DT tego samego trenera w tym samym
-     dniu jest DOZWOLONE — kolizja jest ostrzeżeniem, nie blokadą. #}
+     dniu jest DOZWOLONE — kolizja jest ostrzeżeniem, nie blokadą.
+
+     DWA PRZYCISKI, NIE JEDEN (zgłoszenie Kasi 31.08, pilne — „wpisuję w karcie
+     szkoły spotkanie cykliczne i nie mam klawisza zapisz, niestety nie zapisuje
+     się w kalendarzu").
+
+     Do 31.08 „+ Dodaj spotkanie" ROBIŁ JEDNO I DRUGIE: zapisywał i przeładowywał
+     stronę z pustym formularzem. Nazwa mówiła tylko o pierwszej połowie, więc
+     ludzie wypełniali pola i szukali „Zapisz" — którego nie było. Wpis nie
+     ginął: nigdy nie powstawał, bo nikt nie kliknął przycisku, który wyglądał
+     na „dodaj kolejne pola".
+
+     Nie zmieniamy nazwy przycisku, tylko jego działanie — na to, w co ludzie
+     i tak wierzyli („to dodaje kolejne spotkania, gdybym chciała dać cykliczne
+     we wtorki, a potem kolejne w piątki"). Teraz naprawdę dokłada blok pól,
+     a zapisuje osobny „Zapisz", jednym kliknięciem dla wszystkich bloków. #}
   <div class="card dodaj-event" id="event-form" data-lead="{{ lead.id }}">
     <h3>Dodaj spotkanie</h3>
-    <div class="form-grid">
-      {% for f in event_fields %}
-      <label class="fld">
-        <span class="fld-l">{{ f[0] }}</span>
-        {{ pole_form(f[1], event_fields, slowniki, domyslny=('DT' if f[1] == 'typ' else '')) }}
-      </label>
-      {% endfor %}
+
+    <div id="event-bloki">
+      <div class="event-blok" data-nr="1">
+        <div class="event-blok-naglowek">
+          <span class="event-blok-tytul">Spotkanie 1</span>
+        </div>
+        <div class="form-grid">
+          {% for f in event_fields %}
+          <label class="fld">
+            <span class="fld-l">{{ f[0] }}</span>
+            {{ pole_form(f[1], event_fields, slowniki, domyslny=('DT' if f[1] == 'typ' else '')) }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
     </div>
+
+    {# Wzór nowego bloku. Osobny `template` zamiast klonowania pierwszego bloku,
+       bo klon niósłby to, co użytkownik już wpisał — a „dodaj kolejne" ma dać
+       pusty formularz, nie kopię poprzedniego wpisu. #}
+    <template id="event-wzor">
+      <div class="event-blok" data-nr="">
+        <div class="event-blok-naglowek">
+          <span class="event-blok-tytul"></span>
+          <button type="button" class="btn btn-ghost btn-sm btn-usun-blok"
+                  title="Usuń ten blok — nic jeszcze nie zapisano">× usuń</button>
+        </div>
+        <div class="form-grid">
+          {% for f in event_fields %}
+          <label class="fld">
+            <span class="fld-l">{{ f[0] }}</span>
+            {{ pole_form(f[1], event_fields, slowniki, domyslny=('DT' if f[1] == 'typ' else '')) }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </template>
+
     <div class="dodaj-event-akcje">
-      <button type="button" class="btn btn-primary" id="btn-dodaj-event">+ Dodaj spotkanie</button>
-      <span class="muted small">Ten sam trener może mieć kilka spotkań w jednym dniu —
-        jeśli godziny się nakładają, dostaniesz ostrzeżenie, ale zapis przejdzie.</span>
+      <button type="button" class="btn" id="btn-dodaj-event">+ Dodaj spotkanie</button>
+      <button type="button" class="btn btn-primary" id="btn-zapisz-eventy">Zapisz</button>
+      <span class="muted small">„+ Dodaj spotkanie" dokłada kolejny blok pól —
+        np. cykliczne we wtorki i osobno w piątki. „Zapisz" zapisuje wszystkie naraz.
+        Ten sam trener może mieć kilka spotkań w jednym dniu; jeśli godziny się
+        nakładają, dostaniesz ostrzeżenie, ale zapis przejdzie.</span>
     </div>
   </div>
 </section>

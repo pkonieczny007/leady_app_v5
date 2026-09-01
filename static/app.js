@@ -297,29 +297,134 @@
      to jest wprost naprawa zgłoszonego buga. Kolizja godzin to ostrzeżenie.
   */
 
-  document.addEventListener("click", function (ev) {
-    if (ev.target.id !== "btn-dodaj-event") return;
-    var form = document.getElementById("event-form");
-    if (!form) return;
+  /* DWA PRZYCISKI ZAMIAST JEDNEGO — zgłoszenie Kasi z 31.08, pilne:
+     „wpisuję w karcie szkoły spotkanie cykliczne i nie mam klawisza zapisz,
+     niestety nie zapisuje się w kalendarzu".
 
-    var dane = { lead_id: parseInt(form.dataset.lead, 10) };
-    form.querySelectorAll("[name]").forEach(function (el) {
+     Do 31.08 „+ Dodaj spotkanie" ROBIŁ JEDNO I DRUGIE: zapisywał i przeładowywał
+     stronę z pustym formularzem. Nazwa mówiła tylko o pierwszej połowie, więc
+     ludzie wypełniali pola i szukali „Zapisz", którego nie było. Nic się przy tym
+     nie gubiło — wpis po prostu NIGDY NIE POWSTAWAŁ, bo nikt nie klikał
+     przycisku, który wyglądał na „dodaj kolejne pola".
+
+     Nie zmieniamy więc nazwy przycisku, tylko jego działanie — na to, w co
+     ludzie i tak wierzyli („to dodaje kolejne spotkania, gdybym chciała dać
+     cykliczne we wtorki, a potem kolejne w piątki"). */
+
+  function blokiEventow() {
+    var host = document.getElementById("event-bloki");
+    return host ? Array.prototype.slice.call(host.querySelectorAll(".event-blok")) : [];
+  }
+
+  function przenumerujBloki() {
+    blokiEventow().forEach(function (b, i) {
+      b.dataset.nr = i + 1;
+      var t = b.querySelector(".event-blok-tytul");
+      if (t) t.textContent = "Spotkanie " + (i + 1);
+    });
+  }
+
+  function daneBloku(blok) {
+    var dane = {};
+    blok.querySelectorAll("[name]").forEach(function (el) {
       if (el.value !== "") dane[el.name] = el.value;
     });
-    if (!dane.typ) dane.typ = "DT";
-    if (!dane.data) { toast("Podaj datę spotkania", true); return; }
+    return dane;
+  }
 
-    api("POST", "/api/event", dane)
-      .then(function (j) {
-        if (j.kolizja) {
-          toast("Dodano, ale UWAGA: " + j.kolizja, true);
-          setTimeout(function () { location.reload(); }, 3000);
+  /* Blok dołożony i nietknięty POMIJAMY po cichu. `typ` się nie liczy, bo ma
+     wartość domyślną „DT" — gdyby liczył, każdy pusty blok wyglądałby na
+     wypełniony i „Zapisz" zgłaszałby brak daty w czymś, czego nikt nie zaczął. */
+  function blokPusty(dane) {
+    return Object.keys(dane).filter(function (k) { return k !== "typ"; }).length === 0;
+  }
+
+  document.addEventListener("click", function (ev) {
+    if (ev.target.id !== "btn-dodaj-event") return;
+    var wzor = document.getElementById("event-wzor");
+    var host = document.getElementById("event-bloki");
+    if (!wzor || !host) return;
+    host.appendChild(wzor.content.cloneNode(true));
+    przenumerujBloki();
+    var ostatni = blokiEventow().pop();
+    if (!ostatni) return;
+    var pierwsze = ostatni.querySelector("[name]");
+    if (pierwsze) pierwsze.focus();
+    ostatni.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+
+  document.addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".btn-usun-blok");
+    if (!btn) return;
+    var blok = btn.closest(".event-blok");
+    if (!blok) return;
+    blok.remove();
+    przenumerujBloki();
+  });
+
+  document.addEventListener("click", function (ev) {
+    if (ev.target.id !== "btn-zapisz-eventy") return;
+    var form = document.getElementById("event-form");
+    if (!form) return;
+    var lead = parseInt(form.dataset.lead, 10);
+
+    /* Wszystko sprawdzamy PRZED wysłaniem czegokolwiek. Zapis idzie potem
+       spotkanie po spotkaniu (API przyjmuje jedno), więc gdyby walidacja
+       działała po drodze, dwa pierwsze byłyby już w bazie, a trzecie odbite —
+       i człowiek nie wiedziałby, co poprawić ani czego nie dublować. */
+    var bloki = blokiEventow(), doZapisu = [], i, d;
+    for (i = 0; i < bloki.length; i++) {
+      d = daneBloku(bloki[i]);
+      if (blokPusty(d)) continue;
+      if (!d.data) {
+        toast("Spotkanie " + (i + 1) + ": podaj datę", true);
+        bloki[i].scrollIntoView({ behavior: "smooth", block: "center" });
+        var pole = bloki[i].querySelector("[name='data']");
+        if (pole) pole.focus();
+        return;
+      }
+      d.typ = d.typ || "DT";
+      d.lead_id = lead;
+      doZapisu.push({ nr: i + 1, dane: d });
+    }
+    if (!doZapisu.length) {
+      toast("Nie ma czego zapisać — wypełnij przynajmniej datę spotkania", true);
+      return;
+    }
+
+    var przycisk = ev.target;
+    przycisk.disabled = true;
+    var zapisane = 0, ostrzezenia = [];
+
+    doZapisu.reduce(function (kolejka, poz) {
+      return kolejka.then(function () {
+        return api("POST", "/api/event", poz.dane).then(function (j) {
+          zapisane++;
+          /* Kolizja godzin to OSTRZEŻENIE, nie blokada — zapis przechodzi.
+             Zbieramy je i pokazujemy razem na końcu, zamiast przerywać. */
+          if (j && j.kolizja) ostrzezenia.push("Spotkanie " + poz.nr + ": " + j.kolizja);
+        });
+      });
+    }, Promise.resolve())
+      .then(function () {
+        var ile = zapisane === 1 ? "Zapisano spotkanie"
+                                 : "Zapisano spotkania: " + zapisane;
+        if (ostrzezenia.length) {
+          toast(ile + " — UWAGA: " + ostrzezenia.join(" · "), true);
+          setTimeout(function () { location.reload(); }, 3500);
         } else {
-          toast("Dodano spotkanie");
+          toast(ile);
           setTimeout(function () { location.reload(); }, 500);
         }
       })
-      .catch(function (e) { toast("Nie dodano: " + e.message, true); });
+      .catch(function (e) {
+        przycisk.disabled = false;
+        /* Mówimy WPROST, ile weszło. Przy zapisie kilku spotkań „nie udało się"
+           bez liczby zmusza człowieka do zgadywania, czy powtórzyć całość —
+           a powtórzenie zrobiłoby duble tych, które przeszły. */
+        toast("Zapisano " + zapisane + " z " + doZapisu.length +
+              ". Przerwane na spotkaniu " + (zapisane + 1) + ": " + e.message, true);
+      });
   });
 
   document.addEventListener("click", function (ev) {
