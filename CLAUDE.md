@@ -823,7 +823,7 @@ klient opisał. Warto trzymać ten nawyk: sprawdzać mechanizm, nie tylko objaw.
 
 ---
 
-## 8f. Most do Akademii Silesia3D — 31.08.2026
+## 8f. Most do Akademii Silesia3D — ✅ WDROŻONY 01.09.2026
 
 Pakiet `most/` wystawia grafik naszych zajęć do katalogu na serwerze, skąd czyta go
 aplikacja partnerska (`akademia.silesia3d.site` — React SPA + Supabase, stoi na TYM
@@ -906,11 +906,114 @@ wtedy, gdy katalog wymiany zniknął. Wyłącznik: `MOST=0` w środowisku.
 - **43 z 66 rekordów nie ma godziny rozpoczęcia**, a u partnera `start_time` jest
   wymagany. To nie błąd: termin ustala się wcześniej niż godzinę i nasza aplikacja
   świadomie tego nie blokuje. Każdy rekord jedzie z listą `missing`.
-- **Na profilu `test` są tylko 2 cykle** (64 DT). Skoro most ma wozić „cykle wpisane
-  przez PH", to dziś jest prawie pusto — warto to powiedzieć, zanim ktoś uzna, że
-  most nie działa.
+- **Na profilu `test` są tylko 2 cykle** (64 DT), na produkcji 17 cykli i 107 DT.
+  Skoro most ma wozić „cykle wpisane przez PH", to dziś jest tego mało — warto to
+  powiedzieć, zanim ktoś uzna, że most nie działa.
 - ⚠️ Lokalny `data/prod` to STARA kopia sprzed migracji `odwolane` — `calendar_view`
   się na niej wywraca. Produkcja na VPS jest zmigrowana; lokalnej kopii nie ruszamy.
+
+### ✅ Stan wdrożenia (01.09)
+Demo i produkcja stoją na `4db3a0a`. Katalogi wymiany:
+`/home/ubuntu/apps/most/{prod,demo}`, komplet plików z prawami 644, konto partnerki
+czyta. Produkcja: **17 cykli, 107 DT**; demo: 3 cykle, 72 DT. Dane aplikacji
+nietknięte (1614 placówek). Paczka dla partnerki idzie do
+`/home/ubuntu/apps/most/dla-akademii/` — kanałem dostawy jest sam katalog mostu,
+bo partnerka ma konto na tym samym serwerze.
+
+### ⚠️ Dwa błędy wyszły PRZY WDROŻENIU, nie z testów
+Oba dotyczyły rzeczy, których testy nie sprawdzały, choć sprawdzały wszystko dookoła.
+
+**Pliki wychodziły z prawami 600.** `tempfile.mkstemp()` tworzy plik z prawami 600
+celowo, a `os.replace()` przenosi go bez ich zmiany — więc `zajecia.json` wychodził
+`-rw------- root` i partnerka nie mogła go otworzyć. Testy sprawdzały ZAWARTOŚĆ,
+a nie jedyną własność, od której zależy działanie całej funkcji. Zamydlało obraz to,
+że dzienniki `.jsonl` były przypadkiem czytelne (idą przez `open(…, "a")` respektujące
+umask), więc katalog wyglądał na sprawny. Nowy test M6b sprawdza INTENCJĘ (czy kod
+nadaje prawa) niezależnie od systemu — inaczej regresja przechodziłaby na Windowsie,
+czyli tam, gdzie się ją pisze.
+
+**Pierwsza migawka wyglądała jak 124 zmiany w grafiku.** Nie błąd kodu, tylko
+komunikatu: odbiorca nie miał jak odróżnić „wystawiliśmy most" od „handlowcy wpisali
+dziś 124 spotkania". To zgłosił drugi agent z serwera, patrząc na działający system —
+nie wyszłoby z żadnego testu, bo wszystko działało zgodnie ze specyfikacją.
+
+**Wniosek na przyszłość:** przy funkcji, której sensem jest, że KTOŚ INNY czyta wynik,
+trzeba testować także to, co widzi ten ktoś — prawa, nazwy, komunikaty — a nie tylko
+poprawność danych.
+
+---
+
+## 8g. Runda poprawek 31.08–01.09.2026 — cztery punkty Kasi
+
+Materiał rundy: `docs/poprawki/2026-08-31/` (poza repo). Testy po rundzie:
+**11 plików, 1143 sprawdzenia + 93 `parsers` + 17 node**, komplet OK.
+Kod na `main` (`4db3a0a`), **wdrożone razem z mostem**.
+
+**Pkt 3 (pilny) — przycisk „Zapisz" w karcie placówki.** Zgłoszenie brzmiało „nie
+zapisuje się w kalendarzu", ale przyczyna nie była w zapisie: `+ Dodaj spotkanie`
+**robił jedno i drugie** — zapisywał i przeładowywał stronę z pustym formularzem.
+Nazwa mówiła tylko o pierwszej połowie, więc ludzie wypełniali dwadzieścia pól
+i szukali „Zapisz", którego nie było. **Nic się nie gubiło — wpis nigdy nie
+powstawał.** Nie zmieniliśmy nazwy przycisku, tylko jego działanie na to, w co
+ludzie i tak wierzyli („to dodaje kolejne spotkania"): dokłada blok pól, a zapisuje
+osobny „Zapisz", jednym kliknięciem dla wszystkich bloków.
+Walidacja idzie PRZED wysłaniem czegokolwiek — API przyjmuje jedno spotkanie, więc
+zapis leci po kolei; walidacja po drodze zostawiłaby dwa pierwsze w bazie, trzecie
+odbite, a człowiek nie wiedziałby, czego nie dublować.
+
+**Pkt 1 — DT kontra cykliczne w kalendarzu.** Kolor kafla JEST ZAJĘTY: niesie trenera
+i to jego jedyne znaczenie od czerwca. Typ dostał więc własny nośnik — obwódkę
+(nie wypełnienie) plus **nazwę wersalikami** (`skrot_typu`). Czerwień DT jest inna niż
+`--warn` (kolizja): kolizja ma czerwone TŁO, DT samą obwódkę; gdyby alarm i typ mówiły
+tym samym czerwonym, kolizja przestałaby się rzucać w oczy.
+⚠️ **Do obejrzenia u klienta:** DT to ~95% wpisów, więc ramka wyjdzie prawie wszędzie.
+Jeśli to szum, odwrócenie na rzadsze cykle to jedna linia CSS — opisana przy regule.
+
+**Pkt 4 — miasto jako osobny zakres filtra kalendarza (`M`).** Miasto DAŁO SIĘ
+filtrować zakresem „wszystko", ale razem ze szkołą, salą i uwagami: „Zabrze" trafiało
+też w szkołę z Zabrzem w nazwie i w notatkę „dojazd przez Zabrze". Ta sama zasada,
+dla której 30.08 powstał chip „H handlowiec".
+
+**Pkt 2 — rola i konto BIURO** (widok koordynatora bez prawa zapisu).
+⚠️ Odwraca decyzję z 30.08 („nie robimy roli biuro") — świadomie, na prośbę Kasi.
+**Blokada stoi na METODZIE HTTP, nie na liście endpointów.** Lista wymagałaby
+dopisywania każdego nowego zapisu, a pierwszy pominięty byłby dziurą — dokładnie jak
+„Usuń lead", który przez trzy tygodnie renderował się handlowcowi. Test sprawdza to
+na `api_zwrot_podglad`: POST, który niczego nie zmienia, a i tak jest zamknięty.
+Import zostaje samemu koordynatorowi **nawet do podglądu** — samo wejście nic nie
+zapisuje, ale PO TO się tam wchodzi. Konto WIDZI swoje ograniczenie (plakietka
+„tylko podgląd"), żeby nikt nie zgłaszał uprawnień jako błędu.
+`narzedzia/konto.py` bierze listę ról z `uzytkownicy.ROLE` zamiast kopii — inaczej
+konta nowej roli nie dałoby się założyć jedynym narzędziem działającym, gdy nie da
+się zalogować.
+
+⚠️ **Konto `BIURO` to DANE, nie kod** — zakłada się je na serwerze poleceniem
+`narzedzia/konto.py nowe --osoba BIURO --rola biuro --pin …`.
+
+### Co zostało otwarte po tej rundzie (stan 01.09)
+
+**Na serwerze, do domknięcia:**
+1. Założyć konto `BIURO` (jw.) i sprawdzić z niego, że `/baza` się otwiera,
+   a w pasku jest plakietka „tylko podgląd".
+2. Wgrać paczkę dla partnerki do `/home/ubuntu/apps/most/dla-akademii/` —
+   nigdy tam nie trafiła, więc nie ma czego podmieniać, to pierwsze wgranie.
+3. Potwierdzić `namei -l`, że konto partnerki ma prawo przejścia przez
+   `/home/ubuntu` i `/home/ubuntu/apps`.
+4. Skasować stary `/srv/most` po sprawdzeniu, że nowy katalog ma świeższe pliki.
+
+**Czeka na klienta:**
+- **Kasia:** czy czerwona ramka na DT to nie za dużo (95% wpisów) · świadome
+  potwierdzenie, że rola BIURO odwraca jej własną decyzję z 30.08.
+- **Zuzia:** co znaczyło „automatycznie" (plik u nas czy zapis u niej) · czy RLS
+  jest włączony i kto ma prawo `insert` na `recurring_classes` · konto testowe ·
+  czy dokłada kolumnę `external_id`.
+  ⚠️ **Wygląd `skrzynka.html` to prototyp, nie produkt** — jeden plik bez
+  zależności, świadomie tani do wyrzucenia. Docelowo jej programista przepisuje
+  go na komponent i wtedy wygląda jak reszta ICH aplikacji, nie naszej.
+
+**Z poprzednich rund, dalej otwarte:** pkt 7 „inna placówka" dla PH · konto
+Małolepskiej (czeka na potwierdzenie u Kasi) · skasowanie z Kasią DT wpisanych
+przez PH jako obejście braku edycji dat cykli · dopisywanie placówki po nr RSPO.
 
 ---
 
@@ -942,7 +1045,10 @@ w `rejestr_rspo.py`, `dopasowanie.py`, `geografia.py`, `dokladanie.py`,
 których **nie ma w klonie z GitHuba** — to celowe, ale nie zdziw się przy
 świeżym `git clone` ani czytając to na VPS.
 
-Zawartość (lokalnie): `2026-08-20` — `REJESTR_POPRAWEK_2026-08.md` (P01–P31),
+Zawartość (lokalnie): `2026-08-31` — **`PODSUMOWANIE_RUNDY.md`** (co zrobione, co
+zostało — czytać najpierw), `STAN_SESJI_2026-08-31.md` (rozpoznanie sprzed rundy),
+`WDROZENIE_MOSTU.md`, `ROZPOZNANIE_AKADEMIA.md` (schemat cudzej bazy) ·
+`2026-08-20` — `REJESTR_POPRAWEK_2026-08.md` (P01–P31),
 `STAN_SESJI_2026-08-20.md`, listy zgłoszeń od Zuzi · `2026-08-23` —
 `PROJEKT_BAZY_RSPO.md` (M0–M9), `PLAN_FORMULARZA.md` (v5, E0–E8),
 `PLAN_BAZY_PH.md` · `2026-08-24` — `STAN_SESJI_2026-08-24.md`,
@@ -950,5 +1056,7 @@ Zawartość (lokalnie): `2026-08-20` — `REJESTR_POPRAWEK_2026-08.md` (P01–P3
 `PODSUMOWANIE_DLA_WOJTKA_2026-08-30.md` (do wysłania klientowi),
 `STAN_SESJI_2026-08-30.md` (kroki wdrożeniowe, stan kont, checklisty).
 
-**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8e (ostatnia runda,
-stan produkcji) → 8d (baza RSPO) → 8c → właściwy plan.**
+**Czytać w tej kolejności przy wznowieniu pracy: sekcja 8g (ostatnia runda) →
+8f (most, stan produkcji) → 8e → 8d (baza RSPO) → właściwy plan.**
+Szczegóły ostatniej rundy i lista otwartych zadań:
+`docs/poprawki/2026-08-31/PODSUMOWANIE_RUNDY.md` (poza repo).
