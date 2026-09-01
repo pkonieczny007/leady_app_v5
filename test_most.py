@@ -310,6 +310,61 @@ def m6_pliki(conn, ids):
             not [n for n in os.listdir(katalog) if n.startswith(".tmp_")])
 
 
+# ------------------------------------------------------------------ M6b
+
+def m6b_prawa(conn, ids):
+    print("\nM6b — pliki MUSZĄ być czytelne dla konta odbiorcy")
+    # Defekt znaleziony na serwerze 31.08, nie przez testy: `tempfile.mkstemp()`
+    # tworzy plik z prawami 600 (celowo — to jego zadanie), a `os.replace()`
+    # przenosi go bez zmiany praw. Efekt: `zajecia.json` wychodził
+    # `-rw------- root` i partner nie mógł go otworzyć. Katalog wyglądał na
+    # sprawny, bo dzienniki `.jsonl` szły przez zwykłe `open` i miały 644.
+    #
+    # Test sprawdza INTENCJĘ (czy kod nadaje prawa każdemu plikowi) niezależnie
+    # od systemu, a na Linuksie dodatkowo REALNY tryb pliku. Bez części pierwszej
+    # ta regresja przechodziłaby na Windowsie, czyli tam, gdzie się ją pisze.
+    nadane = {}
+    prawdziwy_chmod = os.chmod
+
+    def podglad(sciezka, tryb, *a, **kw):
+        nadane[os.path.basename(str(sciezka))] = tryb
+        return prawdziwy_chmod(sciezka, tryb, *a, **kw)
+
+    os.chmod = podglad
+    try:
+        pliki.zapisz_atomowo("proba_praw.json", '{"x":1}')
+    finally:
+        os.chmod = prawdziwy_chmod
+
+    sprawdz("zapis atomowy nadaje prawa jawnie", bool(nadane),
+            "bez tego plik dziedziczy 600 po pliku tymczasowym")
+    sprawdz("i są to prawa do odczytu dla wszystkich",
+            all(t == 0o644 for t in nadane.values()),
+            " ".join("%s=%o" % (k, v) for k, v in nadane.items()))
+    # Prawa nadajemy PRZED podmianą — inaczej jest okno, w którym odbiorca widzi
+    # nowy plik i jeszcze nie może go otworzyć.
+    sprawdz("prawa nadane plikowi TYMCZASOWEMU, czyli przed podmianą",
+            any(k.startswith(".tmp_") for k in nadane), " ".join(nadane))
+
+    if os.name == "posix":
+        import stat as _stat
+        tryby = {}
+        for n in (pliki.PLIK_DANE, pliki.PLIK_XLSX, pliki.PLIK_STAN, pliki.PLIK_ZMIANY):
+            p = pliki.sciezka(n)
+            if os.path.exists(p):
+                tryby[n] = _stat.S_IMODE(os.stat(p).st_mode)
+        sprawdz("realny tryb plików to 644",
+                all(t == 0o644 for t in tryby.values()),
+                " ".join("%s=%o" % (k, v) for k, v in tryby.items()))
+    else:
+        print("       (realnego trybu nie sprawdzam — Windows nie ma praw POSIX;"
+              " powyższe sprawdzenie intencji działa wszędzie)")
+    try:
+        os.unlink(pliki.sciezka("proba_praw.json"))
+    except OSError:
+        pass
+
+
 # ------------------------------------------------------------------ M7
 
 def m7_zmiany(conn, ids):
@@ -415,6 +470,7 @@ def main():
         m4_odwolania(conn, ids)
         m5_braki(conn, ids)
         m6_pliki(conn, ids)
+        m6b_prawa(conn, ids)
         m7_zmiany(conn, ids)
         m8_zegar(conn, ids)
         m9_odpornosc(conn, ids)

@@ -23,10 +23,13 @@ w repozytorium — jest w `.gitignore`, bo niesie nazwy i adresy placówek.
 """
 import datetime as dt
 import json
+import logging
 import os
 import tempfile
 
 import db
+
+_log = logging.getLogger("most")
 
 # MOST_DIR wygrywa (ustawia go docker-compose), potem katalog danych profilu,
 # na końcu katalog w repozytorium. Ta sama kolejność co przy kopiach w
@@ -46,6 +49,28 @@ PLIK_ZMIANY = "zmiany.jsonl"
 # zajmowałoby miejsce na wolumenie.
 ROTACJA_MIESIECY = 6
 
+# ⚠️ PRAWA MUSZĄ BYĆ NADANE JAWNIE — to nie jest kosmetyka, tylko warunek
+# działania mostu.
+#
+# `tempfile.mkstemp()` tworzy plik z prawami 600 i robi to CELOWO: jego zadaniem
+# jest bezpieczny plik tymczasowy. `os.replace()` przenosi go pod docelową nazwę
+# BEZ zmiany praw — więc bez tej linii `zajecia.json` wychodzi `-rw------- root`,
+# czyli nieczytelny dla konta partnera. Cały sens mostu polega na tym, że czyta
+# go ktoś inny, więc plik zapisany i nieczytelny to to samo, co brak pliku.
+#
+# Wyszło dopiero na serwerze (31.08), bo testy sprawdzały ZAWARTOŚĆ, a nie
+# jedyną własność, od której zależy działanie całej funkcji. Dzienniki `.jsonl`
+# były przypadkiem czytelne — idą przez zwykłe `open(…, "a")`, które respektuje
+# umask — co dodatkowo zamydlało obraz: katalog wyglądał na sprawny.
+#
+# Serwerem tego nie da się obejść: `chmod` przeżyje najwyżej do następnego
+# przepisania pliku, czyli około 20 sekund. Domyślne ACL na katalogu też nie,
+# bo maska ACL jest przycinana trybem, z jakim plik powstaje.
+#
+# 644, a nie 664: pliki są tylko do CZYTANIA przez odbiorcę. Nie ma w nich
+# danych kontaktowych (patrz `dane.py`), więc nie potrzebują węższych praw.
+PRAWA_PLIKU = 0o644
+
 
 def sciezka(nazwa):
     return os.path.join(KATALOG, nazwa)
@@ -54,6 +79,20 @@ def sciezka(nazwa):
 def przygotuj_katalog():
     os.makedirs(KATALOG, exist_ok=True)
     return KATALOG
+
+
+def nadaj_prawa(sciezka_pliku):
+    """
+    Ustawia prawa odczytu dla wszystkich. Zawodzi cicho DO LOGU, nie do wyjątku:
+    plik z niewłaściwymi prawami jest wciąż lepszy niż brak pliku, ale wpis
+    w logu ma nazwać prawdziwy problem, zamiast zostawić katalog wyglądający
+    na sprawny.
+    """
+    try:
+        os.chmod(sciezka_pliku, PRAWA_PLIKU)
+    except OSError as e:
+        _log.warning("nie udało się nadać praw %o plikowi %s: %s",
+                     PRAWA_PLIKU, sciezka_pliku, e)
 
 
 def zapisz_atomowo(nazwa, dane, binarnie=False):
@@ -72,6 +111,11 @@ def zapisz_atomowo(nazwa, dane, binarnie=False):
     try:
         with open(tmp, tryb, encoding=kodowanie, newline="" if not binarnie else None) as f:
             f.write(dane)
+        # Prawa nadajemy PRZED podmianą, nie po. Inaczej istnieje okno — krótkie,
+        # ale realne — w którym odbiorca widzi już nowy plik i jeszcze nie może
+        # go otworzyć. Przy odbiorcy czytającym z crona co 15 minut takie okno
+        # trafiłoby się raz na jakiś czas i wyglądało na przypadkową awarię.
+        nadaj_prawa(tmp)
         os.replace(tmp, cel)
     except Exception:
         # Nieudany zapis nie może zostawić śmiecia, który przy następnym
@@ -96,6 +140,7 @@ def utworz_dziennik():
     p = sciezka(PLIK_ZMIANY)
     if not os.path.exists(p):
         open(p, "a", encoding="utf-8").close()
+        nadaj_prawa(p)
     return p
 
 
@@ -116,8 +161,16 @@ def dopisz_zmiane(wpis):
     nazwa = "zmiany-%s.jsonl" % dt.date.today().strftime("%Y-%m")
     linia = json.dumps(wpis, ensure_ascii=False) + "\n"
     for cel in (nazwa, PLIK_ZMIANY):
-        with open(sciezka(cel), "a", encoding="utf-8") as f:
+        p = sciezka(cel)
+        nowy = not os.path.exists(p)
+        with open(p, "a", encoding="utf-8") as f:
             f.write(linia)
+        # Dziennik idzie zwykłym `open`, więc jego prawa zależą od umask procesu.
+        # W kontenerze wypada 644 i tak, ale poleganie na umask znaczyłoby, że
+        # czytelność plików mostu zależy od czegoś, czego nie ustawiamy ani nie
+        # sprawdzamy. Nadajemy jawnie, tak samo jak przy migawce.
+        if nowy:
+            nadaj_prawa(p)
     return sciezka(nazwa)
 
 
